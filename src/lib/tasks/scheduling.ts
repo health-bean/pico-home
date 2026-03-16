@@ -94,8 +94,12 @@ export function getSeasonalTasks(
 }
 
 /**
- * Calculate a home health score based on task completion status.
- * Returns scores 0-100 for overall, safety, maintenance, and efficiency.
+ * Calculate a home upkeep score based on task completion status.
+ * Returns scores 0-100 for overall and three sub-categories.
+ *
+ * IMPORTANT: These scores reflect task completion compliance only —
+ * NOT the actual condition or safety of the home. This distinction
+ * matters for liability. Never present these as safety assessments.
  */
 export function calculateHomeHealthScore(
   tasks: {
@@ -106,18 +110,18 @@ export function calculateHomeHealthScore(
   }[]
 ): {
   overall: number;
-  safety: number;
-  maintenance: number;
-  efficiency: number;
+  criticalTasks: number;
+  preventiveCare: number;
+  homeEfficiency: number;
 } {
   const now = new Date();
   const activeTasks = tasks.filter((t) => t.isActive);
 
   if (activeTasks.length === 0) {
-    return { overall: 100, safety: 100, maintenance: 100, efficiency: 100 };
+    return { overall: 100, criticalTasks: 100, preventiveCare: 100, homeEfficiency: 100 };
   }
 
-  // Priority weights — safety matters most
+  // Priority weights — critical tasks matter most
   const weights: Record<string, number> = {
     safety: 4,
     prevent_damage: 3,
@@ -146,9 +150,9 @@ export function calculateHomeHealthScore(
     return Math.round(total / categoryTasks.length);
   }
 
-  const safetyScore = categoryScore("safety");
-  const maintenanceScore = categoryScore("prevent_damage");
-  const efficiencyScore = Math.round(
+  const criticalTasks = categoryScore("safety");
+  const preventiveCare = categoryScore("prevent_damage");
+  const homeEfficiency = Math.round(
     (categoryScore("efficiency") + categoryScore("cosmetic")) / 2
   );
 
@@ -164,5 +168,5 @@ export function calculateHomeHealthScore(
 
   const overall = totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 100;
 
-  return { overall, safety: safetyScore, maintenance: maintenanceScore, efficiency: efficiencyScore };
+  return { overall, criticalTasks, preventiveCare, homeEfficiency };
 }

@@ -142,14 +142,16 @@ export const documentTypeEnum = pgEnum("document_type", [
 ]);
 
 // ─── Tables ──────────────────────────────────────────────────────────────────
+// Auth is handled by Supabase Auth (auth.users). Our users table references
+// the Supabase auth UUID so we can store app-specific user data.
 
 export const users = pgTable("users", {
   id: uuid("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
+  authId: uuid("auth_id").notNull().unique(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   name: varchar("name", { length: 255 }),
-  passwordHash: text("password_hash"),
   avatarUrl: text("avatar_url"),
   timezone: varchar("timezone", { length: 64 }).default("America/New_York"),
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -487,9 +489,9 @@ export const homeHealthScores = pgTable("home_health_scores", {
     .notNull()
     .references(() => homes.id, { onDelete: "cascade" }),
   score: integer("score").notNull(),
-  safetyScore: integer("safety_score").notNull(),
-  maintenanceScore: integer("maintenance_score").notNull(),
-  efficiencyScore: integer("efficiency_score").notNull(),
+  criticalTasksScore: integer("critical_tasks_score").notNull(),
+  preventiveCareScore: integer("preventive_care_score").notNull(),
+  homeEfficiencyScore: integer("home_efficiency_score").notNull(),
   calculatedAt: timestamp("calculated_at", { withTimezone: true })
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),

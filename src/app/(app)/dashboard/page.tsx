@@ -73,8 +73,8 @@ interface Task {
 }
 
 const PRIORITY_CONFIG: Record<Priority, { label: string; variant: "danger" | "warning" | "info" | "default" }> = {
-  safety: { label: "Safety", variant: "danger" },
-  prevent_damage: { label: "Prevent Damage", variant: "warning" },
+  safety: { label: "Critical", variant: "danger" },
+  prevent_damage: { label: "Preventive", variant: "warning" },
   efficiency: { label: "Efficiency", variant: "info" },
   cosmetic: { label: "Cosmetic", variant: "default" },
 };
@@ -191,9 +191,9 @@ export default function DashboardPage() {
 
   const overallScore = 78;
   const subScores = [
-    { label: "Safety", score: 92 },
-    { label: "Maintenance", score: 71 },
-    { label: "Efficiency", score: 68 },
+    { label: "Critical Tasks", score: 92 },
+    { label: "Preventive Care", score: 71 },
+    { label: "Home Efficiency", score: 68 },
   ];
 
   function toggleTask(id: string) {
@@ -210,11 +210,11 @@ export default function DashboardPage() {
         <p className="text-sm text-muted-foreground">Here is your home at a glance.</p>
       </div>
 
-      {/* ---- Home Health Score ---- */}
+      {/* ---- Home Upkeep Score ---- */}
       <Card>
         <CardHeader className="items-center pb-2">
-          <CardTitle>Home Health Score</CardTitle>
-          <CardDescription>Based on task completion and inspections</CardDescription>
+          <CardTitle>Home Upkeep Score</CardTitle>
+          <CardDescription>How well you&apos;re keeping up with tasks</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-6">
           <CircularScore score={overallScore} />
@@ -229,6 +229,10 @@ export default function DashboardPage() {
               />
             ))}
           </div>
+          <p className="text-center text-xs text-muted-foreground">
+            Scores reflect task completion status, not the actual condition of your home.
+            Always consult licensed professionals for safety assessments.
+          </p>
         </CardContent>
       </Card>
 
