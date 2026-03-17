@@ -1,11 +1,48 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { useRouter } from "next/navigation";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
+import { SkeletonCard, Skeleton, SkeletonText } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface DashboardTask {
+  id: string;
+  name: string;
+  category: string;
+  priority: "safety" | "prevent_damage" | "efficiency" | "cosmetic";
+  nextDueDate: string;
+  frequencyValue: number;
+  frequencyUnit: string;
+}
+
+interface DashboardData {
+  home: { id: string; name: string; type: string } | null;
+  score: {
+    overall: number;
+    criticalTasks: number;
+    preventiveCare: number;
+    homeEfficiency: number;
+  };
+  overdue: DashboardTask[];
+  upcoming: DashboardTask[];
+  totalActive: number;
+  userName: string;
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -19,7 +56,7 @@ function getGreeting(): string {
 }
 
 function getSeasonalTip(): { title: string; body: string } {
-  const month = new Date().getMonth(); // 0-indexed
+  const month = new Date().getMonth();
   const tips: Record<number, { title: string; body: string }> = {
     0: { title: "Winter Watch", body: "Check for ice dams along your roof edges and clear snow from foundation vents to prevent moisture buildup." },
     1: { title: "Pre-Spring Prep", body: "Test your sump pump before spring thaw. Pour a bucket of water into the pit to make sure it activates." },
@@ -55,89 +92,37 @@ function scoreTrackColor(score: number): string {
   return "stroke-danger";
 }
 
-// ---------------------------------------------------------------------------
-// Mock data
-// ---------------------------------------------------------------------------
+function relativeDueDate(dateStr: string): string {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const due = new Date(dateStr + "T00:00:00");
+  const diffMs = due.getTime() - today.getTime();
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
 
-type Priority = "safety" | "prevent_damage" | "efficiency" | "cosmetic";
-type Category = "HVAC" | "Plumbing" | "Electrical" | "Exterior" | "Interior" | "Appliances" | "Landscaping";
-
-interface Task {
-  id: string;
-  name: string;
-  category: Category;
-  dueLabel: string;
-  priority: Priority;
-  estimatedMinutes: number;
-  completed: boolean;
+  if (diffDays < 0) return `${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? "" : "s"} ago`;
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Tomorrow";
+  return `In ${diffDays} days`;
 }
 
-const PRIORITY_CONFIG: Record<Priority, { label: string; variant: "danger" | "warning" | "info" | "default" }> = {
-  safety: { label: "Critical", variant: "danger" },
+const PRIORITY_CONFIG: Record<
+  string,
+  { label: string; variant: "danger" | "warning" | "info" | "default" }
+> = {
+  safety: { label: "Safety", variant: "danger" },
   prevent_damage: { label: "Preventive", variant: "warning" },
   efficiency: { label: "Efficiency", variant: "info" },
   cosmetic: { label: "Cosmetic", variant: "default" },
 };
 
-const CATEGORY_VARIANT: Record<Category, "default" | "success" | "warning" | "danger" | "info"> = {
-  HVAC: "info",
-  Plumbing: "default",
-  Electrical: "warning",
-  Exterior: "success",
-  Interior: "default",
-  Appliances: "info",
-  Landscaping: "success",
-};
-
-const MOCK_TASKS: Task[] = [
-  {
-    id: "1",
-    name: "Replace HVAC air filter",
-    category: "HVAC",
-    dueLabel: "Today",
-    priority: "efficiency",
-    estimatedMinutes: 10,
-    completed: false,
-  },
-  {
-    id: "2",
-    name: "Test smoke detectors",
-    category: "Electrical",
-    dueLabel: "Today",
-    priority: "safety",
-    estimatedMinutes: 15,
-    completed: false,
-  },
-  {
-    id: "3",
-    name: "Clean gutters",
-    category: "Exterior",
-    dueLabel: "Tomorrow",
-    priority: "prevent_damage",
-    estimatedMinutes: 45,
-    completed: false,
-  },
-  {
-    id: "4",
-    name: "Inspect washing machine hoses",
-    category: "Appliances",
-    dueLabel: "In 3 days",
-    priority: "prevent_damage",
-    estimatedMinutes: 10,
-    completed: false,
-  },
-  {
-    id: "5",
-    name: "Touch up exterior paint",
-    category: "Exterior",
-    dueLabel: "In 5 days",
-    priority: "cosmetic",
-    estimatedMinutes: 60,
-    completed: false,
-  },
+const HEALTH_GOALS = [
+  { key: "clean_air", label: "Clean Air", icon: "\uD83D\uDCA8", color: "bg-sky-50 dark:bg-sky-950 border-sky-200 dark:border-sky-800" },
+  { key: "clean_water", label: "Clean Water", icon: "\uD83D\uDCA7", color: "bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800" },
+  { key: "mold_prevention", label: "Mold Prevention", icon: "\uD83D\uDEE1\uFE0F", color: "bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800" },
+  { key: "fire_safety", label: "Fire Safety", icon: "\uD83D\uDD25", color: "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800" },
+  { key: "pest_free", label: "Pest-Free", icon: "\uD83D\uDC1B", color: "bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800" },
+  { key: "injury_prevention", label: "Injury Prevention", icon: "\u26A0\uFE0F", color: "bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800" },
 ];
-
-const OVERDUE_COUNT = 3;
 
 // ---------------------------------------------------------------------------
 // Circular Score Component
@@ -181,33 +166,138 @@ function CircularScore({ score, size = 128 }: { score: number; size?: number }) 
 }
 
 // ---------------------------------------------------------------------------
+// Loading Skeleton
+// ---------------------------------------------------------------------------
+
+function DashboardSkeleton() {
+  return (
+    <div className="mx-auto max-w-lg space-y-6 px-4 py-6 pb-24">
+      <div className="space-y-2">
+        <Skeleton className="h-7 w-48" />
+        <Skeleton className="h-4 w-64" />
+      </div>
+      <SkeletonCard className="h-72" />
+      <SkeletonCard className="h-20" />
+      <div className="space-y-3">
+        <Skeleton className="h-5 w-40" />
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
+      </div>
+      <SkeletonCard />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Dashboard Page
 // ---------------------------------------------------------------------------
 
+type HealthLens = "category" | "health_goal";
+
 export default function DashboardPage() {
-  const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS);
+  const router = useRouter();
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [completingIds, setCompletingIds] = useState<Set<string>>(new Set());
+  const [healthLens, setHealthLens] = useState<HealthLens>("category");
+
   const greeting = useMemo(() => getGreeting(), []);
   const seasonalTip = useMemo(() => getSeasonalTip(), []);
 
-  const overallScore = 78;
-  const subScores = [
-    { label: "Critical Tasks", score: 92 },
-    { label: "Preventive Care", score: 71 },
-    { label: "Home Efficiency", score: 68 },
-  ];
+  const fetchDashboard = useCallback(async () => {
+    try {
+      const res = await fetch("/api/dashboard");
+      if (!res.ok) throw new Error("Failed to load dashboard");
+      const json = await res.json();
+      setData(json);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  function toggleTask(id: string) {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
+
+  async function completeTask(taskId: string) {
+    setCompletingIds((prev) => new Set(prev).add(taskId));
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) throw new Error("Failed to complete task");
+      await fetchDashboard();
+    } catch {
+      // Silently handle -- could add toast here
+    } finally {
+      setCompletingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(taskId);
+        return next;
+      });
+    }
+  }
+
+  // Loading state
+  if (loading) return <DashboardSkeleton />;
+
+  // Error state
+  if (error) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-6">
+        <EmptyState
+          title="Something went wrong"
+          description={error}
+          action={{ label: "Retry", onClick: () => { setLoading(true); fetchDashboard(); } }}
+        />
+      </div>
     );
   }
+
+  // No home set up
+  if (!data?.home) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-6">
+        <EmptyState
+          icon={
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+          }
+          title="Set up your home"
+          description="Add your home details to start tracking maintenance tasks and get personalized recommendations."
+          action={{ label: "Get Started", onClick: () => router.push("/onboarding") }}
+        />
+      </div>
+    );
+  }
+
+  const { score, overdue, upcoming, userName } = data;
+
+  const subScores = [
+    { label: "Critical Tasks", score: score.criticalTasks },
+    { label: "Preventive Care", score: score.preventiveCare },
+    { label: "Home Efficiency", score: score.homeEfficiency },
+  ];
 
   return (
     <div className="mx-auto max-w-lg space-y-6 px-4 py-6 pb-24">
       {/* ---- Header ---- */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">{greeting}, Alex</h1>
-        <p className="text-sm text-muted-foreground">Here is your home at a glance.</p>
+        <h1 className="text-2xl font-bold text-foreground">
+          {greeting}, {userName}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Here is your home at a glance.
+        </p>
       </div>
 
       {/* ---- Home Upkeep Score ---- */}
@@ -217,7 +307,7 @@ export default function DashboardPage() {
           <CardDescription>How well you&apos;re keeping up with tasks</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-6">
-          <CircularScore score={overallScore} />
+          <CircularScore score={score.overall} />
           <div className="w-full space-y-3">
             {subScores.map((s) => (
               <Progress
@@ -236,108 +326,211 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* ---- Overdue Tasks Alert ---- */}
-      {OVERDUE_COUNT > 0 && (
-        <Card className="border-[var(--color-danger-200)] bg-[var(--color-danger-50)] dark:border-red-800 dark:bg-red-950">
-          <CardContent className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-danger text-white text-sm font-bold">
-                {OVERDUE_COUNT}
-              </span>
-              <div>
-                <p className="text-sm font-semibold text-[var(--color-danger-700)] dark:text-red-200">
-                  Overdue tasks need attention
-                </p>
-                <p className="text-xs text-[var(--color-danger-600)] dark:text-red-300">
-                  Completing these protects your home
-                </p>
-              </div>
-            </div>
-            <Link href="/tasks">
-              <Button variant="danger" size="sm">
-                View All
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+      {/* ---- Health Lens Toggle ---- */}
+      <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
+        <button
+          type="button"
+          onClick={() => setHealthLens("category")}
+          className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+            healthLens === "category"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          By Category
+        </button>
+        <button
+          type="button"
+          onClick={() => setHealthLens("health_goal")}
+          className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+            healthLens === "health_goal"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          By Health Goal
+        </button>
+      </div>
+
+      {/* ---- Health Goal View ---- */}
+      {healthLens === "health_goal" && (
+        <section>
+          <div className="grid grid-cols-2 gap-3">
+            {HEALTH_GOALS.map((goal) => (
+              <Card key={goal.key} className={`border ${goal.color}`}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-2xl">{goal.icon}</span>
+                    <Badge variant="default" size="sm">Coming soon</Badge>
+                  </div>
+                  <p className="mt-2 text-sm font-semibold text-foreground">{goal.label}</p>
+                  <p className="text-xs text-muted-foreground">-- tasks</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
       )}
 
-      {/* ---- Upcoming This Week ---- */}
-      <section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">Upcoming This Week</h2>
-          <Link href="/tasks" className="text-sm font-medium text-primary hover:underline">
-            See all
-          </Link>
-        </div>
-        <div className="space-y-3">
-          {tasks.map((task) => (
-            <Card
-              key={task.id}
-              className={task.completed ? "opacity-60" : undefined}
-            >
-              <CardContent className="flex items-start gap-3 p-4">
-                {/* Completion button */}
-                <button
-                  type="button"
-                  onClick={() => toggleTask(task.id)}
-                  aria-label={task.completed ? "Mark incomplete" : "Mark complete"}
-                  className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
-                    task.completed
-                      ? "border-success bg-success text-white"
-                      : "border-border bg-transparent hover:border-primary"
-                  }`}
-                >
-                  {task.completed && (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  )}
-                </button>
-
-                {/* Task details */}
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-medium text-foreground ${task.completed ? "line-through" : ""}`}>
-                    {task.name}
-                  </p>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                    <Badge variant={CATEGORY_VARIANT[task.category]} size="sm">
-                      {task.category}
-                    </Badge>
-                    <Badge variant={PRIORITY_CONFIG[task.priority].variant} size="sm">
-                      {PRIORITY_CONFIG[task.priority].label}
-                    </Badge>
-                  </div>
-                  <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                        <line x1="16" y1="2" x2="16" y2="6" />
-                        <line x1="8" y1="2" x2="8" y2="6" />
-                        <line x1="3" y1="10" x2="21" y2="10" />
-                      </svg>
-                      {task.dueLabel}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10" />
-                        <polyline points="12 6 12 12 16 14" />
-                      </svg>
-                      {task.estimatedMinutes} min
-                    </span>
+      {/* ---- Category View (Overdue + Upcoming) ---- */}
+      {healthLens === "category" && (
+        <>
+          {/* ---- Overdue Tasks Alert ---- */}
+          {overdue.length > 0 && (
+            <Card className="border-[var(--color-danger-200)] bg-[var(--color-danger-50)] dark:border-red-800 dark:bg-red-950">
+              <CardContent className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-danger text-white text-sm font-bold">
+                    {overdue.length}
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--color-danger-700)] dark:text-red-200">
+                      Overdue tasks need attention
+                    </p>
+                    <p className="text-xs text-[var(--color-danger-600)] dark:text-red-300">
+                      Completing these protects your home
+                    </p>
                   </div>
                 </div>
+                <Link href="/tasks">
+                  <Button variant="danger" size="sm">
+                    View All
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
-          ))}
-        </div>
-      </section>
+          )}
+
+          {/* ---- Upcoming This Week ---- */}
+          <section>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-foreground">Upcoming This Week</h2>
+              <Link href="/tasks" className="text-sm font-medium text-primary hover:underline">
+                See all
+              </Link>
+            </div>
+            {upcoming.length === 0 ? (
+              <Card>
+                <CardContent className="py-8">
+                  <p className="text-center text-sm text-muted-foreground">
+                    No upcoming tasks this week. You&apos;re all caught up!
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {upcoming.map((task) => {
+                  const isCompleting = completingIds.has(task.id);
+                  const dueLabel = relativeDueDate(task.nextDueDate);
+                  const priorityCfg = PRIORITY_CONFIG[task.priority] ?? PRIORITY_CONFIG.cosmetic;
+
+                  return (
+                    <Card key={task.id}>
+                      <CardContent className="flex items-start gap-3 p-4">
+                        {/* Complete button */}
+                        <button
+                          type="button"
+                          onClick={() => completeTask(task.id)}
+                          disabled={isCompleting}
+                          aria-label="Mark complete"
+                          className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+                            isCompleting
+                              ? "border-muted bg-muted animate-pulse"
+                              : "border-border bg-transparent hover:border-primary"
+                          }`}
+                        >
+                          {isCompleting && (
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="animate-spin text-muted-foreground"
+                            >
+                              <path d="M12 2a10 10 0 0 1 10 10" />
+                            </svg>
+                          )}
+                        </button>
+
+                        {/* Task details */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground">
+                            {task.name}
+                          </p>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                            <Badge variant="default" size="sm">
+                              {task.category}
+                            </Badge>
+                            <Badge variant={priorityCfg.variant} size="sm">
+                              {priorityCfg.label}
+                            </Badge>
+                          </div>
+                          <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                                <line x1="16" y1="2" x2="16" y2="6" />
+                                <line x1="8" y1="2" x2="8" y2="6" />
+                                <line x1="3" y1="10" x2="21" y2="10" />
+                              </svg>
+                              {dueLabel}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <path d="M4 12a8 8 0 0 1 16 0" />
+                                <polyline points="12 8 12 12 14 14" />
+                              </svg>
+                              Every {task.frequencyValue} {task.frequencyUnit}
+                            </span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </>
+      )}
 
       {/* ---- Seasonal Tip ---- */}
       <Card className="border-[var(--color-info-200)] bg-[var(--color-info-50)] dark:border-sky-800 dark:bg-sky-950">
         <CardHeader className="pb-1">
           <div className="flex items-center gap-2">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-info-600)]">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-[var(--color-info-600)]"
+            >
               <circle cx="12" cy="12" r="10" />
               <line x1="12" y1="16" x2="12" y2="12" />
               <line x1="12" y1="8" x2="12.01" y2="8" />

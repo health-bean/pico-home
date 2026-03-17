@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { signOut } from "@/lib/auth/actions";
 import {
   Button,
   Card,
@@ -237,6 +238,13 @@ export default function SettingsPage() {
           <Button variant="danger">Delete Account</Button>
         </CardContent>
       </Card>
+
+      {/* Sign Out */}
+      <form action={signOut}>
+        <Button variant="outline" className="w-full" type="submit">
+          Sign Out
+        </Button>
+      </form>
 
       {/* ---- About ---- */}
       <Card>
