@@ -2,6 +2,16 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function updateSession(request: NextRequest) {
+  // Skip auth routes entirely — let the callback handler do its job
+  if (request.nextUrl.pathname.startsWith("/auth/")) {
+    return NextResponse.next();
+  }
+
+  // Skip API routes — they handle their own auth
+  if (request.nextUrl.pathname.startsWith("/api/")) {
+    return NextResponse.next();
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -43,7 +53,8 @@ export async function updateSession(request: NextRequest) {
   }
 
   // If signed in and on landing page, redirect to dashboard
-  if (user && request.nextUrl.pathname === "/") {
+  // But DON'T redirect if there's an error param (auth failed)
+  if (user && request.nextUrl.pathname === "/" && !request.nextUrl.searchParams.has("error")) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
