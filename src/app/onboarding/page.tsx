@@ -31,7 +31,7 @@ interface FormData {
   sqft: string;
   zip: string;
   state: string;
-  systems: Record<string, { enabled: boolean; subtype: string }>;
+  systems: Record<string, { enabled: boolean; subtypes: string[] }>;
   appliances: Record<string, boolean>;
 }
 
@@ -140,11 +140,12 @@ interface SystemDef {
   icon: string;
   label: string;
   hint: string;
+  multiSelect: boolean;
   subtypes?: { value: string; label: string }[];
 }
 
 const SYSTEMS: SystemDef[] = [
-  { key: "hvac", mappedType: "hvac", icon: "🌡️", label: "HVAC", hint: "Heating & cooling reminders",
+  { key: "hvac", mappedType: "hvac", icon: "🌡️", label: "HVAC", hint: "Heating & cooling reminders", multiSelect: true,
     subtypes: [
       { value: "forced-air", label: "Forced Air" },
       { value: "radiant", label: "Radiant" },
@@ -152,37 +153,37 @@ const SYSTEMS: SystemDef[] = [
       { value: "window-units", label: "Window Units" },
     ],
   },
-  { key: "plumbing", mappedType: "plumbing", icon: "🚿", label: "Plumbing", hint: "Pipes, drains & water heater" },
-  { key: "electrical", mappedType: "electrical", icon: "⚡", label: "Electrical", hint: "Panel, outlets & wiring" },
-  { key: "roofing", mappedType: "roofing", icon: "🏠", label: "Roofing", hint: "Roof & gutter maintenance",
+  { key: "plumbing", mappedType: "plumbing", icon: "🚿", label: "Plumbing", hint: "Pipes, drains & water heater", multiSelect: false },
+  { key: "electrical", mappedType: "electrical", icon: "⚡", label: "Electrical", hint: "Panel, outlets & wiring", multiSelect: false },
+  { key: "roofing", mappedType: "roofing", icon: "🏠", label: "Roofing", hint: "Roof & gutter maintenance", multiSelect: true,
     subtypes: [
       { value: "asphalt-shingle", label: "Asphalt Shingle" },
       { value: "metal", label: "Metal" },
       { value: "tile", label: "Tile" },
     ],
   },
-  { key: "foundation", mappedType: "foundation", icon: "🧱", label: "Foundation", hint: "Structural & moisture checks",
+  { key: "foundation", mappedType: "foundation", icon: "🧱", label: "Foundation", hint: "Structural & moisture checks", multiSelect: true,
     subtypes: [
       { value: "slab", label: "Slab" },
       { value: "crawlspace", label: "Crawlspace" },
       { value: "basement", label: "Basement" },
     ],
   },
-  { key: "water-source", mappedType: "water_source", icon: "💧", label: "Water Source", hint: "Water quality & supply",
+  { key: "water-source", mappedType: "water_source", icon: "💧", label: "Water Source", hint: "Water quality & supply", multiSelect: false,
     subtypes: [
       { value: "municipal", label: "Municipal" },
       { value: "well", label: "Well" },
     ],
   },
-  { key: "sewage", mappedType: "sewage", icon: "🏗️", label: "Sewage", hint: "Sewer or septic maintenance",
+  { key: "sewage", mappedType: "sewage", icon: "🏗️", label: "Sewage", hint: "Sewer or septic maintenance", multiSelect: false,
     subtypes: [
       { value: "sewer", label: "Sewer" },
       { value: "septic", label: "Septic" },
     ],
   },
-  { key: "irrigation", mappedType: "irrigation", icon: "🌱", label: "Irrigation", hint: "Sprinkler system care" },
-  { key: "pool", mappedType: "pool", icon: "🏊", label: "Pool", hint: "Pool chemicals & equipment" },
-  { key: "security", mappedType: "security", icon: "🔒", label: "Security", hint: "Alarm & camera system" },
+  { key: "irrigation", mappedType: "irrigation", icon: "🌱", label: "Irrigation", hint: "Sprinkler system care", multiSelect: false },
+  { key: "pool", mappedType: "pool", icon: "🏊", label: "Pool", hint: "Pool chemicals & equipment", multiSelect: false },
+  { key: "security", mappedType: "security", icon: "🔒", label: "Security", hint: "Alarm & camera system", multiSelect: false },
 ];
 
 interface ApplianceDef {
@@ -207,6 +208,7 @@ const APPLIANCES: ApplianceDef[] = [
   { key: "garage-door", mappedCategory: "garage_door", icon: "🚗", label: "Garage Door" },
   { key: "sump-pump", mappedCategory: "sump_pump", icon: "🔧", label: "Sump Pump" },
   { key: "generator", mappedCategory: "generator", icon: "⚙️", label: "Generator" },
+  { key: "hot-tub", mappedCategory: "hot_tub", icon: "♨️", label: "Hot Tub" },
 ];
 
 const CATEGORY_LABELS: Record<TaskCategory, string> = {
@@ -256,10 +258,10 @@ const YEAR_OPTIONS = getYearOptions();
 // Helpers
 // ---------------------------------------------------------------------------
 
-function initialSystems(): Record<string, { enabled: boolean; subtype: string }> {
-  const map: Record<string, { enabled: boolean; subtype: string }> = {};
+function initialSystems(): Record<string, { enabled: boolean; subtypes: string[] }> {
+  const map: Record<string, { enabled: boolean; subtypes: string[] }> = {};
   for (const s of SYSTEMS) {
-    map[s.key] = { enabled: false, subtype: s.subtypes?.[0]?.value ?? "standard" };
+    map[s.key] = { enabled: false, subtypes: [] };
   }
   return map;
 }
@@ -451,11 +453,22 @@ function StepSystemsAndAppliances({
     });
   };
 
-  const setSubtype = (key: string, subtype: string) => {
+  const toggleSubtype = (sysKey: string, subtype: string, multiSelect: boolean) => {
+    const current = data.systems[sysKey].subtypes;
+    let next: string[];
+    if (multiSelect) {
+      // Multi-select: toggle the value in/out of the array
+      next = current.includes(subtype)
+        ? current.filter((v) => v !== subtype)
+        : [...current, subtype];
+    } else {
+      // Single-select (radio): select or deselect
+      next = current.includes(subtype) ? [] : [subtype];
+    }
     onChange({
       systems: {
         ...data.systems,
-        [key]: { ...data.systems[key], subtype },
+        [sysKey]: { ...data.systems[sysKey], subtypes: next },
       },
     });
   };
@@ -466,7 +479,9 @@ function StepSystemsAndAppliances({
     });
   };
 
-  const systemCount = Object.values(data.systems).filter((s) => s.enabled).length;
+  const enabledSystems = Object.values(data.systems).filter((s) => s.enabled);
+  const systemCount = enabledSystems.length;
+  const subtypeCount = enabledSystems.reduce((sum, s) => sum + s.subtypes.length, 0);
   const applianceCount = Object.values(data.appliances).filter(Boolean).length;
 
   return (
@@ -508,21 +523,26 @@ function StepSystemsAndAppliances({
                 </div>
                 <span className="text-xs text-muted-foreground">{sys.hint}</span>
                 {entry.enabled && sys.subtypes && (
-                  <div className="mt-1 flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
+                  <div className="mt-1 flex flex-wrap items-center gap-1" onClick={(e) => e.stopPropagation()}>
                     {sys.subtypes.map((st) => (
                       <button
                         key={st.value}
                         type="button"
                         className={`rounded-full px-2 py-0.5 text-xs font-medium transition-colors ${
-                          entry.subtype === st.value
+                          entry.subtypes.includes(st.value)
                             ? "bg-primary text-white"
                             : "bg-muted text-muted-foreground hover:bg-muted/80"
                         }`}
-                        onClick={(e) => { e.stopPropagation(); setSubtype(sys.key, st.value); }}
+                        onClick={(e) => { e.stopPropagation(); toggleSubtype(sys.key, st.value, sys.multiSelect); }}
                       >
                         {st.label}
                       </button>
                     ))}
+                    {entry.subtypes.length > 1 && (
+                      <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary/20 px-1 text-[10px] font-semibold text-primary">
+                        {entry.subtypes.length}
+                      </span>
+                    )}
                   </div>
                 )}
               </button>
@@ -560,8 +580,9 @@ function StepSystemsAndAppliances({
 
       <div className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-center">
         <span className="text-xs text-muted-foreground">
-          {systemCount} system{systemCount !== 1 ? "s" : ""} and{" "}
-          {applianceCount} appliance{applianceCount !== 1 ? "s" : ""} selected
+          {systemCount} system{systemCount !== 1 ? "s" : ""}
+          {subtypeCount > 0 && ` (${subtypeCount} subtype${subtypeCount !== 1 ? "s" : ""})`}
+          {" "}and {applianceCount} appliance{applianceCount !== 1 ? "s" : ""} selected
         </span>
       </div>
 
@@ -909,7 +930,13 @@ export default function OnboardingPage() {
     startTransition(async () => {
       const activeSystems = SYSTEMS
         .filter((s) => form.systems[s.key].enabled)
-        .map((s) => ({ key: s.mappedType, subtype: form.systems[s.key].subtype }));
+        .flatMap((s) => {
+          const subtypes = form.systems[s.key].subtypes;
+          if (subtypes.length === 0) {
+            return [{ key: s.mappedType, subtype: "standard" }];
+          }
+          return subtypes.map((st) => ({ key: s.mappedType, subtype: st }));
+        });
 
       const activeAppliances = APPLIANCES
         .filter((a) => form.appliances[a.key])

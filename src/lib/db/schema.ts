@@ -71,6 +71,7 @@ export const applianceCategoryEnum = pgEnum("appliance_category", [
   "dehumidifier",
   "garage_door",
   "pool_pump",
+  "hot_tub",
   "sump_pump",
   "generator",
   "other",
