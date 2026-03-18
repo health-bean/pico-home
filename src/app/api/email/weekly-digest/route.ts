@@ -56,6 +56,7 @@ export async function POST(request: Request) {
   }
 
   let sent = 0;
+  let failed = 0;
   const errors: string[] = [];
 
   for (const digestUser of digestUsers) {
@@ -151,28 +152,31 @@ View your full task list: ${process.env.NEXT_PUBLIC_APP_URL || "https://honeydoi
 
 — HoneyDoIQ`;
 
-      // Send via Supabase Edge Functions or direct SMTP
-      // For now, use Supabase's built-in email (or swap with Resend/SendGrid)
       const emailApiKey = process.env.EMAIL_API_KEY;
       const emailFrom = process.env.EMAIL_FROM || "noreply@honeydoiq.app";
 
-      if (emailApiKey && process.env.EMAIL_API_URL) {
-        await fetch(process.env.EMAIL_API_URL, {
+      if (emailApiKey) {
+        const res = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${emailApiKey}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: emailFrom,
-            to: digestUser.email,
+            from: `HoneyDoIQ <${emailFrom}>`,
+            to: [digestUser.email],
             subject,
             text: body,
           }),
         });
+        if (!res.ok) {
+          const err = await res.text();
+          console.error(`[Digest] Resend error for ${digestUser.email}:`, err);
+          failed++;
+          continue;
+        }
         sent++;
       } else {
-        // Log digest content when no email service configured
         console.log(`[Digest] Would email ${digestUser.email}: ${subject}`);
         sent++;
       }
