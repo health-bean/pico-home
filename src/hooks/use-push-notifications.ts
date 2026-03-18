@@ -46,11 +46,10 @@ export function usePushNotifications() {
     if (!registration) return null;
 
     try {
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       const sub = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        // In production, generate VAPID keys and set the public key here
-        // For now, we'll just register the service worker for local notifications
-        applicationServerKey: undefined,
+        applicationServerKey: vapidKey,
       });
 
       setSubscription(sub);
@@ -64,9 +63,7 @@ export function usePushNotifications() {
 
       return sub;
     } catch (err) {
-      // Push subscription may fail without VAPID keys — that's ok for now
-      // Service worker is still registered for local notifications
-      console.warn("Push subscription unavailable:", err);
+      console.warn("Push subscription failed:", err);
       return null;
     }
   }, [supported, registerServiceWorker]);
