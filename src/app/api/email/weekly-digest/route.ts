@@ -9,7 +9,6 @@ import {
   taskCompletions,
 } from "@/lib/db/schema";
 import { eq, and, lte, gte, sql } from "drizzle-orm";
-import { createClient } from "@supabase/supabase-js";
 
 /**
  * POST /api/email/weekly-digest
@@ -58,7 +57,6 @@ export async function POST(request: Request) {
   }
 
   let sent = 0;
-  let failed = 0;
   const errors: string[] = [];
 
   for (const digestUser of digestUsers) {
@@ -174,7 +172,6 @@ View your full task list: ${process.env.NEXT_PUBLIC_APP_URL || "https://honeydoi
         if (!res.ok) {
           const err = await res.text();
           console.error(`[Digest] Resend error for ${digestUser.email}:`, err);
-          failed++;
           continue;
         }
         sent++;

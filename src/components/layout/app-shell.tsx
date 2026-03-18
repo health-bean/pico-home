@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { BottomNav } from "./bottom-nav";
 import { ToastProvider, Button } from "@/components/ui";
@@ -76,13 +76,12 @@ function HomeSwitcher() {
 
 function NotificationBanner() {
   const { supported, permission, subscribe } = usePushNotifications();
-  const [dismissed, setDismissed] = useState(false);
-
-  useEffect(() => {
+  const [dismissed, setDismissed] = useState(() => {
     if (typeof window !== "undefined") {
-      setDismissed(localStorage.getItem("honeydo-notif-dismissed") === "true");
+      return localStorage.getItem("honeydo-notif-dismissed") === "true";
     }
-  }, []);
+    return false;
+  });
 
   if (!supported || permission === "granted" || permission === "denied" || dismissed) {
     return null;

@@ -40,6 +40,7 @@ function Avatar({ src, alt, fallback, size, className }: AvatarProps) {
   return (
     <div className={cn(avatarVariants({ size }), className)}>
       {src && !imgError ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
         <img src={src} alt={alt || ""} className="h-full w-full object-cover" onError={() => setImgError(true)} />
       ) : (
         <span aria-label={alt || fallback}>{initials}</span>

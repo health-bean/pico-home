@@ -140,13 +140,6 @@ const priorityLabels: Record<string, string> = {
   cosmetic: "Cosmetic",
 };
 
-const priorityStripColor: Record<string, string> = {
-  safety: "bg-[#ef4444]",
-  prevent_damage: "bg-[#f59e0b]",
-  efficiency: "bg-[#f59e0b]",
-  cosmetic: "bg-[#e7e5e4]",
-};
-
 const filterOptions: { key: FilterKey; label: string }[] = [
   { key: "all", label: "All" },
   { key: "overdue", label: "Overdue" },

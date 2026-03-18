@@ -25,7 +25,8 @@ interface ApiHandlerOptions {
  * - Error handling (catches DB errors, Zod errors, unexpected errors)
  */
 export function apiHandler(handler: HandlerFn, options?: ApiHandlerOptions) {
-  return async (request: Request, routeParams?: unknown) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  return async (request: Request, _routeParams?: unknown) => {
     try {
       // 1. Authenticate
       const user = await getAppUser();

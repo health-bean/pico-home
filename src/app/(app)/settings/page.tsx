@@ -37,12 +37,6 @@ const REMINDER_TIME_OPTIONS = [
   { value: "20:00", label: "8:00 PM" },
 ];
 
-const REMINDER_DAY_OPTIONS = [
-  { value: 1, label: "1 day before" },
-  { value: 3, label: "3 days before" },
-  { value: 7, label: "7 days before" },
-];
-
 /* ------------------------------------------------------------------ */
 /*  iOS Toggle Switch                                                  */
 /* ------------------------------------------------------------------ */
@@ -147,18 +141,12 @@ export default function SettingsPage() {
   /* Notification prefs */
   const [pushEnabled, setPushEnabled] = useState(true);
   const [weeklyDigest, setWeeklyDigest] = useState(false);
-  const [reminderTime, setReminderTime] = useState("09:00");
-  const [reminderDays, setReminderDays] = useState<number[]>([1, 3, 7]);
+  const [reminderTime] = useState("09:00");
+  const [reminderDays] = useState<number[]>([1, 3, 7]);
 
   /* App prefs */
-  const [timezone, setTimezone] = useState("America/Chicago");
-  const [theme, setTheme] = useState("system");
-
-  function toggleReminderDay(day: number) {
-    setReminderDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort()
-    );
-  }
+  const [timezone] = useState("America/Chicago");
+  const [theme] = useState("system");
 
   /* Derive display values */
   const reminderTimeLabel =

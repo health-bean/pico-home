@@ -1,6 +1,7 @@
 // HoneyDoIQ Service Worker — Push Notifications
 
-self.addEventListener("install", (event) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+self.addEventListener("install", (_event) => {
   self.skipWaiting();
 });
 
