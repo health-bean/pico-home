@@ -1,0 +1,112 @@
+import { z } from "zod";
+
+// ─── Shared enums (match DB enums exactly) ─────────────────────────────────
+
+const taskCategoryValues = [
+  "hvac", "plumbing", "electrical", "safety", "roof_gutters", "exterior",
+  "windows_doors", "appliance", "lawn_landscape", "pest_control", "garage",
+  "pool", "cleaning", "seasonal",
+] as const;
+
+const taskPriorityValues = [
+  "safety", "prevent_damage", "efficiency", "cosmetic",
+] as const;
+
+const frequencyUnitValues = [
+  "days", "weeks", "months", "years", "one_time",
+] as const;
+
+const homeTypeValues = [
+  "single_family", "townhouse", "condo", "apartment", "multi_family",
+  "mobile_home", "vacation_home", "rental_property", "apartment_building",
+  "office_commercial", "warehouse_industrial",
+] as const;
+
+const homeRoleValues = ["i_live_here", "i_manage_this"] as const;
+
+const systemTypeValues = [
+  "hvac", "plumbing", "electrical", "roofing", "foundation",
+  "water_source", "sewage", "irrigation", "pool", "security",
+] as const;
+
+const applianceCategoryValues = [
+  "refrigerator", "dishwasher", "washing_machine", "dryer", "oven_range",
+  "microwave", "garbage_disposal", "water_heater", "furnace", "ac_unit",
+  "water_softener", "water_filter", "humidifier", "dehumidifier",
+  "garage_door", "pool_pump", "hot_tub", "sump_pump", "generator", "other",
+] as const;
+
+// ─── API Schemas ────────────────────────────────────────────────────────────
+
+export const createTaskSchema = z.object({
+  homeId: z.string().uuid().optional(),
+  name: z.string().min(1).max(255),
+  description: z.string().max(2000).optional().nullable(),
+  category: z.enum(taskCategoryValues).default("seasonal"),
+  priority: z.enum(taskPriorityValues).default("efficiency"),
+  frequencyUnit: z.enum(frequencyUnitValues).default("months"),
+  frequencyValue: z.number().int().min(1).max(365).default(1),
+  notes: z.string().max(2000).optional().nullable(),
+});
+
+export const completeTaskSchema = z.object({
+  isDiy: z.boolean().default(true),
+  costCents: z.number().int().min(0).max(10_000_000).optional().nullable(),
+  timeSpentMinutes: z.number().int().min(0).max(10_000).optional().nullable(),
+  notes: z.string().max(2000).optional().nullable(),
+});
+
+export const snoozeTaskSchema = z.object({
+  days: z.number().int().min(1).max(365).default(7),
+});
+
+export const inviteSchema = z.object({
+  email: z.string().email().max(255).transform((v) => v.trim().toLowerCase()),
+});
+
+export const pushSubscribeSchema = z.object({
+  endpoint: z.string().url().max(2000),
+  keys: z.object({
+    p256dh: z.string().min(1).max(500),
+    auth: z.string().min(1).max(500),
+  }),
+});
+
+export const onboardingHomeSchema = z.object({
+  name: z.string().min(1).max(255),
+  type: z.enum(homeTypeValues),
+  ownerRole: z.enum(homeRoleValues).default("i_live_here"),
+  yearBuilt: z.number().int().min(1600).max(new Date().getFullYear() + 5),
+  sqft: z.number().int().min(1).max(1_000_000).optional().nullable(),
+  zip: z.string().min(3).max(20),
+  state: z.string().min(1).max(50),
+  climateZone: z.string().max(10),
+});
+
+export const onboardingSystemSchema = z.object({
+  key: z.enum(systemTypeValues),
+  subtype: z.string().max(100),
+});
+
+export const onboardingTaskSetupSchema = z.object({
+  templateId: z.string().min(1).max(100),
+  state: z.enum(["track", "done", "skip"]),
+  doneMonth: z.number().int().min(1).max(12),
+  doneYear: z.number().int().min(2000).max(new Date().getFullYear() + 1),
+});
+
+export const onboardingSchema = z.object({
+  home: onboardingHomeSchema,
+  systems: z.array(onboardingSystemSchema).max(50),
+  appliances: z.array(z.enum(applianceCategoryValues)).max(50),
+  taskSetups: z.array(onboardingTaskSetupSchema).max(500),
+});
+
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+export type CreateTaskInput = z.infer<typeof createTaskSchema>;
+export type CompleteTaskInput = z.infer<typeof completeTaskSchema>;
+export type SnoozeTaskInput = z.infer<typeof snoozeTaskSchema>;
+export type InviteInput = z.infer<typeof inviteSchema>;
+export type PushSubscribeInput = z.infer<typeof pushSubscribeSchema>;
+export type OnboardingInput = z.infer<typeof onboardingSchema>;

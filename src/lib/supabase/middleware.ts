@@ -7,9 +7,33 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Skip API routes — they handle their own auth
+  // API routes handle their own auth, but still need session refresh
+  // so that cookies stay valid across API calls
   if (request.nextUrl.pathname.startsWith("/api/")) {
-    return NextResponse.next();
+    // Create Supabase client to refresh the session cookie
+    let apiResponse = NextResponse.next({ request });
+    const apiSupabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            for (const { name, value } of cookiesToSet) {
+              request.cookies.set(name, value);
+            }
+            apiResponse = NextResponse.next({ request });
+            for (const { name, value, options } of cookiesToSet) {
+              apiResponse.cookies.set(name, value, options);
+            }
+          },
+        },
+      }
+    );
+    await apiSupabase.auth.getUser();
+    return apiResponse;
   }
 
   let supabaseResponse = NextResponse.next({ request });

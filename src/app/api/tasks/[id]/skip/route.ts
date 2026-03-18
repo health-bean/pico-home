@@ -1,27 +1,17 @@
 import { NextResponse } from "next/server";
-import { getAppUser } from "@/lib/auth/get-app-user";
 import { db } from "@/lib/db";
 import { taskInstances, taskCompletions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getNextDueDate } from "@/lib/tasks/scheduling";
 import type { FrequencyUnit } from "@/lib/tasks/templates";
+import { apiHandler } from "@/lib/api/handler";
+import { authorizeTaskAccess } from "@/lib/api/authorize";
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const user = await getAppUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const POST = apiHandler(async ({ user, request }) => {
+  const url = new URL(request.url);
+  const id = url.pathname.split("/").at(-2)!; // /api/tasks/[id]/skip
 
-  const { id } = await params;
-
-  const [task] = await db
-    .select()
-    .from(taskInstances)
-    .where(eq(taskInstances.id, id));
-
+  const task = await authorizeTaskAccess(id, user.id);
   if (!task) {
     return NextResponse.json({ error: "Task not found" }, { status: 404 });
   }
@@ -53,4 +43,4 @@ export async function POST(
     .where(eq(taskInstances.id, id));
 
   return NextResponse.json({ success: true, nextDueDate: nextDue });
-}
+});

@@ -1,32 +1,23 @@
 import { NextResponse } from "next/server";
-import { getAppUser } from "@/lib/auth/get-app-user";
 import { db } from "@/lib/db";
 import { taskInstances, taskCompletions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getNextDueDate } from "@/lib/tasks/scheduling";
 import type { FrequencyUnit } from "@/lib/tasks/templates";
+import { apiHandler, parseBodyOrDefault } from "@/lib/api/handler";
+import { completeTaskSchema } from "@/lib/api/schemas";
+import { authorizeTaskAccess } from "@/lib/api/authorize";
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const user = await getAppUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const POST = apiHandler(async ({ user, request }) => {
+  const url = new URL(request.url);
+  const id = url.pathname.split("/").at(-2)!; // /api/tasks/[id]/complete
 
-  const { id } = await params;
-  const body = await request.json().catch(() => ({}));
-
-  const [task] = await db
-    .select()
-    .from(taskInstances)
-    .where(eq(taskInstances.id, id));
-
+  const task = await authorizeTaskAccess(id, user.id);
   if (!task) {
     return NextResponse.json({ error: "Task not found" }, { status: 404 });
   }
 
+  const body = await parseBodyOrDefault(request, completeTaskSchema);
   const now = new Date();
 
   // Record completion
@@ -34,7 +25,7 @@ export async function POST(
     taskInstanceId: task.id,
     completedBy: user.id,
     completedAt: now,
-    isDiy: body.isDiy ?? true,
+    isDiy: body.isDiy,
     costCents: body.costCents ?? null,
     timeSpentMinutes: body.timeSpentMinutes ?? null,
     notes: body.notes ?? null,
@@ -48,15 +39,18 @@ export async function POST(
     now
   );
 
-  // Update task instance
+  // For one_time tasks, deactivate instead of rescheduling
+  const isOneTime = task.frequencyUnit === "one_time";
+
   await db
     .update(taskInstances)
     .set({
       lastCompletedDate: now.toISOString().split("T")[0],
       nextDueDate: nextDue.toISOString().split("T")[0],
+      isActive: isOneTime ? false : task.isActive,
       updatedAt: now,
     })
     .where(eq(taskInstances.id, id));
 
-  return NextResponse.json({ success: true, nextDueDate: nextDue });
-}
+  return NextResponse.json({ success: true, nextDueDate: nextDue, deactivated: isOneTime });
+});

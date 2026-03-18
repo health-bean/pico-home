@@ -1,33 +1,24 @@
 import { NextResponse } from "next/server";
-import { getAppUser } from "@/lib/auth/get-app-user";
 import { db } from "@/lib/db";
 import { taskInstances } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { apiHandler, parseBodyOrDefault } from "@/lib/api/handler";
+import { snoozeTaskSchema } from "@/lib/api/schemas";
+import { authorizeTaskAccess } from "@/lib/api/authorize";
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const user = await getAppUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const POST = apiHandler(async ({ user, request }) => {
+  const url = new URL(request.url);
+  const id = url.pathname.split("/").at(-2)!; // /api/tasks/[id]/snooze
 
-  const { id } = await params;
-  const body = await request.json().catch(() => ({}));
-  const days = body.days ?? 7;
-
-  const [task] = await db
-    .select()
-    .from(taskInstances)
-    .where(eq(taskInstances.id, id));
-
+  const task = await authorizeTaskAccess(id, user.id);
   if (!task) {
     return NextResponse.json({ error: "Task not found" }, { status: 404 });
   }
 
+  const body = await parseBodyOrDefault(request, snoozeTaskSchema);
+
   const currentDue = new Date(task.nextDueDate);
-  currentDue.setDate(currentDue.getDate() + days);
+  currentDue.setDate(currentDue.getDate() + body.days);
 
   await db
     .update(taskInstances)
@@ -38,4 +29,4 @@ export async function POST(
     .where(eq(taskInstances.id, id));
 
   return NextResponse.json({ success: true, nextDueDate: currentDue });
-}
+});

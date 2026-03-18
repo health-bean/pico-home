@@ -239,6 +239,10 @@ export const homeMembers = pgTable(
   (table) => ({
     homeIdIdx: index("home_members_home_id_idx").on(table.homeId),
     userIdIdx: index("home_members_user_id_idx").on(table.userId),
+    uniqueMembership: uniqueIndex("home_members_unique_idx").on(
+      table.homeId,
+      table.userId
+    ),
   }),
 );
 

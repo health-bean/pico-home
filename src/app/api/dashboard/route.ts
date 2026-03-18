@@ -1,17 +1,12 @@
 import { NextResponse } from "next/server";
-import { getAppUser } from "@/lib/auth/get-app-user";
 import { getUserHome } from "@/lib/auth/get-user-home";
 import { db } from "@/lib/db";
 import { taskInstances, homeMembers, users } from "@/lib/db/schema";
 import { eq, and, asc } from "drizzle-orm";
 import { calculateHomeHealthScore } from "@/lib/tasks/scheduling";
+import { apiHandler } from "@/lib/api/handler";
 
-export async function GET(request: Request) {
-  const user = await getAppUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const GET = apiHandler(async ({ user, request }) => {
   const { searchParams } = new URL(request.url);
   const homeId = searchParams.get("homeId") ?? undefined;
   const home = await getUserHome(user.id, homeId);
@@ -68,11 +63,11 @@ export async function GET(request: Request) {
       type: home.type,
     },
     score,
-    overdue: overdueTasks.slice(0, 10),
-    upcoming: upcomingTasks.slice(0, 10),
+    overdue: overdueTasks,
+    upcoming: upcomingTasks,
     totalActive: tasks.length,
     userName: user.name,
     members,
     memberRole: home.memberRole,
   });
-}
+});

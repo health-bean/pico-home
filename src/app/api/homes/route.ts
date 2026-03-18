@@ -1,13 +1,8 @@
 import { NextResponse } from "next/server";
-import { getAppUser } from "@/lib/auth/get-app-user";
 import { getUserHomes } from "@/lib/auth/get-user-home";
+import { apiHandler } from "@/lib/api/handler";
 
-export async function GET() {
-  const user = await getAppUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const GET = apiHandler(async ({ user }) => {
   const homes = await getUserHomes(user.id);
 
   return NextResponse.json({
@@ -21,4 +16,4 @@ export async function GET() {
       zipCode: h.zipCode,
     })),
   });
-}
+});

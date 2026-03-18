@@ -15,22 +15,7 @@ export async function getUserHomes(userId: string) {
     .where(eq(homeMembers.userId, userId));
 
   if (memberships.length === 0) {
-    // Fallback: check legacy ownership (pre home_members)
-    const ownedHomes = await db
-      .select()
-      .from(homes)
-      .where(eq(homes.userId, userId));
-
-    // Backfill memberships
-    for (const home of ownedHomes) {
-      await db.insert(homeMembers).values({
-        homeId: home.id,
-        userId,
-        role: "owner",
-      });
-    }
-
-    return ownedHomes.map((h) => ({ ...h, memberRole: "owner" as const }));
+    return [];
   }
 
   const homeIds = memberships.map((m) => m.homeId);
