@@ -15,6 +15,10 @@ const ALLOWED_TYPES = [
   "image/png",
   "image/webp",
   "image/heic",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ];
 
 const documentTypeValues = [
