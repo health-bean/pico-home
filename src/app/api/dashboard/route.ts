@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getUserHome } from "@/lib/auth/get-user-home";
 import { db } from "@/lib/db";
-import { taskInstances, homeMembers, users } from "@/lib/db/schema";
-import { eq, and, asc } from "drizzle-orm";
+import { taskInstances, homeMembers, users, homeHealthScores } from "@/lib/db/schema";
+import { eq, and, asc, desc } from "drizzle-orm";
 import { calculateHomeHealthScore } from "@/lib/tasks/scheduling";
 import { apiHandler } from "@/lib/api/handler";
 
@@ -22,15 +22,29 @@ export const GET = apiHandler(async ({ user, request }) => {
     .where(and(eq(taskInstances.homeId, home.id), eq(taskInstances.isActive, true)))
     .orderBy(asc(taskInstances.nextDueDate));
 
-  // Calculate upkeep score
-  const score = calculateHomeHealthScore(
-    tasks.map((t) => ({
-      nextDueDate: new Date(t.nextDueDate),
-      priority: t.priority,
-      lastCompletedDate: t.lastCompletedDate ? new Date(t.lastCompletedDate) : null,
-      isActive: t.isActive ?? true,
-    }))
-  );
+  // Try to read precomputed health score first, fall back to live calculation
+  const storedScores = await db
+    .select()
+    .from(homeHealthScores)
+    .where(eq(homeHealthScores.homeId, home.id))
+    .orderBy(desc(homeHealthScores.calculatedAt))
+    .limit(1);
+
+  const score = storedScores.length > 0
+    ? {
+        overall: storedScores[0].score,
+        criticalTasks: storedScores[0].criticalTasksScore,
+        preventiveCare: storedScores[0].preventiveCareScore,
+        homeEfficiency: storedScores[0].homeEfficiencyScore,
+      }
+    : calculateHomeHealthScore(
+        tasks.map((t) => ({
+          nextDueDate: new Date(t.nextDueDate),
+          priority: t.priority,
+          lastCompletedDate: t.lastCompletedDate ? new Date(t.lastCompletedDate) : null,
+          isActive: t.isActive ?? true,
+        }))
+      );
 
   // Split tasks into overdue and upcoming
   const now = new Date();

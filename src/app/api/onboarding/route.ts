@@ -106,65 +106,109 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create task instances from user selections
+    // Get all applicable templates for this home's configuration
+    const applicableTemplates = getApplicableTemplates({
+      type: body.home.type as HomeType,
+      systems: body.systems.map((s) => s.key as SystemType),
+      appliances: body.appliances as ApplianceCategory[],
+    });
+
+    const templateMap = new Map(applicableTemplates.map((t) => [t.id, t]));
+
+    // Track which template IDs the user explicitly addressed
+    const userHandledTemplateIds = new Set(
+      body.taskSetups.map((s) => s.templateId)
+    );
+
+    // Track which template IDs the user explicitly skipped
+    const userSkippedTemplateIds = new Set(
+      body.taskSetups.filter((s) => s.state === "skip").map((s) => s.templateId)
+    );
+
+    // ── 1. Create task instances from user's explicit selections (track/done) ──
     const activeSetups = body.taskSetups.filter((s) => s.state !== "skip");
 
-    if (activeSetups.length > 0) {
-      const templates = getApplicableTemplates({
-        type: body.home.type as HomeType,
-        systems: body.systems.map((s) => s.key as SystemType),
-        appliances: body.appliances as ApplianceCategory[],
+    const userTaskValues = activeSetups
+      .filter((setup) => templateMap.has(setup.templateId))
+      .map((setup) => {
+        const template = templateMap.get(setup.templateId)!;
+
+        let lastCompletedDate: Date | null = null;
+        if (setup.state === "done") {
+          lastCompletedDate = new Date(
+            setup.doneYear,
+            setup.doneMonth - 1,
+            15
+          );
+        }
+
+        const nextDueDate = getNextDueDate(
+          template.frequencyValue,
+          template.frequencyUnit,
+          lastCompletedDate ?? undefined
+        );
+
+        return {
+          homeId: home.id,
+          name: template.name,
+          description: template.description,
+          category: template.category,
+          priority: template.priority,
+          frequencyUnit: template.frequencyUnit,
+          frequencyValue: template.frequencyValue,
+          nextDueDate: nextDueDate.toISOString().split("T")[0],
+          lastCompletedDate: lastCompletedDate
+            ? lastCompletedDate.toISOString().split("T")[0]
+            : null,
+          isActive: true,
+          isCustom: false,
+          notificationDaysBefore: 3,
+        };
       });
 
-      const templateMap = new Map(templates.map((t) => [t.id, t]));
+    // ── 2. Auto-create tasks for applicable templates the user didn't address ──
+    const autoTaskValues = applicableTemplates
+      .filter(
+        (template) =>
+          !userHandledTemplateIds.has(template.id) &&
+          !userSkippedTemplateIds.has(template.id)
+      )
+      .map((template) => {
+        const nextDueDate = getNextDueDate(
+          template.frequencyValue,
+          template.frequencyUnit
+          // no lastCompleted — uses today as base
+        );
 
-      const taskValues = activeSetups
-        .filter((setup) => templateMap.has(setup.templateId))
-        .map((setup) => {
-          const template = templateMap.get(setup.templateId)!;
+        return {
+          homeId: home.id,
+          name: template.name,
+          description: template.description,
+          category: template.category,
+          priority: template.priority,
+          frequencyUnit: template.frequencyUnit,
+          frequencyValue: template.frequencyValue,
+          nextDueDate: nextDueDate.toISOString().split("T")[0],
+          lastCompletedDate: null,
+          isActive: true,
+          isCustom: false,
+          notificationDaysBefore: 3,
+        };
+      });
 
-          let lastCompletedDate: Date | null = null;
-          if (setup.state === "done") {
-            lastCompletedDate = new Date(
-              setup.doneYear,
-              setup.doneMonth - 1,
-              15
-            );
-          }
+    // ── 3. Insert all tasks in one batch ──
+    const allTaskValues = [...userTaskValues, ...autoTaskValues];
 
-          const nextDueDate = getNextDueDate(
-            template.frequencyValue,
-            template.frequencyUnit,
-            lastCompletedDate ?? undefined
-          );
-
-          return {
-            homeId: home.id,
-            name: template.name,
-            description: template.description,
-            category: template.category,
-            priority: template.priority,
-            frequencyUnit: template.frequencyUnit,
-            frequencyValue: template.frequencyValue,
-            nextDueDate: nextDueDate.toISOString().split("T")[0],
-            lastCompletedDate: lastCompletedDate
-              ? lastCompletedDate.toISOString().split("T")[0]
-              : null,
-            isActive: true,
-            isCustom: false,
-            notificationDaysBefore: 3,
-          };
-        });
-
-      if (taskValues.length > 0) {
-        await db.insert(taskInstances).values(taskValues);
-      }
+    if (allTaskValues.length > 0) {
+      await db.insert(taskInstances).values(allTaskValues);
     }
 
     return NextResponse.json({
       success: true,
       homeId: home.id,
-      tasksCreated: activeSetups.length,
+      tasksCreated: allTaskValues.length,
+      tasksFromSetup: userTaskValues.length,
+      tasksAutoGenerated: autoTaskValues.length,
     });
   } catch (error) {
     if (

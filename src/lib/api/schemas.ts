@@ -117,6 +117,22 @@ export const updateNotificationPreferencesSchema = z.object({
   weeklyDigestDay: z.number().int().min(0).max(6).optional(),
 });
 
+const contractorSpecialtyValues = [
+  "general", "hvac", "plumbing", "electrical", "roofing", "landscaping",
+  "pest_control", "cleaning", "painting", "flooring", "appliance_repair", "other",
+] as const;
+
+export const createContractorSchema = z.object({
+  homeId: z.string().uuid(),
+  name: z.string().min(1).max(255),
+  company: z.string().max(255).optional().nullable(),
+  phone: z.string().max(50).optional().nullable(),
+  email: z.string().email().max(255).optional().nullable(),
+  specialty: z.enum(contractorSpecialtyValues).optional().nullable(),
+  notes: z.string().max(2000).optional().nullable(),
+  rating: z.number().int().min(1).max(5).optional().nullable(),
+});
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;
@@ -126,3 +142,4 @@ export type InviteInput = z.infer<typeof inviteSchema>;
 export type PushSubscribeInput = z.infer<typeof pushSubscribeSchema>;
 export type OnboardingInput = z.infer<typeof onboardingSchema>;
 export type UpdateNotificationPreferencesInput = z.infer<typeof updateNotificationPreferencesSchema>;
+export type CreateContractorInput = z.infer<typeof createContractorSchema>;
