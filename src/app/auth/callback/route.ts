@@ -18,6 +18,20 @@ export async function GET(request: Request) {
       } = await supabase.auth.getUser();
 
       if (authUser?.email) {
+        // Beta gate: check allow-list if configured
+        const allowList = process.env.ALLOWED_EMAILS;
+        if (allowList) {
+          const allowed = allowList
+            .split(",")
+            .map((e) => e.trim().toLowerCase());
+          if (!allowed.includes(authUser.email.toLowerCase())) {
+            await supabase.auth.signOut();
+            return NextResponse.redirect(
+              `${origin}/?error=not_allowed`
+            );
+          }
+        }
+
         // Check if this user has pending invites
         const pendingInvites = await db
           .select()

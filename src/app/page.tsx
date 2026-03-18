@@ -1,8 +1,11 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function Home() {
+  const searchParams = useSearchParams();
+  const error = searchParams.get("error");
   const handleGoogleSignIn = async () => {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
@@ -65,6 +68,16 @@ export default function Home() {
 
       {/* Bottom section */}
       <div className="flex flex-col gap-3 px-6 pb-10">
+        {error === "not_allowed" && (
+          <div className="mb-2 rounded-xl bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-700">
+            This app is in private beta. Contact us for access.
+          </div>
+        )}
+        {error === "auth" && (
+          <div className="mb-2 rounded-xl bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-700">
+            Sign in failed. Please try again.
+          </div>
+        )}
         <button
           onClick={handleGoogleSignIn}
           className="flex h-[52px] w-full items-center justify-center gap-3 rounded-xl bg-white text-[15px] font-bold text-foreground shadow-sm"
