@@ -147,14 +147,14 @@ ${overdue.length > 0 ? `🔴 OVERDUE (${overdue.length}):\n${overdueList}\n` : "
 ${upcoming.length > 0 ? `📅 COMING UP THIS WEEK (${upcoming.length}):\n${upcomingList}\n` : "No tasks due this week.\n"}
 📊 COMPLETED THIS WEEK: ${completions} task${completions !== 1 ? "s" : ""}
 
-View your full task list: ${process.env.NEXT_PUBLIC_APP_URL || "https://honeydo-iq.vercel.app"}/tasks
+View your full task list: ${process.env.NEXT_PUBLIC_APP_URL || "https://honeydoiq.app"}/tasks
 
 — HoneyDoIQ`;
 
       // Send via Supabase Edge Functions or direct SMTP
       // For now, use Supabase's built-in email (or swap with Resend/SendGrid)
       const emailApiKey = process.env.EMAIL_API_KEY;
-      const emailFrom = process.env.EMAIL_FROM || "noreply@honeydo-iq.com";
+      const emailFrom = process.env.EMAIL_FROM || "noreply@honeydoiq.app";
 
       if (emailApiKey && process.env.EMAIL_API_URL) {
         await fetch(process.env.EMAIL_API_URL, {
