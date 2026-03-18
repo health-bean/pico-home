@@ -20,11 +20,13 @@ import { createClient } from "@supabase/supabase-js";
  */
 export async function POST(request: Request) {
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const authHeader = request.headers.get("authorization");
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  if (!cronSecret) {
+    console.error("CRON_SECRET not configured");
+    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+  }
+  const authHeader = request.headers.get("authorization");
+  if (authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const now = new Date();
@@ -181,7 +183,8 @@ View your full task list: ${process.env.NEXT_PUBLIC_APP_URL || "https://honeydoi
         sent++;
       }
     } catch (err) {
-      errors.push(`${digestUser.email}: ${err}`);
+      console.error(`[Digest] Error for ${digestUser.email}:`, err);
+      errors.push(`user_${digestUser.userId}: send_failed`);
     }
   }
 

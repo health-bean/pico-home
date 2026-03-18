@@ -1,15 +1,17 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { documents } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { apiHandler } from "@/lib/api/handler";
 import { createClient } from "@/lib/supabase/server";
 import { getUserHome } from "@/lib/auth/get-user-home";
 import { z } from "zod";
+import { fileTypeFromBuffer } from "file-type";
 
 const BUCKET = "documents";
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
-const ALLOWED_TYPES = [
+
+const ALLOWED_MIMES = new Set([
   "application/pdf",
   "image/jpeg",
   "image/png",
@@ -20,7 +22,24 @@ const ALLOWED_TYPES = [
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "text/csv",
-];
+]);
+
+// Map validated MIME types to safe file extensions
+const MIME_TO_EXT: Record<string, string> = {
+  "application/pdf": "pdf",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/heic": "heic",
+  "application/msword": "doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+  "application/vnd.ms-excel": "xls",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+  "text/csv": "csv",
+};
+
+// Text-based formats that file-type can't detect via magic bytes
+const TEXT_BASED_MIMES = new Set(["text/csv"]);
 
 const documentTypeValues = [
   "warranty",
@@ -33,22 +52,26 @@ const documentTypeValues = [
   "other",
 ] as const;
 
+const uuidSchema = z.string().uuid();
+const nameSchema = z.string().min(1).max(255);
+const notesSchema = z.string().max(2000).optional();
+
 /**
  * GET /api/documents?homeId=...
- * List documents for a home.
+ * List documents for a home. Returns signed URLs (1 hour expiry).
  */
 export const GET = apiHandler(async ({ user, request }) => {
   const { searchParams } = new URL(request.url);
-  const homeId = searchParams.get("homeId");
+  const homeId = uuidSchema.safeParse(searchParams.get("homeId"));
 
-  if (!homeId) {
+  if (!homeId.success) {
     return NextResponse.json(
-      { error: "homeId is required" },
+      { error: "Valid homeId is required" },
       { status: 400 }
     );
   }
 
-  const home = await getUserHome(user.id, homeId);
+  const home = await getUserHome(user.id, homeId.data);
   if (!home) {
     return NextResponse.json({ error: "Home not found" }, { status: 404 });
   }
@@ -56,32 +79,66 @@ export const GET = apiHandler(async ({ user, request }) => {
   const docs = await db
     .select()
     .from(documents)
-    .where(eq(documents.homeId, homeId));
+    .where(eq(documents.homeId, home.id));
 
-  return NextResponse.json({ documents: docs });
+  // Generate signed URLs for each document
+  const supabase = await createClient();
+  const docsWithUrls = await Promise.all(
+    docs.map(async (doc) => {
+      const { data } = await supabase.storage
+        .from(BUCKET)
+        .createSignedUrl(doc.fileUrl, 3600); // 1 hour
+      return { ...doc, signedUrl: data?.signedUrl ?? null };
+    })
+  );
+
+  return NextResponse.json({ documents: docsWithUrls });
 });
 
 /**
  * POST /api/documents
  * Upload a document file to Supabase Storage and create a DB record.
- * Expects multipart/form-data with: file, homeId, name, type, notes (optional), applianceId (optional)
  */
 export const POST = apiHandler(async ({ user, request }) => {
   const formData = await request.formData();
 
   const file = formData.get("file") as File | null;
   const homeId = formData.get("homeId") as string | null;
-  const name = formData.get("name") as string | null;
+  const rawName = formData.get("name") as string | null;
   const docType = formData.get("type") as string | null;
-  const notes = (formData.get("notes") as string) || null;
+  const rawNotes = (formData.get("notes") as string) || undefined;
   const applianceId = (formData.get("applianceId") as string) || null;
 
   // Validate required fields
-  if (!file || !homeId || !name) {
+  if (!file || !homeId || !rawName) {
     return NextResponse.json(
       { error: "file, homeId, and name are required" },
       { status: 400 }
     );
+  }
+
+  // Validate homeId UUID format
+  if (!uuidSchema.safeParse(homeId).success) {
+    return NextResponse.json({ error: "Invalid homeId" }, { status: 400 });
+  }
+
+  // Validate name length
+  const nameResult = nameSchema.safeParse(rawName);
+  if (!nameResult.success) {
+    return NextResponse.json({ error: "Name must be 1-255 characters" }, { status: 400 });
+  }
+
+  // Validate notes length
+  if (rawNotes) {
+    const notesResult = notesSchema.safeParse(rawNotes);
+    if (!notesResult.success) {
+      return NextResponse.json({ error: "Notes must be under 2000 characters" }, { status: 400 });
+    }
+  }
+
+  // Validate applianceId if provided
+  if (applianceId && !uuidSchema.safeParse(applianceId).success) {
+    return NextResponse.json({ error: "Invalid applianceId" }, { status: 400 });
   }
 
   // Validate document type
@@ -101,13 +158,33 @@ export const POST = apiHandler(async ({ user, request }) => {
     );
   }
 
-  // Validate MIME type
-  if (!ALLOWED_TYPES.includes(file.type)) {
+  // Validate MIME type via magic bytes (not trusting client-provided type)
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const detected = await fileTypeFromBuffer(buffer);
+  let validatedMime: string;
+
+  if (detected) {
+    // Binary file — trust magic byte detection
+    if (!ALLOWED_MIMES.has(detected.mime)) {
+      return NextResponse.json(
+        { error: "File type not allowed based on content inspection" },
+        { status: 400 }
+      );
+    }
+    validatedMime = detected.mime;
+  } else if (TEXT_BASED_MIMES.has(file.type)) {
+    // Text-based files can't be detected by magic bytes — trust client type
+    // but verify it's in our allowed list
+    validatedMime = file.type;
+  } else {
     return NextResponse.json(
-      { error: `File type not allowed. Accepted: ${ALLOWED_TYPES.join(", ")}` },
+      { error: "Could not verify file type" },
       { status: 400 }
     );
   }
+
+  // Derive safe extension from validated MIME (never from user filename)
+  const ext = MIME_TO_EXT[validatedMime] || "bin";
 
   // Authorize: user must be member of the home
   const home = await getUserHome(user.id, homeId);
@@ -117,13 +194,12 @@ export const POST = apiHandler(async ({ user, request }) => {
 
   // Upload to Supabase Storage
   const supabase = await createClient();
-  const ext = file.name.split(".").pop() || "bin";
-  const storagePath = `${homeId}/${crypto.randomUUID()}.${ext}`;
+  const storagePath = `${home.id}/${crypto.randomUUID()}.${ext}`;
 
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
-    .upload(storagePath, file, {
-      contentType: file.type,
+    .upload(storagePath, buffer, {
+      contentType: validatedMime,
       upsert: false,
     });
 
@@ -135,24 +211,19 @@ export const POST = apiHandler(async ({ user, request }) => {
     );
   }
 
-  // Get public URL
-  const { data: urlData } = supabase.storage
-    .from(BUCKET)
-    .getPublicUrl(storagePath);
-
-  // Create DB record
+  // Store the storage path (NOT public URL) — we generate signed URLs on demand
   const [doc] = await db
     .insert(documents)
     .values({
       userId: user.id,
-      homeId,
+      homeId: home.id,
       applianceId,
-      name,
+      name: nameResult.data,
       type: typeResult.data,
-      fileUrl: urlData.publicUrl,
+      fileUrl: storagePath,
       fileSizeBytes: file.size,
-      mimeType: file.type,
-      notes,
+      mimeType: validatedMime,
+      notes: rawNotes ?? null,
     })
     .returning();
 
@@ -165,11 +236,11 @@ export const POST = apiHandler(async ({ user, request }) => {
  */
 export const DELETE = apiHandler(async ({ user, request }) => {
   const { searchParams } = new URL(request.url);
-  const docId = searchParams.get("id");
+  const docId = uuidSchema.safeParse(searchParams.get("id"));
 
-  if (!docId) {
+  if (!docId.success) {
     return NextResponse.json(
-      { error: "id is required" },
+      { error: "Valid document id is required" },
       { status: 400 }
     );
   }
@@ -178,7 +249,7 @@ export const DELETE = apiHandler(async ({ user, request }) => {
   const [doc] = await db
     .select()
     .from(documents)
-    .where(eq(documents.id, docId));
+    .where(eq(documents.id, docId.data));
 
   if (!doc) {
     return NextResponse.json({ error: "Document not found" }, { status: 404 });
@@ -194,15 +265,12 @@ export const DELETE = apiHandler(async ({ user, request }) => {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
-  // Delete from storage
+  // Delete from storage (fileUrl now stores the path, not a full URL)
   const supabase = await createClient();
-  const urlParts = doc.fileUrl.split(`/${BUCKET}/`);
-  if (urlParts[1]) {
-    await supabase.storage.from(BUCKET).remove([urlParts[1]]);
-  }
+  await supabase.storage.from(BUCKET).remove([doc.fileUrl]);
 
   // Delete DB record
-  await db.delete(documents).where(eq(documents.id, docId));
+  await db.delete(documents).where(eq(documents.id, docId.data));
 
   return NextResponse.json({ success: true });
 });
