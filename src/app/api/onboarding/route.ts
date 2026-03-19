@@ -8,9 +8,11 @@ import {
   homeSystems,
   appliances,
   taskInstances,
+  householdHealthFlags,
 } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { getApplicableTemplates, getNextDueDate } from "@/lib/tasks/scheduling";
+import { getApplicableTemplates, getNextDueDate, adjustFrequencyForHealth } from "@/lib/tasks/scheduling";
+import type { HealthFlags } from "@/lib/tasks/scheduling";
 import type { HomeType, SystemType, ApplianceCategory } from "@/lib/tasks/templates";
 import { onboardingSchema } from "@/lib/api/schemas";
 import { rateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
@@ -82,6 +84,14 @@ export async function POST(request: Request) {
       role: "owner",
     });
 
+    // Store household health flags if provided
+    if (body.householdHealth) {
+      await db.insert(householdHealthFlags).values({
+        homeId: home.id,
+        ...body.householdHealth,
+      });
+    }
+
     // Create home systems
     if (body.systems.length > 0) {
       await db.insert(homeSystems).values(
@@ -107,11 +117,15 @@ export async function POST(request: Request) {
     }
 
     // Get all applicable templates for this home's configuration
-    const applicableTemplates = getApplicableTemplates({
-      type: body.home.type as HomeType,
-      systems: body.systems.map((s) => s.key as SystemType),
-      appliances: body.appliances as ApplianceCategory[],
-    });
+    const healthFlags: HealthFlags = body.householdHealth ?? {};
+    const applicableTemplates = getApplicableTemplates(
+      {
+        type: body.home.type as HomeType,
+        systems: body.systems.map((s) => s.key as SystemType),
+        appliances: body.appliances as ApplianceCategory[],
+      },
+      healthFlags
+    );
 
     const templateMap = new Map(applicableTemplates.map((t) => [t.id, t]));
 
@@ -133,6 +147,12 @@ export async function POST(request: Request) {
       .map((setup) => {
         const template = templateMap.get(setup.templateId)!;
 
+        const adjustedFrequency = adjustFrequencyForHealth(
+          template.frequencyValue,
+          template.healthMultipliers,
+          healthFlags
+        );
+
         let lastCompletedDate: Date | null = null;
         if (setup.state === "done") {
           lastCompletedDate = new Date(
@@ -143,7 +163,7 @@ export async function POST(request: Request) {
         }
 
         const nextDueDate = getNextDueDate(
-          template.frequencyValue,
+          adjustedFrequency,
           template.frequencyUnit,
           lastCompletedDate ?? undefined
         );
@@ -155,7 +175,7 @@ export async function POST(request: Request) {
           category: template.category,
           priority: template.priority,
           frequencyUnit: template.frequencyUnit,
-          frequencyValue: template.frequencyValue,
+          frequencyValue: adjustedFrequency,
           nextDueDate: nextDueDate.toISOString().split("T")[0],
           lastCompletedDate: lastCompletedDate
             ? lastCompletedDate.toISOString().split("T")[0]
@@ -174,8 +194,14 @@ export async function POST(request: Request) {
           !userSkippedTemplateIds.has(template.id)
       )
       .map((template) => {
-        const nextDueDate = getNextDueDate(
+        const adjustedFrequency = adjustFrequencyForHealth(
           template.frequencyValue,
+          template.healthMultipliers,
+          healthFlags
+        );
+
+        const nextDueDate = getNextDueDate(
+          adjustedFrequency,
           template.frequencyUnit
           // no lastCompleted — uses today as base
         );
@@ -187,7 +213,7 @@ export async function POST(request: Request) {
           category: template.category,
           priority: template.priority,
           frequencyUnit: template.frequencyUnit,
-          frequencyValue: template.frequencyValue,
+          frequencyValue: adjustedFrequency,
           nextDueDate: nextDueDate.toISOString().split("T")[0],
           lastCompletedDate: null,
           isActive: true,

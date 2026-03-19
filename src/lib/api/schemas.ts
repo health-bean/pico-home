@@ -95,11 +95,24 @@ export const onboardingTaskSetupSchema = z.object({
   doneYear: z.number().int().min(2000).max(new Date().getFullYear() + 1),
 });
 
+export const householdHealthSchema = z.object({
+  hasAllergies: z.boolean().default(false),
+  hasYoungChildren: z.boolean().default(false),
+  hasPets: z.boolean().default(false),
+  hasElderly: z.boolean().default(false),
+  hasImmunocompromised: z.boolean().default(false),
+  prioritizeAirQuality: z.boolean().default(false),
+  prioritizeEnergyEfficiency: z.boolean().default(false),
+});
+
+export type HouseholdHealthInput = z.infer<typeof householdHealthSchema>;
+
 export const onboardingSchema = z.object({
   home: onboardingHomeSchema,
   systems: z.array(onboardingSystemSchema).max(50),
   appliances: z.array(z.enum(applianceCategoryValues)).max(50),
   taskSetups: z.array(onboardingTaskSetupSchema).max(500),
+  householdHealth: householdHealthSchema.optional(),
 });
 
 export const updateNotificationPreferencesSchema = z.object({
