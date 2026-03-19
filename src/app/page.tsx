@@ -81,7 +81,7 @@ function HomeContent() {
         )}
         <button
           onClick={handleGoogleSignIn}
-          className="flex h-[52px] w-full items-center justify-center gap-3 rounded-xl bg-white text-[15px] font-bold text-foreground shadow-sm"
+          className="flex h-[52px] w-full items-center justify-center gap-3 rounded-xl bg-white text-[15px] font-bold text-[#1c1917] shadow-sm"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24">
             <path
