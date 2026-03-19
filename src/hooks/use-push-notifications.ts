@@ -1,17 +1,26 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useSyncExternalStore } from "react";
+
+const emptySubscribe = () => () => {};
 
 export function usePushNotifications() {
-  const [supported] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
-  });
-  const [permission, setPermission] = useState<NotificationPermission>(() => {
-    if (typeof window === "undefined") return "default";
-    return "Notification" in window ? Notification.permission : "default";
-  });
+  const supported = useSyncExternalStore(
+    emptySubscribe,
+    () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window,
+    () => false
+  );
+  const currentPermission = useSyncExternalStore(
+    emptySubscribe,
+    () => (("Notification" in window) ? Notification.permission : "default") as NotificationPermission,
+    () => "default" as NotificationPermission
+  );
+  const [permission, setPermission] = useState<NotificationPermission>(currentPermission);
   const [subscription, setSubscription] = useState<PushSubscription | null>(null);
+
+  useEffect(() => {
+    setPermission(currentPermission);
+  }, [currentPermission]);
 
   const registerServiceWorker = useCallback(async () => {
     if (!supported) return null;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { BottomNav } from "./bottom-nav";
 import { ToastProvider, Button } from "@/components/ui";
@@ -76,14 +76,15 @@ function HomeSwitcher() {
 
 function NotificationBanner() {
   const { supported, permission, subscribe } = usePushNotifications();
-  const [dismissed, setDismissed] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("honeydo-notif-dismissed") === "true";
-    }
-    return false;
-  });
+  const isDismissedFromStorage = useSyncExternalStore(
+    (cb) => { window.addEventListener("storage", cb); return () => window.removeEventListener("storage", cb); },
+    () => localStorage.getItem("honeydo-notif-dismissed") === "true",
+    () => false
+  );
+  const [dismissed, setDismissed] = useState(false);
+  const effectiveDismissed = dismissed || isDismissedFromStorage;
 
-  if (!supported || permission === "granted" || permission === "denied" || dismissed) {
+  if (!supported || permission === "granted" || permission === "denied" || effectiveDismissed) {
     return null;
   }
 
