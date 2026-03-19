@@ -27,7 +27,7 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/85 backdrop-blur-xl border-t border-[var(--color-neutral-200)] dark:bg-[var(--color-neutral-900)]/85 dark:border-[var(--color-neutral-700)] pb-[max(env(safe-area-inset-bottom),0.5rem)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/85 backdrop-blur-xl border-t border-[var(--color-neutral-200)] pb-[max(env(safe-area-inset-bottom),0.5rem)]">
       <div className="mx-auto flex max-w-lg items-center justify-around pt-2">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);

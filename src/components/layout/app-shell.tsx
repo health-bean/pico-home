@@ -18,7 +18,7 @@ function HomeSwitcher() {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-left shadow-sm transition-colors hover:bg-muted dark:bg-[var(--color-neutral-900)]"
+        className="flex w-full items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-left shadow-sm transition-colors hover:bg-muted"
       >
         <span className="text-sm">🏠</span>
         <span className="flex-1 text-sm font-medium text-foreground truncate">
@@ -30,7 +30,7 @@ function HomeSwitcher() {
       </button>
 
       {open && (
-        <div className="absolute left-4 right-4 z-50 mt-1 rounded-lg border border-border bg-white shadow-lg dark:bg-[var(--color-neutral-900)]">
+        <div className="absolute left-4 right-4 z-50 mt-1 rounded-lg border border-border bg-white shadow-lg">
           {homes.map((home) => (
             <button
               key={home.id}
@@ -42,7 +42,7 @@ function HomeSwitcher() {
               }}
               className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors first:rounded-t-lg last:rounded-b-lg ${
                 home.id === activeHome?.id
-                  ? "bg-[var(--color-primary-50)] dark:bg-[var(--color-primary-900)]/20"
+                  ? "bg-[var(--color-primary-50)]"
                   : "hover:bg-muted"
               }`}
             >
@@ -95,7 +95,7 @@ function NotificationBanner() {
 
   return (
     <div className="mx-auto max-w-lg px-4 pt-4">
-      <div className="flex items-center gap-3 rounded-xl border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] p-3 dark:border-[var(--color-primary-800)] dark:bg-[var(--color-primary-950)]">
+      <div className="flex items-center gap-3 rounded-xl border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] p-3">
         <span className="text-xl">🔔</span>
         <div className="flex-1">
           <p className="text-sm font-medium text-foreground">Enable reminders?</p>

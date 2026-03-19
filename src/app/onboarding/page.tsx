@@ -334,7 +334,7 @@ function ProgressBar({ currentStep, totalSteps }: { currentStep: number; totalSt
 function StepTitle({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div>
-      <h2 className="text-[22px] font-extrabold text-[var(--color-neutral-900)] tracking-tight mb-1.5">
+      <h2 className="text-[22px] font-extrabold text-[#1c1917] tracking-tight mb-1.5">
         {title}
       </h2>
       <p className="text-sm text-[var(--color-neutral-400)] mb-6 leading-relaxed">
@@ -360,7 +360,7 @@ function ContinueButton({
       type="button"
       onClick={onClick}
       disabled={disabled || loading}
-      className={`w-full h-[50px] bg-[#1c1917] text-white rounded-xl font-bold text-[15px] mt-6 transition-all flex items-center justify-center gap-2 ${
+      className={`w-full h-[48px] bg-[#1c1917] text-white rounded-xl font-bold text-[14px] mt-6 transition-all flex items-center justify-center gap-2 ${
         disabled || loading ? "opacity-50 cursor-not-allowed" : "hover:bg-[#292524] active:scale-[0.98]"
       }`}
     >
@@ -393,7 +393,7 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
 function SelectionCheckmark({ selected }: { selected: boolean }) {
   return (
     <div
-      className={`w-[22px] h-[22px] rounded-full flex items-center justify-center shrink-0 transition-all ${
+      className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all ${
         selected
           ? "bg-[var(--color-primary-500)]"
           : "border-2 border-[var(--color-neutral-300)]"
@@ -425,17 +425,17 @@ function SelectionCard({
     <button
       type="button"
       onClick={onClick}
-      className={`flex items-center gap-3 p-4 bg-white rounded-2xl border-2 cursor-pointer transition-all w-full text-left ${
+      className={`flex items-center gap-3 p-3.5 bg-white rounded-2xl border-2 cursor-pointer transition-all w-full text-left ${
         selected
           ? "border-[var(--color-primary-500)] bg-[var(--color-primary-50)]"
           : "border-[var(--color-neutral-200)] hover:border-[var(--color-neutral-300)]"
       }`}
     >
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 ${iconBg}`}>
+      <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0 ${iconBg}`}>
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <span className="text-sm font-semibold text-[var(--color-neutral-900)] block">{label}</span>
+        <span className="text-sm font-semibold text-[#1c1917] block">{label}</span>
         {description && (
           <span className="text-xs text-[var(--color-neutral-400)]">{description}</span>
         )}
@@ -478,7 +478,7 @@ function FormInput({
         value={value}
         onChange={onChange}
         maxLength={maxLength}
-        className="h-11 w-full rounded-xl border border-[var(--color-neutral-200)] bg-white px-4 text-sm font-medium focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-100)] outline-none transition-all dark:bg-[var(--color-neutral-800)] dark:border-[var(--color-neutral-700)]"
+        className="h-10 w-full rounded-xl border border-[var(--color-neutral-200)] bg-white px-4 text-sm font-medium focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-100)] outline-none transition-all"
       />
     </div>
   );
@@ -503,7 +503,7 @@ function FormSelect({
       <select
         value={value}
         onChange={onChange}
-        className="h-11 w-full rounded-xl border border-[var(--color-neutral-200)] bg-white px-4 text-sm font-medium focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-100)] outline-none transition-all appearance-none dark:bg-[var(--color-neutral-800)] dark:border-[var(--color-neutral-700)]"
+        className="h-10 w-full rounded-xl border border-[var(--color-neutral-200)] bg-white px-4 text-sm font-medium focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-100)] outline-none transition-all appearance-none"
       >
         {placeholder && (
           <option value="" disabled>
@@ -526,12 +526,12 @@ function FormSelect({
 
 function StepWelcome({ onNext }: { onNext: () => void }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-8 px-5 text-center">
-      <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-[var(--color-primary-50)] text-5xl">
-        <Home className="h-12 w-12 text-[var(--color-primary-500)]" />
+    <div className="flex flex-1 flex-col items-center justify-center gap-6 px-5 text-center">
+      <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[var(--color-primary-50)]">
+        <Home className="h-10 w-10 text-[var(--color-primary-500)]" />
       </div>
-      <div className="flex flex-col gap-3">
-        <h1 className="text-[22px] font-extrabold text-[var(--color-neutral-900)] tracking-tight">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-[22px] font-extrabold text-[#1c1917] tracking-tight">
           Let&apos;s set up your home
         </h1>
         <p className="mx-auto max-w-sm text-sm text-[var(--color-neutral-400)] leading-relaxed">
@@ -589,7 +589,7 @@ function StepBasicsAndLocation({
         {/* Property Type as selection cards */}
         <div>
           <FormLabel>Property Type</FormLabel>
-          <div className="flex flex-col gap-2 max-h-[200px] overflow-y-auto">
+          <div className="flex flex-col gap-2.5 max-h-[200px] overflow-y-auto">
             {HOME_TYPES.map((ht) => (
               <SelectionCard
                 key={ht.value}
@@ -613,9 +613,9 @@ function StepBasicsAndLocation({
                 key={role.value}
                 type="button"
                 onClick={() => onChange({ ownerRole: role.value })}
-                className={`flex-1 h-11 rounded-xl border-2 px-3 text-sm font-semibold transition-all ${
+                className={`flex-1 h-10 rounded-xl border-2 px-3 text-sm font-semibold transition-all ${
                   data.ownerRole === role.value
-                    ? "border-[var(--color-primary-500)] bg-[var(--color-primary-50)] text-[var(--color-neutral-900)]"
+                    ? "border-[var(--color-primary-500)] bg-[var(--color-primary-50)] text-[#1c1917]"
                     : "border-[var(--color-neutral-200)] text-[var(--color-neutral-400)] hover:border-[var(--color-neutral-300)]"
                 }`}
               >
@@ -664,7 +664,7 @@ function StepBasicsAndLocation({
         {climateZone && (
           <div className="rounded-xl border border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)] px-4 py-3">
             <span className="text-xs text-[var(--color-neutral-400)]">Climate zone: </span>
-            <span className="text-xs font-semibold text-[var(--color-neutral-900)]">{climateZone}</span>
+            <span className="text-xs font-semibold text-[#1c1917]">{climateZone}</span>
           </div>
         )}
       </div>
@@ -742,7 +742,7 @@ function StepSystemsAndAppliances({
         <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-neutral-400)] mb-3">
           Systems
         </p>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2.5">
           {SYSTEMS.map((sys) => {
             const entry = data.systems[sys.key];
             return (
@@ -785,7 +785,7 @@ function StepSystemsAndAppliances({
         <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-neutral-400)] mb-3">
           Major Appliances
         </p>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2.5">
           {APPLIANCES.map((app) => {
             const active = data.appliances[app.key];
             return (
@@ -833,7 +833,7 @@ function TaskRow({
   const isEssential = template.priority === "safety" || template.priority === "prevent_damage";
 
   return (
-    <div className={`rounded-xl border-2 p-4 transition-all ${
+    <div className={`rounded-xl border-2 p-3.5 transition-all ${
       setup.state === "skip"
         ? "border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)] opacity-50"
         : "border-[var(--color-neutral-200)] bg-white"
@@ -851,7 +851,7 @@ function TaskRow({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-[var(--color-neutral-900)]">{template.name}</span>
+            <span className="text-sm font-semibold text-[#1c1917]">{template.name}</span>
             {isEssential && (
               <span className="inline-flex items-center rounded-full bg-[var(--color-danger-50)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-danger-500)]">
                 Critical
@@ -896,7 +896,7 @@ function TaskRow({
                   <select
                     value={setup.doneMonth}
                     onChange={(e) => onUpdate({ doneMonth: Number(e.target.value) })}
-                    className="h-9 rounded-xl border border-[var(--color-neutral-200)] bg-white px-3 text-xs font-medium outline-none focus:border-[var(--color-primary-500)] dark:bg-[var(--color-neutral-800)]"
+                    className="h-9 rounded-xl border border-[var(--color-neutral-200)] bg-white px-3 text-xs font-medium outline-none focus:border-[var(--color-primary-500)]"
                   >
                     {MONTHS.map((m) => (
                       <option key={m.value} value={m.value}>{m.label}</option>
@@ -905,7 +905,7 @@ function TaskRow({
                   <select
                     value={setup.doneYear}
                     onChange={(e) => onUpdate({ doneYear: Number(e.target.value) })}
-                    className="h-9 rounded-xl border border-[var(--color-neutral-200)] bg-white px-3 text-xs font-medium outline-none focus:border-[var(--color-primary-500)] dark:bg-[var(--color-neutral-800)]"
+                    className="h-9 rounded-xl border border-[var(--color-neutral-200)] bg-white px-3 text-xs font-medium outline-none focus:border-[var(--color-primary-500)]"
                   >
                     {YEAR_OPTIONS.map((y) => (
                       <option key={y.value} value={y.value}>{y.label}</option>
@@ -978,10 +978,10 @@ function StepPlanPreview({
       />
 
       {/* Summary bar */}
-      <div className="flex items-center gap-3 rounded-2xl border-2 border-[var(--color-primary-500)]/30 bg-[var(--color-primary-50)] p-4 mb-4">
+      <div className="flex items-center gap-3 rounded-2xl border-2 border-[var(--color-primary-500)]/30 bg-[var(--color-primary-50)] p-3.5 mb-4">
         <span className="text-2xl font-extrabold text-[var(--color-primary-500)]">{activeCount}</span>
         <div className="flex-1">
-          <p className="text-sm font-semibold text-[var(--color-neutral-900)]">
+          <p className="text-sm font-semibold text-[#1c1917]">
             task{activeCount !== 1 ? "s" : ""} selected
           </p>
           <p className="text-xs text-[var(--color-neutral-400)]">
@@ -992,7 +992,7 @@ function StepPlanPreview({
       </div>
 
       {/* Category groups */}
-      <div className="flex flex-col gap-3 mb-4">
+      <div className="flex flex-col gap-2.5 mb-4">
         {CATEGORY_ORDER.filter((cat) => grouped.has(cat)).map((cat) => {
           const catTemplates = grouped.get(cat)!;
           const expanded = expandedCategories.has(cat);
@@ -1004,12 +1004,12 @@ function StepPlanPreview({
               <button
                 type="button"
                 onClick={() => toggleCategory(cat)}
-                className="flex w-full items-center gap-3 p-4 text-left hover:bg-[var(--color-neutral-50)] transition-colors"
+                className="flex w-full items-center gap-3 p-3.5 text-left hover:bg-[var(--color-neutral-50)] transition-colors"
               >
                 <ChevronRight
                   className={`h-4 w-4 shrink-0 text-[var(--color-neutral-400)] transition-transform ${expanded ? "rotate-90" : ""}`}
                 />
-                <span className="flex-1 text-sm font-semibold text-[var(--color-neutral-900)]">
+                <span className="flex-1 text-sm font-semibold text-[#1c1917]">
                   {CATEGORY_LABELS[cat]}
                 </span>
                 {hasCritical && (
@@ -1023,7 +1023,7 @@ function StepPlanPreview({
               </button>
 
               {expanded && (
-                <div className="flex flex-col gap-2 border-t border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)] p-3">
+                <div className="flex flex-col gap-2.5 border-t border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)] p-3">
                   {catTemplates.map((template) => (
                     <TaskRow
                       key={template.id}
@@ -1039,7 +1039,7 @@ function StepPlanPreview({
         })}
       </div>
 
-      <div className="rounded-xl border border-[var(--color-info-500)]/20 bg-[var(--color-info-50)] p-4">
+      <div className="rounded-xl border border-[var(--color-info-500)]/20 bg-[var(--color-info-50)] p-3.5">
         <p className="text-xs text-[var(--color-info-700)] leading-relaxed">
           You can always add, remove, or adjust tasks later from the Tasks screen.
           Brand and model details can be added when you complete your first task for each appliance.
@@ -1197,16 +1197,14 @@ export default function OnboardingPage() {
       : "opacity-0 -translate-x-8"
     : "opacity-100 translate-x-0";
 
-  // Map step numbers: step 1 = welcome (no progress), steps 2-4 = wizard steps 1-3, step 4 = plan preview (step 4 mapped to wizard step 3... let's keep it simple)
-  // Actually: step 1 = welcome, step 2 = basics (wizard step 1), step 3 = systems (wizard step 2), step 4 = plan (wizard step 3)
-  // But we have TOTAL_STEPS = 4 for the wizard portion. Let's count steps 2-4 as wizard steps 1-3.
+  // Map step numbers: step 1 = welcome (no progress), steps 2-4 = wizard steps 1-3
   const wizardStep = step - 1; // 0 for welcome, 1-3 for wizard
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
+    <div className="flex min-h-dvh flex-col bg-[#fafaf9]">
       {/* Progress bar for steps 2+ */}
       {step > 1 && (
-        <div className="sticky top-0 z-10 bg-background/80 px-5 pb-3 pt-4 backdrop-blur-sm">
+        <div className="sticky top-0 z-10 bg-[#fafaf9]/80 px-5 pb-3 pt-4 backdrop-blur-sm">
           <ProgressBar currentStep={wizardStep} totalSteps={TOTAL_STEPS - 1} />
         </div>
       )}

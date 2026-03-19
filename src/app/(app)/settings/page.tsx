@@ -87,10 +87,10 @@ function Section({
 }) {
   return (
     <div>
-      <p className="text-xs font-bold uppercase tracking-widest text-neutral-400 mb-2">
+      <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-neutral-400)] mb-2">
         {label}
       </p>
-      <div className="bg-white dark:bg-[var(--color-neutral-900)] rounded-2xl border border-[var(--color-neutral-200)] dark:border-[var(--color-neutral-700)] overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[var(--color-neutral-200)] overflow-hidden">
         {children}
       </div>
     </div>
@@ -118,13 +118,13 @@ function Row({
   return (
     <Wrapper
       {...(onClick ? { type: "button" as const, onClick } : {})}
-      className="flex items-center justify-between px-4 py-3.5 border-b border-[var(--color-neutral-100)] dark:border-[var(--color-neutral-700)] last:border-b-0 w-full text-left"
+      className="flex items-center justify-between px-4 py-3.5 border-b border-[var(--color-neutral-100)] last:border-b-0 w-full text-left"
     >
-      <span className="text-sm font-semibold text-[var(--color-neutral-900)] dark:text-neutral-100">
+      <span className="text-sm font-semibold text-[var(--color-neutral-900)]">
         {label}
       </span>
       {toggle ?? (
-        <span className="text-[13px] text-neutral-400 font-medium">
+        <span className="text-[13px] text-[var(--color-neutral-400)] font-medium">
           {value}
           {chevron && " \u203A"}
         </span>
@@ -216,7 +216,7 @@ export default function SettingsPage() {
       <form action={signOut}>
         <button
           type="submit"
-          className="w-full py-3.5 bg-[var(--color-danger-50)] rounded-2xl text-[15px] font-bold text-red-600 text-center mt-4"
+          className="w-full py-3.5 bg-red-50 rounded-2xl text-[15px] font-bold text-red-600 text-center mt-4"
         >
           Sign Out
         </button>

@@ -65,37 +65,37 @@ function relativeDueLabel(dateStr: string, today: Date): { text: string; color: 
   if (diff < -1) {
     return {
       text: `${Math.abs(diff)} days overdue`,
-      color: "text-red-600 dark:text-red-400",
+      color: "text-red-600",
     };
   }
   if (diff === -1) {
     return {
       text: "1 day overdue",
-      color: "text-red-600 dark:text-red-400",
+      color: "text-red-600",
     };
   }
   if (diff === 0) {
-    return { text: "Due today", color: "text-amber-600 dark:text-amber-400" };
+    return { text: "Due today", color: "text-amber-600" };
   }
   if (diff === 1) {
-    return { text: "Due tomorrow", color: "text-amber-600 dark:text-amber-400" };
+    return { text: "Due tomorrow", color: "text-amber-600" };
   }
   if (diff <= 7) {
     return {
       text: `Due in ${diff} days`,
-      color: "text-amber-600 dark:text-amber-400",
+      color: "text-amber-600",
     };
   }
   if (diff <= 14) {
     const weeks = Math.round(diff / 7);
     return {
       text: `Due in ${weeks} week${weeks > 1 ? "s" : ""}`,
-      color: "text-muted-foreground",
+      color: "text-[var(--color-neutral-400)]",
     };
   }
   return {
     text: `Due in ${diff} days`,
-    color: "text-muted-foreground",
+    color: "text-[var(--color-neutral-400)]",
   };
 }
 
@@ -345,7 +345,7 @@ export default function TasksPage() {
       <button
         key={task.id}
         onClick={() => setSelectedTask(task)}
-        className={`w-full bg-white dark:bg-neutral-900 rounded-2xl border border-[var(--color-neutral-200)] dark:border-neutral-800 p-3.5 flex items-center gap-3 text-left transition-all duration-300 ${
+        className={`w-full bg-white rounded-2xl border border-[var(--color-neutral-200)] p-3.5 flex items-center gap-3 text-left transition-all duration-300 ${
           isActioning ? "opacity-30 scale-95" : ""
         } ${isUpcoming ? "opacity-60" : ""} ${!task.isActive ? "opacity-60" : ""}`}
       >
@@ -359,7 +359,7 @@ export default function TasksPage() {
             if (task.isActive) completeTask(task.id);
           }}
           disabled={isActioning || !task.isActive}
-          className="w-[22px] h-[22px] rounded-full border-2 border-neutral-300 dark:border-neutral-600 shrink-0 flex items-center justify-center hover:border-neutral-400 dark:hover:border-neutral-500 transition-colors disabled:opacity-50"
+          className="w-[22px] h-[22px] rounded-full border-2 border-[var(--color-neutral-300)] shrink-0 flex items-center justify-center hover:border-neutral-400 transition-colors disabled:opacity-50"
           title="Complete task"
         >
           {!task.isActive && <Check className="w-3 h-3 text-neutral-400" />}
@@ -367,17 +367,17 @@ export default function TasksPage() {
 
         {/* Task info */}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-[var(--color-neutral-900)] dark:text-neutral-100 truncate">
+          <p className="text-sm font-semibold text-[var(--color-neutral-900)] truncate">
             {task.name}
           </p>
-          <p className="text-xs text-neutral-400 dark:text-neutral-500 mt-0.5 truncate">
+          <p className="text-xs text-[var(--color-neutral-400)] mt-0.5 truncate">
             {categoryLabels[task.category] || task.category} &middot; {priLabel} &middot;{" "}
             <span className={due.color}>{due.text}</span>
           </p>
         </div>
 
         {/* Chevron */}
-        <ChevronRight className="w-4 h-4 text-neutral-300 dark:text-neutral-600 shrink-0" />
+        <ChevronRight className="w-4 h-4 text-[var(--color-neutral-300)] shrink-0" />
       </button>
     );
   }
@@ -411,13 +411,13 @@ export default function TasksPage() {
       <div className="mx-auto max-w-2xl px-4 pb-24 pt-6">
         {/* Header skeleton */}
         <div className="flex items-center justify-between mb-6">
-          <div className="h-7 w-20 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800" />
-          <div className="h-9 w-9 animate-pulse rounded-xl bg-neutral-200 dark:bg-neutral-800" />
+          <div className="h-7 w-20 animate-pulse rounded bg-neutral-200" />
+          <div className="h-9 w-9 animate-pulse rounded-xl bg-neutral-200" />
         </div>
         {/* Filter pills skeleton */}
         <div className="flex gap-2 mb-6">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-8 w-20 animate-pulse rounded-full bg-neutral-200 dark:bg-neutral-800" />
+            <div key={i} className="h-8 w-20 animate-pulse rounded-full bg-neutral-200" />
           ))}
         </div>
         <div className="space-y-3">
@@ -455,14 +455,14 @@ export default function TasksPage() {
     return (
       <div className="mx-auto max-w-2xl px-4 pb-24 pt-6">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-[22px] font-extrabold tracking-tight text-[var(--color-neutral-900)] dark:text-neutral-100">
+          <h1 className="text-[22px] font-extrabold tracking-tight text-[var(--color-neutral-900)]">
             Tasks
           </h1>
           <button
             onClick={() => setAddOpen(true)}
-            className="h-9 w-9 flex items-center justify-center bg-[#1c1917] dark:bg-white rounded-xl transition-colors"
+            className="h-9 w-9 flex items-center justify-center bg-[#1c1917] rounded-xl transition-colors"
           >
-            <Plus className="w-[18px] h-[18px] text-white dark:text-black" />
+            <Plus className="w-[18px] h-[18px] text-white" />
           </button>
         </div>
         <EmptyState
@@ -546,7 +546,7 @@ export default function TasksPage() {
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium text-foreground">Notes</label>
           <textarea
-            className="flex min-h-[80px] w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:bg-[var(--color-neutral-900)]"
+            className="flex min-h-[80px] w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             placeholder="Any additional notes..."
             value={newNotes}
             onChange={(e) => setNewNotes(e.target.value)}
@@ -578,14 +578,14 @@ export default function TasksPage() {
     <div className="mx-auto max-w-2xl px-4 pb-24 pt-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-[22px] font-extrabold tracking-tight text-[var(--color-neutral-900)] dark:text-neutral-100">
+        <h1 className="text-[22px] font-extrabold tracking-tight text-[var(--color-neutral-900)]">
           Tasks
         </h1>
         <button
           onClick={() => setAddOpen(true)}
-          className="h-9 w-9 flex items-center justify-center bg-[#1c1917] dark:bg-white rounded-xl transition-colors"
+          className="h-9 w-9 flex items-center justify-center bg-[#1c1917] rounded-xl transition-colors"
         >
-          <Plus className="w-[18px] h-[18px] text-white dark:text-black" />
+          <Plus className="w-[18px] h-[18px] text-white" />
         </button>
       </div>
 
@@ -601,8 +601,8 @@ export default function TasksPage() {
                 onClick={() => setFilter(opt.key)}
                 className={`shrink-0 rounded-full px-3.5 py-1.5 text-[13px] transition-colors ${
                   isActive
-                    ? "bg-[#1c1917] dark:bg-white text-white dark:text-black font-semibold"
-                    : "bg-[var(--color-neutral-100)] dark:bg-neutral-800 text-[var(--color-neutral-500)] dark:text-neutral-400 font-medium"
+                    ? "bg-[#1c1917] text-white font-semibold"
+                    : "bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)] font-medium"
                 }`}
               >
                 {opt.label}
@@ -610,8 +610,8 @@ export default function TasksPage() {
                   <span
                     className={`ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full px-1 text-[11px] font-semibold ${
                       isActive
-                        ? "bg-white/20 text-white dark:bg-black/20 dark:text-black"
-                        : "bg-[var(--color-neutral-200)] dark:bg-neutral-700 text-[var(--color-neutral-500)] dark:text-neutral-400"
+                        ? "bg-white/20 text-white"
+                        : "bg-[var(--color-neutral-200)] text-[var(--color-neutral-500)]"
                     }`}
                   >
                     {count}
@@ -626,17 +626,17 @@ export default function TasksPage() {
       {/* Task groups */}
       <div>
         {(filter === "all" || filter === "overdue") &&
-          renderGroup("Overdue", grouped.overdue, "overdue", "text-red-600 dark:text-red-400")}
+          renderGroup("Overdue", grouped.overdue, "overdue", "text-red-600")}
 
         {(filter === "all" || filter === "due_soon") &&
           renderGroup("Due this week", grouped.due_soon, "due_soon", "text-amber-500")}
 
         {(filter === "all" || filter === "upcoming") &&
-          renderGroup("Upcoming", grouped.upcoming, "upcoming", "text-neutral-400")}
+          renderGroup("Upcoming", grouped.upcoming, "upcoming", "text-[var(--color-neutral-400)]")}
 
         {(filter === "all" || filter === "completed") &&
           completedTasks.length > 0 &&
-          renderGroup("Completed", completedTasks, "completed", "text-green-600 dark:text-green-400")}
+          renderGroup("Completed", completedTasks, "completed", "text-green-600")}
 
         {/* Empty states for filtered views */}
         {filter === "overdue" && grouped.overdue.length === 0 && (

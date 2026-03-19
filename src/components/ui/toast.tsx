@@ -9,10 +9,10 @@ const toastVariants = cva(
   {
     variants: {
       variant: {
-        success: "border-[var(--color-success-500)]/30 bg-[var(--color-success-50)] text-[var(--color-success-700)] dark:bg-emerald-950 dark:text-emerald-200",
-        error: "border-[var(--color-danger-500)]/30 bg-[var(--color-danger-50)] text-[var(--color-danger-700)] dark:bg-red-950 dark:text-red-200",
-        warning: "border-[var(--color-warning-500)]/30 bg-[var(--color-warning-50)] text-[var(--color-warning-700)] dark:bg-orange-950 dark:text-orange-200",
-        info: "border-[var(--color-info-500)]/30 bg-[var(--color-info-50)] text-[var(--color-info-700)] dark:bg-sky-950 dark:text-sky-200",
+        success: "border-[var(--color-success-500)]/30 bg-[var(--color-success-50)] text-[var(--color-success-700)]",
+        error: "border-[var(--color-danger-500)]/30 bg-[var(--color-danger-50)] text-[var(--color-danger-700)]",
+        warning: "border-[var(--color-warning-500)]/30 bg-[var(--color-warning-50)] text-[var(--color-warning-700)]",
+        info: "border-[var(--color-info-500)]/30 bg-[var(--color-info-50)] text-[var(--color-info-700)]",
       },
     },
     defaultVariants: { variant: "info" },

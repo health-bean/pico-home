@@ -201,7 +201,7 @@ function MembersSection() {
 
       <div className="bg-white rounded-2xl border border-[var(--color-neutral-200)] overflow-hidden">
         {allEntries.length === 0 && (
-          <p className="text-sm text-neutral-400 text-center py-6">
+          <p className="text-sm text-[var(--color-neutral-400)] text-center py-6">
             Invite family members to share this home&apos;s maintenance plan.
           </p>
         )}
@@ -214,7 +214,7 @@ function MembersSection() {
             return (
               <div
                 key={m.id}
-                className={`flex items-center gap-3 px-4 py-3 ${isLast ? "" : "border-b border-[var(--color-neutral-200)]"}`}
+                className={`flex items-center gap-3 px-4 py-3 ${isLast ? "" : "border-b border-[var(--color-neutral-100)]"}`}
               >
                 <div
                   className={`w-9 h-9 rounded-full bg-gradient-to-br ${AVATAR_GRADIENTS[gradientIdx]} flex items-center justify-center flex-shrink-0`}
@@ -227,7 +227,7 @@ function MembersSection() {
                   <p className="text-sm font-semibold truncate">
                     {m.name || m.email}
                   </p>
-                  <p className="text-xs text-neutral-400">
+                  <p className="text-xs text-[var(--color-neutral-400)]">
                     {m.role === "owner" ? "Owner" : "Member"}
                   </p>
                 </div>
@@ -243,16 +243,16 @@ function MembersSection() {
             return (
               <div
                 key={inv.id}
-                className={`flex items-center gap-3 px-4 py-3 opacity-50 ${isLast ? "" : "border-b border-[var(--color-neutral-200)]"}`}
+                className={`flex items-center gap-3 px-4 py-3 opacity-50 ${isLast ? "" : "border-b border-[var(--color-neutral-100)]"}`}
               >
-                <div className="w-9 h-9 rounded-full bg-neutral-200 flex items-center justify-center flex-shrink-0">
-                  <span className="text-neutral-500 font-bold text-sm">
+                <div className="w-9 h-9 rounded-full bg-[var(--color-neutral-200)] flex items-center justify-center flex-shrink-0">
+                  <span className="text-[var(--color-neutral-500)] font-bold text-sm">
                     {inv.invitedEmail.charAt(0).toUpperCase()}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold truncate">{inv.invitedEmail}</p>
-                  <p className="text-xs text-neutral-400">Pending invite</p>
+                  <p className="text-xs text-[var(--color-neutral-400)]">Pending invite</p>
                 </div>
                 <Badge variant="warning" size="sm">Pending</Badge>
               </div>
@@ -388,14 +388,14 @@ export default function HomeProfilePage() {
             return (
               <div
                 key={d.id}
-                className={`flex items-center gap-3 px-4 py-3 ${isLast ? "" : "border-b border-[var(--color-neutral-200)]"}`}
+                className={`flex items-center gap-3 px-4 py-3 ${isLast ? "" : "border-b border-[var(--color-neutral-100)]"}`}
               >
                 <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center flex-shrink-0`}>
                   <Icon className={`w-5 h-5 ${color}`} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold truncate">{d.name}</p>
-                  <p className="text-xs text-neutral-400">
+                  <p className="text-xs text-[var(--color-neutral-400)]">
                     {d.category} &middot; {d.size}
                   </p>
                 </div>
