@@ -4,8 +4,11 @@ import type {
   HomeType,
   SystemType,
   ApplianceCategory,
+  HealthFlagKey,
 } from "./templates";
 import { TASK_TEMPLATES } from "./templates";
+
+export type HealthFlags = Partial<Record<HealthFlagKey, boolean>>;
 
 /**
  * Calculate the next due date based on frequency and last completion.
@@ -43,14 +46,45 @@ export function getNextDueDate(
 }
 
 /**
+ * Adjust a task's frequency value based on active health flags.
+ * Applies the lowest matching multiplier (more frequent = smaller value).
+ * Always returns at least 1.
+ */
+export function adjustFrequencyForHealth(
+  frequencyValue: number,
+  multipliers: Partial<Record<HealthFlagKey, number>>,
+  flags: HealthFlags
+): number {
+  let lowestMultiplier = 1;
+  for (const [key, multiplier] of Object.entries(multipliers)) {
+    if (flags[key as HealthFlagKey] && multiplier < lowestMultiplier) {
+      lowestMultiplier = multiplier;
+    }
+  }
+  return Math.max(1, Math.round(frequencyValue * lowestMultiplier));
+}
+
+/**
+ * Check whether a template should be included based on health flags.
+ * If no healthRequired keys, always include. Otherwise, at least one must match.
+ */
+export function shouldIncludeHealthTemplate(
+  healthRequired: HealthFlagKey[],
+  flags: HealthFlags
+): boolean {
+  if (healthRequired.length === 0) return true;
+  return healthRequired.some((key) => flags[key] === true);
+}
+
+/**
  * Filter task templates to only those applicable to a specific home
- * based on home type, installed systems, and registered appliances.
+ * based on home type, installed systems, registered appliances, and health flags.
  */
 export function getApplicableTemplates(home: {
   type: HomeType;
   systems: SystemType[];
   appliances: ApplianceCategory[];
-}): TaskTemplate[] {
+}, healthFlags?: HealthFlags): TaskTemplate[] {
   return TASK_TEMPLATES.filter((template) => {
     // Check home type applicability
     if (
@@ -74,6 +108,13 @@ export function getApplicableTemplates(home: {
         (a) => home.appliances.includes(a)
       );
       if (!hasMatchingAppliance) return false;
+    }
+
+    // Health-required filter
+    if (template.healthRequired.length > 0) {
+      if (!healthFlags || !shouldIncludeHealthTemplate(template.healthRequired, healthFlags)) {
+        return false;
+      }
     }
 
     return true;

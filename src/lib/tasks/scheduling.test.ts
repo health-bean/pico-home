@@ -4,6 +4,8 @@ import {
   getApplicableTemplates,
   getSeasonalTasks,
   calculateHomeHealthScore,
+  adjustFrequencyForHealth,
+  shouldIncludeHealthTemplate,
 } from "./scheduling";
 import type { TaskTemplate } from "./templates";
 
@@ -115,6 +117,8 @@ describe("getSeasonalTasks", () => {
     healthCategories: [],
     tips: null,
     whyItMatters: null,
+    healthMultipliers: {},
+    healthRequired: [],
   };
 
   const mockTemplates: TaskTemplate[] = [
@@ -241,5 +245,54 @@ describe("calculateHomeHealthScore", () => {
     ]);
     // Safety=100*4=400, cosmetic=0*1=0 => 400/5 = 80
     expect(result.overall).toBe(80);
+  });
+});
+
+// ─── adjustFrequencyForHealth ───────────────────────────────────────────────
+
+describe("adjustFrequencyForHealth", () => {
+  it("returns original frequency when no flags set", () => {
+    const result = adjustFrequencyForHealth(3, { hasAllergies: 0.5 }, {});
+    expect(result).toBe(3);
+  });
+
+  it("applies multiplier when flag is set", () => {
+    const result = adjustFrequencyForHealth(6, { hasAllergies: 0.5 }, { hasAllergies: true });
+    expect(result).toBe(3);
+  });
+
+  it("applies lowest multiplier when multiple flags match", () => {
+    const result = adjustFrequencyForHealth(6, { hasAllergies: 0.5, hasPets: 0.75 }, { hasAllergies: true, hasPets: true });
+    expect(result).toBe(3);
+  });
+
+  it("returns at least 1", () => {
+    const result = adjustFrequencyForHealth(1, { hasAllergies: 0.25 }, { hasAllergies: true });
+    expect(result).toBe(1);
+  });
+
+  it("returns original when multipliers is empty", () => {
+    const result = adjustFrequencyForHealth(6, {}, { hasAllergies: true });
+    expect(result).toBe(6);
+  });
+});
+
+// ─── shouldIncludeHealthTemplate ────────────────────────────────────────────
+
+describe("shouldIncludeHealthTemplate", () => {
+  it("returns true when no healthRequired", () => {
+    expect(shouldIncludeHealthTemplate([], {})).toBe(true);
+  });
+
+  it("returns true when required flag is set", () => {
+    expect(shouldIncludeHealthTemplate(["hasAllergies"], { hasAllergies: true })).toBe(true);
+  });
+
+  it("returns false when required flag is not set", () => {
+    expect(shouldIncludeHealthTemplate(["hasAllergies"], {})).toBe(false);
+  });
+
+  it("returns true when any required flag matches", () => {
+    expect(shouldIncludeHealthTemplate(["hasAllergies", "hasPets"], { hasPets: true })).toBe(true);
   });
 });
