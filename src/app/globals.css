@@ -10,16 +10,7 @@
   --ring: #f59e0b;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0c0a09;
-    --foreground: #fafaf9;
-    --muted: #292524;
-    --muted-foreground: #a8a29e;
-    --border: #44403c;
-    --ring: #d97706;
-  }
-}
+/* Dark mode disabled — force light mode until properly designed */
 
 @theme inline {
   --color-background: var(--background);
