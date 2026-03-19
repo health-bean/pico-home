@@ -28,7 +28,7 @@ function HomeContent() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-[#fffbeb] via-[#fef3c7] via-[60%] to-[#fbbf24] dark:from-neutral-950 dark:to-neutral-900">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-[#fffbeb] via-[#fef3c7] via-[60%] to-[#fbbf24]">
       {/* Top section */}
       <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
         {/* App icon */}
@@ -37,12 +37,12 @@ function HomeContent() {
         </div>
 
         {/* Headline */}
-        <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-[#451a03] dark:text-primary-100">
+        <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-[#451a03]">
           Your honey-do list, but smarter.
         </h1>
 
         {/* Subtext */}
-        <p className="mt-3 text-base text-[#92400e] dark:text-primary-200">
+        <p className="mt-3 text-base text-[#92400e]">
           Smart home maintenance tracking and reminders. Never forget when you
           last changed that filter.
         </p>
