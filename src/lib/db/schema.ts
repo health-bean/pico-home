@@ -539,6 +539,29 @@ export const notificationPreferences = pgTable("notification_preferences", {
     .default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const householdHealthFlags = pgTable("household_health_flags", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  homeId: uuid("home_id")
+    .notNull()
+    .unique()
+    .references(() => homes.id, { onDelete: "cascade" }),
+  hasAllergies: boolean("has_allergies").default(false),
+  hasYoungChildren: boolean("has_young_children").default(false),
+  hasPets: boolean("has_pets").default(false),
+  hasElderly: boolean("has_elderly").default(false),
+  hasImmunocompromised: boolean("has_immunocompromised").default(false),
+  prioritizeAirQuality: boolean("prioritize_air_quality").default(false),
+  prioritizeEnergyEfficiency: boolean("prioritize_energy_efficiency").default(false),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const pushSubscriptions = pgTable("push_subscriptions", {
   id: uuid("id")
     .primaryKey()
@@ -593,6 +616,7 @@ export const homesRelations = relations(homes, ({ one, many }) => ({
   taskInstances: many(taskInstances),
   documents: many(documents),
   healthScores: many(homeHealthScores),
+  healthFlags: one(householdHealthFlags),
 }));
 
 export const homeMembersRelations = relations(homeMembers, ({ one }) => ({
@@ -715,6 +739,16 @@ export const pushSubscriptionsRelations = relations(
     user: one(users, {
       fields: [pushSubscriptions.userId],
       references: [users.id],
+    }),
+  }),
+);
+
+export const householdHealthFlagsRelations = relations(
+  householdHealthFlags,
+  ({ one }) => ({
+    home: one(homes, {
+      fields: [householdHealthFlags.homeId],
+      references: [homes.id],
     }),
   }),
 );
