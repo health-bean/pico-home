@@ -73,7 +73,7 @@ export const pushSubscribeSchema = z.object({
 });
 
 export const onboardingHomeSchema = z.object({
-  name: z.string().max(255).default("My Home"),
+  name: z.string().min(1).max(255),
   type: z.enum(homeTypeValues),
   ownerRole: z.enum(homeRoleValues).default("i_live_here"),
   yearBuilt: z.number().int().min(1600).max(new Date().getFullYear() + 5).optional().nullable(),

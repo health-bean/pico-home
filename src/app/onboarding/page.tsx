@@ -581,8 +581,8 @@ function StepBasicsAndLocation({
   currentStep: number;
 }) {
   const climateZone = data.state ? CLIMATE_ZONES[data.state] ?? "" : "";
-  // Only property type is required — everything else is optional enrichment
-  const canProceed = data.type !== "";
+  // Name and property type are required, everything else is optional
+  const canProceed = data.name.trim() !== "" && data.type !== "";
 
   return (
     <>
@@ -593,8 +593,8 @@ function StepBasicsAndLocation({
 
       <div className="flex flex-col gap-5">
         <FormInput
-          label="Home Name (optional)"
-          placeholder="My Home"
+          label="Home Name"
+          placeholder='e.g., "Main House" or "Lake Cabin"'
           value={data.name}
           onChange={(e) => onChange({ name: e.target.value })}
         />
