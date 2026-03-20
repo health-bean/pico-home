@@ -162,7 +162,7 @@ const HOME_ITEM_GROUPS: HomeItemGroup[] = [
   {
     label: "Heating & Cooling",
     items: [
-      { key: "hvac", label: "Heating & Cooling", icon: "\u{1F321}\uFE0F", type: "system", mappedSystem: "hvac",
+      { key: "hvac", label: "Central HVAC", icon: "\u{1F321}\uFE0F", type: "system", mappedSystem: "hvac",
         subtypes: [
           { value: "forced-air", label: "Forced Air" },
           { value: "radiant", label: "Radiant" },
@@ -786,55 +786,50 @@ function StepWhatsInYourHome({
                 const selection = data.selectedItems[item.key];
                 const active = selection?.enabled;
                 return (
-                  <button
-                    key={item.key}
-                    type="button"
-                    onClick={() => toggleItem(item.key)}
-                    className={`flex items-center gap-2.5 rounded-xl border-2 px-3 py-2.5 text-left transition-all ${
-                      active
-                        ? "border-[var(--color-primary-500)] bg-[var(--color-primary-50)]"
-                        : "border-[var(--color-neutral-200)] bg-white hover:border-[var(--color-neutral-300)]"
-                    }`}
-                  >
-                    <span className="text-lg">{item.icon}</span>
-                    <span className="text-xs font-semibold text-[#1c1917]">{item.label}</span>
-                  </button>
+                  <div key={item.key} className="col-span-1 flex flex-col">
+                    <button
+                      type="button"
+                      onClick={() => toggleItem(item.key)}
+                      className={`flex items-center gap-2.5 rounded-xl border-2 px-3 py-2.5 text-left transition-all ${
+                        active
+                          ? "border-[var(--color-primary-500)] bg-[var(--color-primary-50)]"
+                          : "border-[var(--color-neutral-200)] bg-white hover:border-[var(--color-neutral-300)]"
+                      }`}
+                    >
+                      <span className="text-lg">{item.icon}</span>
+                      <span className="text-xs font-semibold text-[#1c1917]">{item.label}</span>
+                    </button>
+                    {active && item.subtypes && (
+                      <div className="mt-1.5 ml-1 flex flex-wrap items-center gap-1.5">
+                        {item.subtypes.map((st) => (
+                          <button
+                            key={st.value}
+                            type="button"
+                            className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-colors ${
+                              selection.subtypes.includes(st.value)
+                                ? "bg-[var(--color-primary-500)] text-white"
+                                : "bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)] hover:bg-[var(--color-neutral-200)]"
+                            }`}
+                            onClick={() => toggleSubtype(item.key, st.value)}
+                          >
+                            {st.label}
+                          </button>
+                        ))}
+                        {item.allowOtherSubtype && (
+                          <input
+                            type="text"
+                            placeholder="Other..."
+                            value={selection.otherSubtype}
+                            onChange={(e) => setOtherSubtype(item.key, e.target.value)}
+                            className="h-6 rounded-full border border-[var(--color-neutral-200)] bg-white px-2.5 text-[11px] font-medium outline-none focus:border-[var(--color-primary-500)] w-20"
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
-
-            {/* Subtype pills for enabled items with subtypes */}
-            {group.items.map((item) => {
-              const selection = data.selectedItems[item.key];
-              if (!selection?.enabled || !item.subtypes) return null;
-              return (
-                <div key={`${item.key}-subtypes`} className="mt-2 ml-1 flex flex-wrap items-center gap-1.5">
-                  {item.subtypes.map((st) => (
-                    <button
-                      key={st.value}
-                      type="button"
-                      className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                        selection.subtypes.includes(st.value)
-                          ? "bg-[var(--color-primary-500)] text-white"
-                          : "bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)] hover:bg-[var(--color-neutral-200)]"
-                      }`}
-                      onClick={() => toggleSubtype(item.key, st.value)}
-                    >
-                      {st.label}
-                    </button>
-                  ))}
-                  {item.allowOtherSubtype && (
-                    <input
-                      type="text"
-                      placeholder="Other..."
-                      value={selection.otherSubtype}
-                      onChange={(e) => setOtherSubtype(item.key, e.target.value)}
-                      className="h-7 rounded-full border border-[var(--color-neutral-200)] bg-white px-3 text-xs font-medium outline-none focus:border-[var(--color-primary-500)] w-24"
-                    />
-                  )}
-                </div>
-              );
-            })}
           </div>
         ))}
       </div>
@@ -1306,18 +1301,18 @@ export default function OnboardingPage() {
           body: JSON.stringify({
             home: {
               name: form.name.trim() || "My Home",
-              type: form.type,
-              ownerRole: form.ownerRole,
+              type: form.type || "single_family",
+              ownerRole: form.ownerRole || "i_live_here",
               yearBuilt: form.yearBuilt ? Number(form.yearBuilt) : null,
               sqft: form.sqft ? Number(form.sqft) : null,
-              zip: form.zip,
-              state: form.state,
+              zip: form.zip || "",
+              state: form.state || "",
               climateZone: CLIMATE_ZONES[form.state] ?? "",
             },
             systems,
             appliances,
             taskSetups: taskSetupsList,
-            householdHealth,
+            householdHealth: householdHealth || undefined,
           }),
         });
 
@@ -1344,17 +1339,17 @@ export default function OnboardingPage() {
             home: {
               name: form.name.trim() || "My Home",
               type: form.type || "single_family",
-              ownerRole: form.ownerRole,
+              ownerRole: form.ownerRole || "i_live_here",
               yearBuilt: form.yearBuilt ? Number(form.yearBuilt) : null,
               sqft: form.sqft ? Number(form.sqft) : null,
-              zip: form.zip,
-              state: form.state,
+              zip: form.zip || "",
+              state: form.state || "",
               climateZone: CLIMATE_ZONES[form.state] ?? "",
             },
             systems,
             appliances,
             taskSetups: [],
-            householdHealth,
+            householdHealth: householdHealth || undefined,
           }),
         });
 
