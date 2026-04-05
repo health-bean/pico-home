@@ -18,7 +18,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - run: npm ci --omit=optional
+      - run: npm ci --force
 
       - name: Lint
         run: npm run lint
