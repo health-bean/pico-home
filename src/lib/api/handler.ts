@@ -18,8 +18,44 @@ interface ApiHandlerOptions {
   rateLimitPreset?: keyof typeof RATE_LIMITS;
 }
 
+const ALLOWED_ORIGINS = new Set([
+  process.env.NEXT_PUBLIC_APP_URL || "https://honeydoiq.app",
+  "https://honeydoiq.app",
+  // Capacitor native apps send null origin
+]);
+
+/**
+ * Check CSRF protection for state-changing requests.
+ * Verifies the Origin header matches our allowed origins.
+ * GET/HEAD/OPTIONS are safe methods and skip this check.
+ */
+function checkCsrf(request: Request): boolean {
+  const method = request.method;
+  if (method === "GET" || method === "HEAD" || method === "OPTIONS") {
+    return true;
+  }
+
+  const origin = request.headers.get("origin");
+
+  // Capacitor native apps and same-origin fetch() may not send Origin
+  if (!origin) {
+    // Fall back to Referer check
+    const referer = request.headers.get("referer");
+    if (!referer) return true; // No origin info = same-origin or native app
+    try {
+      const refererOrigin = new URL(referer).origin;
+      return ALLOWED_ORIGINS.has(refererOrigin);
+    } catch {
+      return false;
+    }
+  }
+
+  return ALLOWED_ORIGINS.has(origin);
+}
+
 /**
  * Wraps an API route handler with:
+ * - CSRF protection (origin checking)
  * - Authentication check
  * - Rate limiting
  * - Error handling (catches DB errors, Zod errors, unexpected errors)
@@ -28,6 +64,20 @@ export function apiHandler(handler: HandlerFn, options?: ApiHandlerOptions) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   return async (request: Request, _routeParams?: unknown) => {
     try {
+      // 0. CSRF protection
+      if (!checkCsrf(request)) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+
+      // 0.5 Request body size limit (1MB for JSON endpoints)
+      const contentLength = request.headers.get("content-length");
+      if (contentLength && parseInt(contentLength, 10) > 1_048_576) {
+        return NextResponse.json(
+          { error: "Request body too large" },
+          { status: 413 }
+        );
+      }
+
       // 1. Authenticate
       const user = await getAppUser();
       if (!user) {
