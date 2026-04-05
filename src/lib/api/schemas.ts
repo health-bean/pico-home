@@ -89,7 +89,7 @@ export const onboardingSystemSchema = z.object({
 });
 
 export const onboardingTaskSetupSchema = z.object({
-  templateId: z.string().min(1).max(100),
+  templateId: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/, "Invalid template ID format"),
   state: z.enum(["track", "done", "skip"]),
   doneMonth: z.number().int().min(1).max(12),
   doneYear: z.number().int().min(2000).max(new Date().getFullYear() + 1),

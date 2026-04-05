@@ -87,7 +87,7 @@ export const GET = apiHandler(async ({ user, request }) => {
     docs.map(async (doc) => {
       const { data } = await supabase.storage
         .from(BUCKET)
-        .createSignedUrl(doc.fileUrl, 3600); // 1 hour
+        .createSignedUrl(doc.fileUrl, 900); // 15 minutes — documents may contain PII
       return { ...doc, signedUrl: data?.signedUrl ?? null };
     })
   );

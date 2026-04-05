@@ -18,13 +18,9 @@ import { eq, and, lte, gte, sql } from "drizzle-orm";
  * Secured via CRON_SECRET.
  */
 export async function POST(request: Request) {
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) {
-    console.error("CRON_SECRET not configured");
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
-  }
   const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${cronSecret}`) {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret || !authHeader || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -171,16 +167,16 @@ View your full task list: ${process.env.NEXT_PUBLIC_APP_URL || "https://honeydoi
         });
         if (!res.ok) {
           const err = await res.text();
-          console.error(`[Digest] Resend error for ${digestUser.email}:`, err);
+          console.error(`[Digest] Resend error for user_${digestUser.userId}:`, err);
           continue;
         }
         sent++;
       } else {
-        console.log(`[Digest] Would email ${digestUser.email}: ${subject}`);
+        console.log(`[Digest] Would email user_${digestUser.userId}: ${subject}`);
         sent++;
       }
     } catch (err) {
-      console.error(`[Digest] Error for ${digestUser.email}:`, err);
+      console.error(`[Digest] Error for user_${digestUser.userId}:`, err);
       errors.push(`user_${digestUser.userId}: send_failed`);
     }
   }

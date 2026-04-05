@@ -12,13 +12,9 @@ import { calculateHomeHealthScore } from "@/lib/tasks/scheduling";
  * Secured via CRON_SECRET bearer token.
  */
 export async function POST(request: Request) {
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) {
-    console.error("CRON_SECRET not configured");
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
-  }
   const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${cronSecret}`) {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret || !authHeader || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

@@ -3,6 +3,7 @@ import { getUserHome } from "@/lib/auth/get-user-home";
 import { db } from "@/lib/db";
 import { contractors } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
+import { z } from "zod";
 import { apiHandler, parseBody } from "@/lib/api/handler";
 import { createContractorSchema } from "@/lib/api/schemas";
 
@@ -63,14 +64,16 @@ export const POST = apiHandler(async ({ user, request }) => {
 
 export const DELETE = apiHandler(async ({ user, request }) => {
   const { searchParams } = new URL(request.url);
-  const id = searchParams.get("id");
+  const parsed = z.string().uuid().safeParse(searchParams.get("id"));
 
-  if (!id) {
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: "Missing required query parameter: id" },
+      { error: "Valid contractor id is required" },
       { status: 400 }
     );
   }
+
+  const id = parsed.data;
 
   // Verify the contractor belongs to this user
   const [existing] = await db
