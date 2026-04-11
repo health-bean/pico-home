@@ -4,6 +4,7 @@ import { pushSubscriptions } from "@/lib/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { apiHandler, parseBody } from "@/lib/api/handler";
 import { pushSubscribeSchema } from "@/lib/api/schemas";
+import { encryptPushKey } from "@/lib/push/crypto";
 
 export const POST = apiHandler(async ({ user, request }) => {
   const body = await parseBody(request, pushSubscribeSchema);
@@ -40,8 +41,8 @@ export const POST = apiHandler(async ({ user, request }) => {
   await db.insert(pushSubscriptions).values({
     userId: user.id,
     endpoint: body.endpoint,
-    p256dhKey: body.keys.p256dh,
-    authKey: body.keys.auth,
+    p256dhKey: encryptPushKey(body.keys.p256dh),
+    authKey: encryptPushKey(body.keys.auth),
     userAgent: request.headers.get("user-agent") ?? null,
   });
 

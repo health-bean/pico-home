@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { taskInstances, homeMembers, pushSubscriptions } from "@/lib/db/schema";
 import { eq, lte, and, isNotNull } from "drizzle-orm";
 import { sendPushToUser } from "@/lib/push/send";
+import { verifyCronAuth } from "@/lib/api/cron-auth";
 
 /**
  * POST /api/push/notify
@@ -11,11 +12,8 @@ import { sendPushToUser } from "@/lib/push/send";
  * Secured via CRON_SECRET header (set in Vercel Cron or call manually).
  */
 export async function POST(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret || !authHeader || authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authError = verifyCronAuth(request);
+  if (authError) return authError;
 
   const now = new Date().toISOString();
 

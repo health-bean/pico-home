@@ -562,21 +562,27 @@ export const householdHealthFlags = pgTable("household_health_flags", {
     .default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const pushSubscriptions = pgTable("push_subscriptions", {
-  id: uuid("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  endpoint: text("endpoint").notNull(),
-  p256dhKey: text("p256dh_key").notNull(),
-  authKey: text("auth_key").notNull(),
-  userAgent: text("user_agent"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
-});
+export const pushSubscriptions = pgTable(
+  "push_subscriptions",
+  {
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull(),
+    p256dhKey: text("p256dh_key").notNull(),
+    authKey: text("auth_key").notNull(),
+    userAgent: text("user_agent"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => ({
+    userIdIdx: index("push_subscriptions_user_id_idx").on(table.userId),
+  }),
+);
 
 export const homeHealthScores = pgTable("home_health_scores", {
   id: uuid("id")

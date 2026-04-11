@@ -9,6 +9,7 @@ import {
   taskCompletions,
 } from "@/lib/db/schema";
 import { eq, and, lte, gte, sql } from "drizzle-orm";
+import { verifyCronAuth } from "@/lib/api/cron-auth";
 
 /**
  * POST /api/email/weekly-digest
@@ -18,11 +19,8 @@ import { eq, and, lte, gte, sql } from "drizzle-orm";
  * Secured via CRON_SECRET.
  */
 export async function POST(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret || !authHeader || authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authError = verifyCronAuth(request);
+  if (authError) return authError;
 
   const now = new Date();
   const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -166,17 +164,21 @@ View your full task list: ${process.env.NEXT_PUBLIC_APP_URL || "https://honeydoi
           }),
         });
         if (!res.ok) {
-          const err = await res.text();
-          console.error(`[Digest] Resend error for user_${digestUser.userId}:`, err);
+          // Avoid logging Resend response body — it may contain email addresses
+          console.error(
+            `[Digest] Resend error for user_${digestUser.userId}: status=${res.status}`
+          );
           continue;
         }
         sent++;
       } else {
-        console.log(`[Digest] Would email user_${digestUser.userId}: ${subject}`);
+        console.log(`[Digest] Would email user_${digestUser.userId}`);
         sent++;
       }
     } catch (err) {
-      console.error(`[Digest] Error for user_${digestUser.userId}:`, err);
+      // Log only the error name/message, not the full object
+      const errMsg = err instanceof Error ? err.name : "unknown";
+      console.error(`[Digest] Error for user_${digestUser.userId}: ${errMsg}`);
       errors.push(`user_${digestUser.userId}: send_failed`);
     }
   }

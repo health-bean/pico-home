@@ -2,6 +2,7 @@ import webPush from "web-push";
 import { db } from "@/lib/db";
 import { pushSubscriptions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { decryptPushKey } from "./crypto";
 
 let vapidConfigured = false;
 
@@ -47,8 +48,8 @@ export async function sendPushToUser(
         {
           endpoint: sub.endpoint,
           keys: {
-            p256dh: sub.p256dhKey,
-            auth: sub.authKey,
+            p256dh: decryptPushKey(sub.p256dhKey),
+            auth: decryptPushKey(sub.authKey),
           },
         },
         JSON.stringify(payload)

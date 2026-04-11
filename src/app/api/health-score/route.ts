@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { taskInstances, homeHealthScores } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { calculateHomeHealthScore } from "@/lib/tasks/scheduling";
+import { verifyCronAuth } from "@/lib/api/cron-auth";
 
 /**
  * POST /api/health-score
@@ -12,11 +13,8 @@ import { calculateHomeHealthScore } from "@/lib/tasks/scheduling";
  * Secured via CRON_SECRET bearer token.
  */
 export async function POST(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret || !authHeader || authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authError = verifyCronAuth(request);
+  if (authError) return authError;
 
   // Get all distinct home IDs that have active task instances
   const homesWithTasks = await db

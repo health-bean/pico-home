@@ -15,10 +15,16 @@ import { getApplicableTemplates, getNextDueDate, adjustFrequencyForHealth } from
 import type { HealthFlags } from "@/lib/tasks/scheduling";
 import type { HomeType, SystemType, ApplianceCategory } from "@/lib/tasks/templates";
 import { onboardingSchema } from "@/lib/api/schemas";
+import { checkCsrf } from "@/lib/api/handler";
 import { rateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 
 export async function POST(request: Request) {
   try {
+    // CSRF protection
+    if (!checkCsrf(request)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const supabase = await createClient();
     const {
       data: { user: authUser },
@@ -41,7 +47,7 @@ export async function POST(request: Request) {
     const raw = await request.json();
     const body = onboardingSchema.parse(raw);
 
-    // Upsert our app user record
+    // Upsert our app user record (may not exist yet during first onboarding)
     let [appUser] = await db
       .select()
       .from(users)

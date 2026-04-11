@@ -135,12 +135,22 @@ const contractorSpecialtyValues = [
   "pest_control", "cleaning", "painting", "flooring", "appliance_repair", "other",
 ] as const;
 
+// Phone validation: allows international format with digits, spaces, dashes,
+// parentheses, and an optional leading +. 7-20 chars after stripping formatting.
+const phoneRegex = /^\+?[\d\s\-().]{7,30}$/;
+
 export const createContractorSchema = z.object({
   homeId: z.string().uuid(),
   name: z.string().min(1).max(255),
   company: z.string().max(255).optional().nullable(),
-  phone: z.string().max(50).optional().nullable(),
-  email: z.string().email().max(255).optional().nullable(),
+  phone: z
+    .string()
+    .max(30)
+    .regex(phoneRegex, "Invalid phone number format")
+    .optional()
+    .nullable()
+    .or(z.literal("")),
+  email: z.string().email().max(255).optional().nullable().or(z.literal("")),
   specialty: z.enum(contractorSpecialtyValues).optional().nullable(),
   notes: z.string().max(2000).optional().nullable(),
   rating: z.number().int().min(1).max(5).optional().nullable(),

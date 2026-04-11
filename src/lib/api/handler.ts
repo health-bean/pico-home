@@ -29,7 +29,7 @@ const ALLOWED_ORIGINS = new Set([
  * Verifies the Origin header matches our allowed origins.
  * GET/HEAD/OPTIONS are safe methods and skip this check.
  */
-function checkCsrf(request: Request): boolean {
+export function checkCsrf(request: Request): boolean {
   const method = request.method;
   if (method === "GET" || method === "HEAD" || method === "OPTIONS") {
     return true;

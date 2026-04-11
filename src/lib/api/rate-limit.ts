@@ -1,6 +1,14 @@
 /**
- * Simple in-memory rate limiter using a sliding window.
- * For production at scale, swap with Redis-backed (e.g. @upstash/ratelimit).
+ * In-memory sliding-window rate limiter.
+ *
+ * Known limitation: state is per-instance. On Vercel Fluid Compute, function
+ * instances are reused across concurrent requests so this is effective within
+ * a single instance, but a determined attacker routed to a different instance
+ * can get extra requests through. At current scale this is acceptable.
+ *
+ * For stricter enforcement, swap with Upstash Redis (@upstash/ratelimit) or
+ * Vercel KV — keep the same `rateLimit(key, options)` API so callers don't
+ * need to change.
  */
 
 interface RateLimitEntry {
