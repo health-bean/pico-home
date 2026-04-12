@@ -187,4 +187,23 @@ describe("onboardingSchema", () => {
       })
     ).toThrow();
   });
+
+  it("accepts new appliance categories and system types", () => {
+    const result = onboardingSchema.parse({
+      home: {
+        name: "Test Home",
+        type: "single_family",
+        ownerRole: "i_live_here",
+        zip: "12345",
+        state: "CA",
+        climateZone: "3B",
+      },
+      systems: [{ key: "solar", subtype: "" }],
+      appliances: ["heat_pump", "boiler", "fireplace", "mini_split", "evap_cooler", "solar_panels"],
+      taskSetups: [],
+    });
+    expect(result.appliances).toContain("heat_pump");
+    expect(result.appliances).toContain("solar_panels");
+    expect(result.systems[0].key).toBe("solar");
+  });
 });
