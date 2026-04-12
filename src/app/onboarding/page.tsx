@@ -42,7 +42,6 @@ interface FormData {
   state: string;
   selectedItems: Record<string, { enabled: boolean; subtypes: string[]; otherSubtype: string }>;
   healthFlags: Record<string, boolean>;
-  otherNotes: string;
 }
 
 
@@ -146,24 +145,39 @@ const CLIMATE_ZONES: Record<string, string> = {
   DC: "Mixed-Humid (Zone 4A)",
 };
 
-const HOME_ITEM_GROUPS: HomeItemGroup[] = [
+const MAJOR_SYSTEMS: HomeItemGroup[] = [
   {
-    label: "Heating & Cooling",
+    label: "Heating",
     items: [
-      { key: "hvac", label: "Central HVAC", icon: "\u{1F321}\uFE0F", type: "system", mappedSystem: "hvac",
+      { key: "furnace", label: "Furnace", icon: "\u{1F525}", type: "appliance", mappedAppliance: "furnace" as ApplianceCategory,
         subtypes: [
-          { value: "forced-air", label: "Forced Air" },
-          { value: "radiant", label: "Radiant" },
-          { value: "mini-split", label: "Mini-Split" },
-          { value: "window-units", label: "Window Units" },
+          { value: "gas", label: "Gas" },
+          { value: "electric", label: "Electric" },
+          { value: "oil", label: "Oil" },
+          { value: "propane", label: "Propane" },
         ],
       },
-      { key: "furnace", label: "Furnace", icon: "\u{1F525}", type: "appliance", mappedAppliance: "furnace" as ApplianceCategory },
-      { key: "ac-unit", label: "AC Unit", icon: "\u2744\uFE0F", type: "appliance", mappedAppliance: "ac_unit" as ApplianceCategory },
+      { key: "boiler", label: "Boiler", icon: "\u2668\uFE0F", type: "appliance", mappedAppliance: "boiler" as ApplianceCategory,
+        subtypes: [
+          { value: "steam", label: "Steam" },
+          { value: "hot-water", label: "Hot Water" },
+        ],
+      },
+      { key: "heat-pump", label: "Heat Pump", icon: "\u{1F504}", type: "appliance", mappedAppliance: "heat_pump" as ApplianceCategory },
+      { key: "fireplace", label: "Fireplace / Wood Stove", icon: "\u{1FAB5}", type: "appliance", mappedAppliance: "fireplace" as ApplianceCategory },
     ],
   },
   {
-    label: "Water & Plumbing",
+    label: "Cooling",
+    items: [
+      { key: "central-ac", label: "Central AC", icon: "\u2744\uFE0F", type: "appliance", mappedAppliance: "ac_unit" as ApplianceCategory },
+      { key: "heat-pump-cooling", label: "Heat Pump", icon: "\u{1F504}", type: "appliance", mappedAppliance: "heat_pump" as ApplianceCategory },
+      { key: "evap-cooler", label: "Evaporative / Swamp Cooler", icon: "\u{1F4A8}", type: "appliance", mappedAppliance: "evap_cooler" as ApplianceCategory },
+      { key: "mini-split", label: "Mini-Split", icon: "\u{1F32C}\uFE0F", type: "appliance", mappedAppliance: "mini_split" as ApplianceCategory },
+    ],
+  },
+  {
+    label: "Water",
     items: [
       { key: "water-heater", label: "Water Heater", icon: "\u{1F525}", type: "appliance", mappedAppliance: "water_heater" as ApplianceCategory,
         subtypes: [{ value: "tank", label: "Tank" }, { value: "tankless", label: "Tankless" }],
@@ -171,28 +185,17 @@ const HOME_ITEM_GROUPS: HomeItemGroup[] = [
       { key: "water-source", label: "Water Source", icon: "\u{1F4A7}", type: "system", mappedSystem: "water_source",
         subtypes: [{ value: "municipal", label: "Municipal" }, { value: "well", label: "Well" }],
       },
-      { key: "sewage", label: "Sewer & Septic", icon: "\u{1F3D7}\uFE0F", type: "system", mappedSystem: "sewage",
+      { key: "sewage", label: "Sewer / Septic", icon: "\u{1F3D7}\uFE0F", type: "system", mappedSystem: "sewage",
         subtypes: [{ value: "sewer", label: "Sewer" }, { value: "septic", label: "Septic" }],
       },
-      { key: "water-softener", label: "Water Softener", icon: "\u{1F4A6}", type: "appliance", mappedAppliance: "water_softener" as ApplianceCategory },
-      { key: "sump-pump", label: "Sump Pump", icon: "\u{1F527}", type: "appliance", mappedAppliance: "sump_pump" as ApplianceCategory },
     ],
   },
   {
-    label: "Kitchen",
+    label: "Electrical",
     items: [
-      { key: "refrigerator", label: "Refrigerator", icon: "\u{1F9CA}", type: "appliance", mappedAppliance: "refrigerator" },
-      { key: "dishwasher", label: "Dishwasher", icon: "\u{1F37D}\uFE0F", type: "appliance", mappedAppliance: "dishwasher" },
-      { key: "oven-range", label: "Oven / Range", icon: "\u{1F373}", type: "appliance", mappedAppliance: "oven_range" },
-      { key: "microwave", label: "Microwave", icon: "\u{1F4E1}", type: "appliance", mappedAppliance: "microwave" },
-      { key: "garbage-disposal", label: "Garbage Disposal", icon: "\u267B\uFE0F", type: "appliance", mappedAppliance: "garbage_disposal" },
-    ],
-  },
-  {
-    label: "Laundry",
-    items: [
-      { key: "washing-machine", label: "Washing Machine", icon: "\u{1F455}", type: "appliance", mappedAppliance: "washing_machine" },
-      { key: "dryer", label: "Dryer", icon: "\u{1F300}", type: "appliance", mappedAppliance: "dryer" },
+      { key: "electrical", label: "Electrical Panel", icon: "\u26A1", type: "system", mappedSystem: "electrical" },
+      { key: "generator", label: "Generator", icon: "\u2699\uFE0F", type: "appliance", mappedAppliance: "generator" as ApplianceCategory },
+      { key: "solar", label: "Solar Panels", icon: "\u2600\uFE0F", type: "system", mappedSystem: "solar" },
     ],
   },
   {
@@ -200,11 +203,11 @@ const HOME_ITEM_GROUPS: HomeItemGroup[] = [
     items: [
       { key: "roofing", label: "Roofing", icon: "\u{1F3E0}", type: "system", mappedSystem: "roofing",
         subtypes: [
-          { value: "asphalt-shingle", label: "Asphalt Shingle" },
+          { value: "asphalt-shingle", label: "Asphalt" },
           { value: "metal", label: "Metal" },
           { value: "tile", label: "Tile" },
+          { value: "flat", label: "Flat" },
         ],
-        allowOtherSubtype: true,
       },
       { key: "foundation", label: "Foundation", icon: "\u{1F9F1}", type: "system", mappedSystem: "foundation",
         subtypes: [
@@ -213,24 +216,13 @@ const HOME_ITEM_GROUPS: HomeItemGroup[] = [
           { value: "basement", label: "Basement" },
         ],
       },
-      { key: "electrical", label: "Electrical", icon: "\u26A1", type: "system", mappedSystem: "electrical" },
-      { key: "plumbing", label: "Plumbing", icon: "\u{1F6BF}", type: "system", mappedSystem: "plumbing" },
     ],
   },
   {
     label: "Outdoor",
     items: [
-      { key: "irrigation", label: "Sprinklers", icon: "\u{1F331}", type: "system", mappedSystem: "irrigation" },
-      { key: "pool", label: "Pool / Spa", icon: "\u{1F3CA}", type: "system", mappedSystem: "pool" },
-      { key: "hot-tub", label: "Hot Tub", icon: "\u2668\uFE0F", type: "appliance", mappedAppliance: "hot_tub" },
-      { key: "generator", label: "Generator", icon: "\u2699\uFE0F", type: "appliance", mappedAppliance: "generator" },
-      { key: "garage-door", label: "Garage Door", icon: "\u{1F697}", type: "appliance", mappedAppliance: "garage_door" },
-    ],
-  },
-  {
-    label: "Safety & Security",
-    items: [
-      { key: "security", label: "Security System", icon: "\u{1F512}", type: "system", mappedSystem: "security" },
+      { key: "irrigation", label: "Irrigation / Sprinklers", icon: "\u{1F331}", type: "system", mappedSystem: "irrigation" },
+      { key: "pool", label: "Pool / Hot Tub", icon: "\u{1F3CA}", type: "system", mappedSystem: "pool" },
     ],
   },
 ];
@@ -251,7 +243,7 @@ const HEALTH_OPTIONS: { key: string; label: string; icon: string; desc: string }
 
 function initialSelectedItems(): Record<string, { enabled: boolean; subtypes: string[]; otherSubtype: string }> {
   const map: Record<string, { enabled: boolean; subtypes: string[]; otherSubtype: string }> = {};
-  for (const group of HOME_ITEM_GROUPS) {
+  for (const group of MAJOR_SYSTEMS) {
     for (const item of group.items) {
       map[item.key] = { enabled: false, subtypes: [], otherSubtype: "" };
     }
@@ -267,29 +259,6 @@ function initialHealthFlags(): Record<string, boolean> {
   return map;
 }
 
-function getActiveSystemTypes(selectedItems: FormData["selectedItems"]): SystemType[] {
-  const systems: SystemType[] = [];
-  for (const group of HOME_ITEM_GROUPS) {
-    for (const item of group.items) {
-      if (item.type === "system" && item.mappedSystem && selectedItems[item.key]?.enabled) {
-        systems.push(item.mappedSystem);
-      }
-    }
-  }
-  return systems;
-}
-
-function getActiveApplianceCategories(selectedItems: FormData["selectedItems"]): ApplianceCategory[] {
-  const appliances: ApplianceCategory[] = [];
-  for (const group of HOME_ITEM_GROUPS) {
-    for (const item of group.items) {
-      if (item.type === "appliance" && item.mappedAppliance && selectedItems[item.key]?.enabled) {
-        appliances.push(item.mappedAppliance);
-      }
-    }
-  }
-  return appliances;
-}
 
 // ---------------------------------------------------------------------------
 // Shared UI Components
@@ -646,7 +615,7 @@ function StepAboutHome({
 // Step 3: What's In Your Home (unified categories)
 // ---------------------------------------------------------------------------
 
-function StepWhatsInYourHome({
+function StepMajorSystems({
   data,
   onChange,
   onNext,
@@ -661,13 +630,24 @@ function StepWhatsInYourHome({
   onSkip: () => void;
   currentStep: number;
 }) {
+  const heatPumpSelected = data.selectedItems["heat-pump"]?.enabled;
+
   const toggleItem = (key: string) => {
     const current = data.selectedItems[key];
+    const willEnable = !current.enabled;
+    const updates: Record<string, { enabled: boolean; subtypes: string[]; otherSubtype: string }> = {
+      [key]: { ...current, enabled: willEnable },
+    };
+
+    // Heat pump sync: selecting in Heating auto-selects in Cooling (and vice versa)
+    if (key === "heat-pump") {
+      updates["heat-pump-cooling"] = { enabled: willEnable, subtypes: [], otherSubtype: "" };
+    } else if (key === "heat-pump-cooling") {
+      updates["heat-pump"] = { enabled: willEnable, subtypes: [], otherSubtype: "" };
+    }
+
     onChange({
-      selectedItems: {
-        ...data.selectedItems,
-        [key]: { ...current, enabled: !current.enabled },
-      },
+      selectedItems: { ...data.selectedItems, ...updates },
     });
   };
 
@@ -684,27 +664,17 @@ function StepWhatsInYourHome({
     });
   };
 
-  const setOtherSubtype = (itemKey: string, value: string) => {
-    const current = data.selectedItems[itemKey];
-    onChange({
-      selectedItems: {
-        ...data.selectedItems,
-        [itemKey]: { ...current, otherSubtype: value },
-      },
-    });
-  };
-
   const selectedCount = Object.values(data.selectedItems).filter((s) => s.enabled).length;
 
   return (
     <>
       <StepTitle
-        title="What's In Your Home?"
-        subtitle="Select what applies — you can always add more from your home profile."
+        title="Your Home's Major Systems"
+        subtitle="Let's start with the big stuff — you can always add more details later."
       />
 
       <div className="flex flex-col gap-6 mb-4">
-        {HOME_ITEM_GROUPS.map((group) => (
+        {MAJOR_SYSTEMS.map((group) => (
           <div key={group.label}>
             <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-neutral-400)] mb-2">
               {group.label}
@@ -713,21 +683,31 @@ function StepWhatsInYourHome({
               {group.items.map((item) => {
                 const selection = data.selectedItems[item.key];
                 const active = selection?.enabled;
+                const isHeatPumpCoolingMirror = item.key === "heat-pump-cooling" && heatPumpSelected;
+
                 return (
                   <div key={item.key} className="col-span-1 flex flex-col">
                     <button
                       type="button"
-                      onClick={() => toggleItem(item.key)}
+                      onClick={() => !isHeatPumpCoolingMirror && toggleItem(item.key)}
+                      disabled={isHeatPumpCoolingMirror}
                       className={`flex items-center gap-2.5 rounded-xl border-2 px-3 py-2.5 text-left transition-all ${
-                        active
-                          ? "border-[var(--color-primary-500)] bg-[var(--color-primary-50)]"
-                          : "border-[var(--color-neutral-200)] bg-white hover:border-[var(--color-neutral-300)]"
+                        isHeatPumpCoolingMirror
+                          ? "border-[var(--color-neutral-200)] bg-[var(--color-neutral-100)] opacity-60 cursor-default"
+                          : active
+                            ? "border-[var(--color-primary-500)] bg-[var(--color-primary-50)]"
+                            : "border-[var(--color-neutral-200)] bg-white hover:border-[var(--color-neutral-300)]"
                       }`}
                     >
                       <span className="text-lg">{item.icon}</span>
-                      <span className="text-xs font-semibold text-[#1c1917]">{item.label}</span>
+                      <span className="text-xs font-semibold text-[#1c1917]">
+                        {item.label}
+                        {isHeatPumpCoolingMirror && (
+                          <span className="block text-[10px] font-normal text-[var(--color-neutral-400)]">Selected above</span>
+                        )}
+                      </span>
                     </button>
-                    {active && item.subtypes && (
+                    {active && !isHeatPumpCoolingMirror && item.subtypes && (
                       <div className="mt-1.5 ml-1 flex flex-wrap items-center gap-1.5">
                         {item.subtypes.map((st) => (
                           <button
@@ -743,15 +723,6 @@ function StepWhatsInYourHome({
                             {st.label}
                           </button>
                         ))}
-                        {item.allowOtherSubtype && (
-                          <input
-                            type="text"
-                            placeholder="Other..."
-                            value={selection.otherSubtype}
-                            onChange={(e) => setOtherSubtype(item.key, e.target.value)}
-                            className="h-6 rounded-full border border-[var(--color-neutral-200)] bg-white px-2.5 text-[11px] font-medium outline-none focus:border-[var(--color-primary-500)] w-20"
-                          />
-                        )}
                       </div>
                     )}
                   </div>
@@ -762,22 +733,10 @@ function StepWhatsInYourHome({
         ))}
       </div>
 
-      {/* Other notes */}
-      <div className="mb-2">
-        <FormLabel>Anything else we should know?</FormLabel>
-        <input
-          type="text"
-          placeholder="e.g., radiant floor heating, well water..."
-          value={data.otherNotes}
-          onChange={(e) => onChange({ otherNotes: e.target.value })}
-          className="h-10 w-full rounded-xl border border-[var(--color-neutral-200)] bg-white px-4 text-sm font-medium focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-100)] outline-none transition-all"
-        />
-      </div>
-
       {/* Summary pill */}
       <div className="rounded-xl border border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)] px-4 py-3 text-center">
         <span className="text-xs font-medium text-[var(--color-neutral-400)]">
-          {selectedCount} item{selectedCount !== 1 ? "s" : ""} selected
+          {selectedCount} system{selectedCount !== 1 ? "s" : ""} selected
         </span>
       </div>
 
@@ -877,7 +836,6 @@ export default function OnboardingPage() {
     state: "",
     selectedItems: initialSelectedItems(),
     healthFlags: initialHealthFlags(),
-    otherNotes: "",
   });
 
   const updateForm = useCallback((partial: Partial<FormData>) => {
@@ -944,8 +902,9 @@ export default function OnboardingPage() {
   const buildApiPayload = useCallback(() => {
     const systems: { key: string; subtype: string }[] = [];
     const appliances: string[] = [];
+    const seenAppliances = new Set<string>();
 
-    for (const group of HOME_ITEM_GROUPS) {
+    for (const group of MAJOR_SYSTEMS) {
       for (const item of group.items) {
         const selection = form.selectedItems[item.key];
         if (!selection?.enabled) continue;
@@ -956,7 +915,10 @@ export default function OnboardingPage() {
             systems.push({ key: item.mappedSystem, subtype: st });
           }
         } else if (item.type === "appliance" && item.mappedAppliance) {
-          appliances.push(item.mappedAppliance);
+          if (!seenAppliances.has(item.mappedAppliance)) {
+            seenAppliances.add(item.mappedAppliance);
+            appliances.push(item.mappedAppliance);
+          }
         }
       }
     }
@@ -1032,7 +994,7 @@ export default function OnboardingPage() {
           />
         )}
         {step === 3 && (
-          <StepWhatsInYourHome
+          <StepMajorSystems
             data={form}
             onChange={updateForm}
             onNext={next}
