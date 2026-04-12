@@ -52,15 +52,8 @@ const TOTAL_STEPS = 4; // Welcome + 3 wizard steps (About, Systems, Household) +
 const HOME_TYPES = [
   { value: "single_family", label: "Single Family", icon: "\u{1F3E1}", desc: "Detached house" },
   { value: "townhouse", label: "Townhouse", icon: "\u{1F3D8}\uFE0F", desc: "Row or attached home" },
-  { value: "condo", label: "Condo", icon: "\u{1F3E2}", desc: "Unit in a building" },
-  { value: "apartment", label: "Apartment", icon: "\u{1F3EC}", desc: "Rental unit" },
-  { value: "multi_family", label: "Multi-Family", icon: "\u{1F3E0}", desc: "Duplex or triplex" },
+  { value: "condo", label: "Condo / Apartment", icon: "\u{1F3E2}", desc: "Unit in a building" },
   { value: "mobile_home", label: "Mobile Home", icon: "\u{1F3D5}\uFE0F", desc: "Manufactured home" },
-  { value: "vacation_home", label: "Vacation Home", icon: "\u{1F334}", desc: "Seasonal property" },
-  { value: "rental_property", label: "Rental Property", icon: "\u{1F511}", desc: "Investment property" },
-  { value: "apartment_building", label: "Apartment Building", icon: "\u{1F3D7}\uFE0F", desc: "Multi-unit building" },
-  { value: "office_commercial", label: "Office / Commercial", icon: "\u{1F3DB}\uFE0F", desc: "Business space" },
-  { value: "warehouse_industrial", label: "Warehouse / Industrial", icon: "\u{1F3ED}", desc: "Industrial space" },
 ];
 
 const OWNER_ROLES = [
