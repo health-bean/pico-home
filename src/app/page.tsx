@@ -116,7 +116,7 @@ function HomeContent() {
         </button>
 
         <p className="mt-4 text-center text-[11px] text-[#92400e]">
-          Free to use · Your data stays private
+          Your data stays private
         </p>
         <div className="mt-2 flex justify-center gap-3 text-[11px] text-[#92400e]/70">
           <a href="/privacy" className="underline hover:text-[#92400e]">
