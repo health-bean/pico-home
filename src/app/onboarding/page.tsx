@@ -7,7 +7,6 @@ import {
   Loader2,
 } from "lucide-react";
 import type {
-  HomeType,
   SystemType,
   ApplianceCategory,
 } from "@/lib/tasks/templates";
@@ -24,7 +23,6 @@ interface HomeItem {
   mappedSystem?: SystemType;
   mappedAppliance?: ApplianceCategory;
   subtypes?: { value: string; label: string }[];
-  allowOtherSubtype?: boolean;
 }
 
 interface HomeItemGroup {
@@ -40,7 +38,7 @@ interface FormData {
   sqft: string;
   zip: string;
   state: string;
-  selectedItems: Record<string, { enabled: boolean; subtypes: string[]; otherSubtype: string }>;
+  selectedItems: Record<string, { enabled: boolean; subtypes: string[] }>;
   healthFlags: Record<string, boolean>;
 }
 
@@ -49,7 +47,7 @@ interface FormData {
 // Constants
 // ---------------------------------------------------------------------------
 
-const TOTAL_STEPS = 4; // Welcome is step 0 (not counted), steps 1-4
+const TOTAL_STEPS = 4; // Welcome + 3 wizard steps (About, Systems, Household) + completion
 
 const HOME_TYPES = [
   { value: "single_family", label: "Single Family", icon: "\u{1F3E1}", desc: "Detached house" },
@@ -242,11 +240,11 @@ const HEALTH_OPTIONS: { key: string; label: string; icon: string; desc: string }
 // Helpers
 // ---------------------------------------------------------------------------
 
-function initialSelectedItems(): Record<string, { enabled: boolean; subtypes: string[]; otherSubtype: string }> {
-  const map: Record<string, { enabled: boolean; subtypes: string[]; otherSubtype: string }> = {};
+function initialSelectedItems(): Record<string, { enabled: boolean; subtypes: string[] }> {
+  const map: Record<string, { enabled: boolean; subtypes: string[] }> = {};
   for (const group of MAJOR_SYSTEMS) {
     for (const item of group.items) {
-      map[item.key] = { enabled: false, subtypes: [], otherSubtype: "" };
+      map[item.key] = { enabled: false, subtypes: [] };
     }
   }
   return map;
@@ -613,7 +611,7 @@ function StepAboutHome({
 }
 
 // ---------------------------------------------------------------------------
-// Step 3: What's In Your Home (unified categories)
+// Step 3: Major Systems
 // ---------------------------------------------------------------------------
 
 function StepMajorSystems({
@@ -636,15 +634,15 @@ function StepMajorSystems({
   const toggleItem = (key: string) => {
     const current = data.selectedItems[key];
     const willEnable = !current.enabled;
-    const updates: Record<string, { enabled: boolean; subtypes: string[]; otherSubtype: string }> = {
+    const updates: Record<string, { enabled: boolean; subtypes: string[] }> = {
       [key]: { ...current, enabled: willEnable },
     };
 
     // Heat pump sync: selecting in Heating auto-selects in Cooling (and vice versa)
     if (key === "heat-pump") {
-      updates["heat-pump-cooling"] = { enabled: willEnable, subtypes: [], otherSubtype: "" };
+      updates["heat-pump-cooling"] = { enabled: willEnable, subtypes: [] };
     } else if (key === "heat-pump-cooling") {
-      updates["heat-pump"] = { enabled: willEnable, subtypes: [], otherSubtype: "" };
+      updates["heat-pump"] = { enabled: willEnable, subtypes: [] };
     }
 
     onChange({
@@ -680,14 +678,18 @@ function StepMajorSystems({
             <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-neutral-400)] mb-2">
               {group.label}
             </p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className={`grid gap-2 ${
+              group.label === "Heating" || group.label === "Cooling"
+                ? "grid-cols-1"
+                : "grid-cols-2"
+            }`}>
               {group.items.map((item) => {
                 const selection = data.selectedItems[item.key];
                 const active = selection?.enabled;
                 const isHeatPumpCoolingMirror = item.key === "heat-pump-cooling" && heatPumpSelected;
 
                 return (
-                  <div key={item.key} className="col-span-1 flex flex-col">
+                  <div key={item.key} className="flex flex-col">
                     <button
                       type="button"
                       onClick={() => !isHeatPumpCoolingMirror && toggleItem(item.key)}
@@ -817,12 +819,69 @@ function StepHousehold({
 }
 
 // ---------------------------------------------------------------------------
+// Step 5: All Set (completion)
+// ---------------------------------------------------------------------------
+
+function StepComplete({
+  systemCount,
+  onFinish,
+  loading,
+}: {
+  systemCount: number;
+  onFinish: () => void;
+  loading: boolean;
+}) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center -mx-5 -my-6 px-8 bg-gradient-to-b from-[#ecfdf5] via-[#d1fae5] to-[#a7f3d0]">
+      <div className="flex flex-col items-center text-center max-w-xs">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/60 backdrop-blur-sm shadow-sm mb-5">
+          <span className="text-3xl">{"\u2705"}</span>
+        </div>
+        <h1 className="text-[26px] font-extrabold text-[#064e3b] tracking-tight leading-tight">
+          You&apos;re all set!
+        </h1>
+        <p className="mt-2 text-sm text-[#065f46] leading-relaxed">
+          We&apos;re building your personalized maintenance plan
+          {systemCount > 0 && <> based on your {systemCount} system{systemCount !== 1 ? "s" : ""}</>}.
+        </p>
+        <div className="mt-6 flex gap-4 text-center">
+          {[
+            { icon: "\u{1F4CB}", label: "Tasks created" },
+            { icon: "\u{1F514}", label: "Reminders set" },
+            { icon: "\u{1F4CA}", label: "Health score" },
+          ].map((item) => (
+            <div key={item.label} className="flex flex-col items-center gap-1">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/50 text-base">
+                {item.icon}
+              </div>
+              <span className="text-[10px] font-bold text-[#047857]">{item.label}</span>
+            </div>
+          ))}
+        </div>
+        <p className="mt-5 text-xs text-[#065f46]">
+          You can add appliances, contractors, and more from your home profile anytime.
+        </p>
+        <button
+          type="button"
+          onClick={onFinish}
+          disabled={loading}
+          className="w-full h-[48px] bg-[#064e3b] text-white rounded-xl font-bold text-[14px] mt-6 transition-all hover:bg-[#065f46] active:scale-[0.98] flex items-center justify-center gap-2"
+        >
+          {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+          Go to My Dashboard
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main Page
 // ---------------------------------------------------------------------------
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [step, setStep] = useState(1);
   const [animating, setAnimating] = useState(false);
   const [direction, setDirection] = useState<"forward" | "backward">("forward");
@@ -897,7 +956,7 @@ export default function OnboardingPage() {
       window.removeEventListener("popstate", onPopState);
       capListener?.remove();
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // Convert unified selectedItems back to separate systems and appliances for the API
   const buildApiPayload = useCallback(() => {
@@ -911,7 +970,6 @@ export default function OnboardingPage() {
         if (!selection?.enabled) continue;
         if (item.type === "system" && item.mappedSystem) {
           const subtypes = selection.subtypes.length > 0 ? [...selection.subtypes] : ["standard"];
-          if (selection.otherSubtype) subtypes.push(selection.otherSubtype);
           for (const st of subtypes) {
             systems.push({ key: item.mappedSystem, subtype: st });
           }
@@ -977,7 +1035,7 @@ export default function OnboardingPage() {
   return (
     <div className="flex min-h-dvh flex-col bg-[#fafaf9]">
       {/* Progress bar for steps 2+ */}
-      {step > 1 && (
+      {step > 1 && step < 5 && (
         <div className="sticky top-0 z-10 bg-[#fafaf9]/80 px-5 pb-3 pt-4 backdrop-blur-sm">
           <ProgressBar currentStep={wizardStep} totalSteps={TOTAL_STEPS - 1} />
         </div>
@@ -1008,10 +1066,17 @@ export default function OnboardingPage() {
           <StepHousehold
             data={form}
             onChange={updateForm}
-            onNext={handleSubmit}
+            onNext={() => { handleSubmit(); goTo(5, "forward"); }}
             onBack={back}
-            onSkip={handleSubmit}
+            onSkip={() => { handleSubmit(); goTo(5, "forward"); }}
             currentStep={wizardStep}
+          />
+        )}
+        {step === 5 && (
+          <StepComplete
+            systemCount={Object.values(form.selectedItems).filter((s) => s.enabled).length}
+            onFinish={() => router.push("/dashboard")}
+            loading={false}
           />
         )}
       </div>
