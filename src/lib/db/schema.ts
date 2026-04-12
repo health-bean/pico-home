@@ -47,6 +47,7 @@ export const systemTypeEnum = pgEnum("system_type", [
   "irrigation",
   "pool",
   "security",
+  "solar",
 ]);
 
 export const roomTypeEnum = pgEnum("room_type", [
@@ -84,6 +85,12 @@ export const applianceCategoryEnum = pgEnum("appliance_category", [
   "hot_tub",
   "sump_pump",
   "generator",
+  "heat_pump",
+  "boiler",
+  "fireplace",
+  "mini_split",
+  "evap_cooler",
+  "solar_panels",
   "other",
 ]);
 
