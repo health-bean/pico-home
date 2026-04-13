@@ -28,7 +28,7 @@ interface DashboardData {
     criticalTasks: number;
     preventiveCare: number;
     homeEfficiency: number;
-  };
+  } | null;
   overdue: DashboardTask[];
   upcoming: DashboardTask[];
   totalActive: number;
@@ -144,6 +144,40 @@ function DashboardSkeleton() {
 }
 
 // ---------------------------------------------------------------------------
+// Score Placeholder
+// ---------------------------------------------------------------------------
+
+function ScorePlaceholder() {
+  return (
+    <div className="rounded-2xl border border-[var(--color-neutral-200)] bg-white p-5">
+      <div className="flex items-center gap-5">
+        <div className="relative shrink-0 h-[100px] w-[100px]">
+          <svg width={100} height={100} viewBox="0 0 100 100" className="-rotate-90">
+            <circle cx={50} cy={50} r={42} fill="none" stroke="#f5f5f4" strokeWidth={8} />
+            <circle
+              cx={50} cy={50} r={42} fill="none" stroke="#fde68a" strokeWidth={8}
+              strokeLinecap="round"
+              strokeDasharray={`${2 * Math.PI * 42}`}
+              strokeDashoffset={`${2 * Math.PI * 42 * 0.75}`}
+              className="animate-pulse"
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-lg font-extrabold text-stone-400">...</span>
+          </div>
+        </div>
+        <div className="flex flex-1 flex-col gap-1">
+          <p className="text-[15px] font-bold text-stone-900">Your score is building...</p>
+          <p className="text-xs text-[var(--color-neutral-400)] leading-relaxed">
+            As tasks come due and you complete them, your home health score will appear here.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Dashboard Page
 // ---------------------------------------------------------------------------
 
@@ -233,19 +267,6 @@ export default function DashboardPage() {
   const remainingCount = upcoming.length + overdue.length;
   const spentAmount = 0; // Would need API data for spend tracking
 
-  // Category breakdown
-  const categories = [
-    { label: "Safety", score: score.criticalTasks },
-    { label: "Prevention", score: score.preventiveCare },
-    { label: "Efficiency", score: score.homeEfficiency },
-  ];
-
-  // Circular progress ring constants
-  const RING_SIZE = 100;
-  const RING_RADIUS = 42;
-  const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
-  const RING_OFFSET = RING_CIRCUMFERENCE * (1 - score.overall / 100);
-
   const firstInitial = (userName || "?").charAt(0).toUpperCase();
 
   return (
@@ -268,72 +289,85 @@ export default function DashboardPage() {
       </div>
 
       {/* ---- Health Score Card ---- */}
-      <div className="rounded-2xl border border-[var(--color-neutral-200)] bg-white p-5">
-        <div className="flex items-center gap-5">
-          {/* Circular progress ring */}
-          <div className="relative shrink-0 h-[100px] w-[100px]">
-            <svg
-              width={RING_SIZE}
-              height={RING_SIZE}
-              viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
-              className="-rotate-90"
-            >
-              <defs>
-                <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#f59e0b" />
-                  <stop offset="100%" stopColor="#16a34a" />
-                </linearGradient>
-              </defs>
-              <circle
-                cx={RING_SIZE / 2}
-                cy={RING_SIZE / 2}
-                r={RING_RADIUS}
-                fill="none"
-                stroke="#f5f5f4"
-                strokeWidth={8}
-              />
-              <circle
-                cx={RING_SIZE / 2}
-                cy={RING_SIZE / 2}
-                r={RING_RADIUS}
-                fill="none"
-                stroke="url(#scoreGradient)"
-                strokeWidth={8}
-                strokeLinecap="round"
-                strokeDasharray={RING_CIRCUMFERENCE}
-                strokeDashoffset={RING_OFFSET}
-                className="transition-all duration-700 ease-out"
-              />
-            </svg>
-            {/* Center text overlay */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-3xl font-extrabold text-stone-900">
-                {score.overall}
-              </span>
-              <span className="text-xs font-semibold text-[var(--color-neutral-400)]">
-                Health
-              </span>
+      {score ? (() => {
+        const categories = [
+          { label: "Safety", score: score.criticalTasks },
+          { label: "Prevention", score: score.preventiveCare },
+          { label: "Efficiency", score: score.homeEfficiency },
+        ];
+        const RING_SIZE = 100;
+        const RING_RADIUS = 42;
+        const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+        const RING_OFFSET = RING_CIRCUMFERENCE * (1 - score.overall / 100);
+        return (
+          <div className="rounded-2xl border border-[var(--color-neutral-200)] bg-white p-5">
+            <div className="flex items-center gap-5">
+              {/* Circular progress ring */}
+              <div className="relative shrink-0 h-[100px] w-[100px]">
+                <svg
+                  width={RING_SIZE}
+                  height={RING_SIZE}
+                  viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
+                  className="-rotate-90"
+                >
+                  <defs>
+                    <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#f59e0b" />
+                      <stop offset="100%" stopColor="#16a34a" />
+                    </linearGradient>
+                  </defs>
+                  <circle
+                    cx={RING_SIZE / 2}
+                    cy={RING_SIZE / 2}
+                    r={RING_RADIUS}
+                    fill="none"
+                    stroke="#f5f5f4"
+                    strokeWidth={8}
+                  />
+                  <circle
+                    cx={RING_SIZE / 2}
+                    cy={RING_SIZE / 2}
+                    r={RING_RADIUS}
+                    fill="none"
+                    stroke="url(#scoreGradient)"
+                    strokeWidth={8}
+                    strokeLinecap="round"
+                    strokeDasharray={RING_CIRCUMFERENCE}
+                    strokeDashoffset={RING_OFFSET}
+                    className="transition-all duration-700 ease-out"
+                  />
+                </svg>
+                {/* Center text overlay */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-3xl font-extrabold text-stone-900">
+                    {score.overall}
+                  </span>
+                  <span className="text-xs font-semibold text-[var(--color-neutral-400)]">
+                    Health
+                  </span>
+                </div>
+              </div>
+
+              {/* Category breakdown */}
+              <div className="flex flex-1 flex-col gap-1">
+                <p className="text-[15px] font-bold text-stone-900 mb-2">
+                  {scoreMessage(score.overall)}
+                </p>
+                {categories.map((cat) => (
+                  <div key={cat.label} className="flex items-center justify-between">
+                    <span className="text-xs text-neutral-500">{cat.label}</span>
+                    <span
+                      className={`text-xs font-bold ${scoreColorClass(cat.score)}`}
+                    >
+                      {cat.score}%
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-
-          {/* Category breakdown */}
-          <div className="flex flex-1 flex-col gap-1">
-            <p className="text-[15px] font-bold text-stone-900 mb-2">
-              {scoreMessage(score.overall)}
-            </p>
-            {categories.map((cat) => (
-              <div key={cat.label} className="flex items-center justify-between">
-                <span className="text-xs text-neutral-500">{cat.label}</span>
-                <span
-                  className={`text-xs font-bold ${scoreColorClass(cat.score)}`}
-                >
-                  {cat.score}%
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+        );
+      })() : <ScorePlaceholder />}
 
       {/* ---- Needs Attention ---- */}
       {needsAttention.length > 0 && (
@@ -424,10 +458,12 @@ export default function DashboardPage() {
         <div className="rounded-2xl border border-[var(--color-neutral-200)] bg-white p-8 text-center">
           <CheckCircle2 className="mx-auto h-8 w-8 text-green-500 mb-2" />
           <p className="text-sm font-semibold text-stone-900">
-            All caught up!
+            {score ? "All caught up!" : "You're all set for now"}
           </p>
           <p className="text-xs text-[var(--color-neutral-400)] mt-1">
-            No tasks need your attention right now.
+            {score
+              ? "No tasks need your attention right now."
+              : "We'll let you know when your first tasks are due."}
           </p>
         </div>
       )}
