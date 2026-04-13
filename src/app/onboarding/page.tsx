@@ -72,20 +72,48 @@ function StepWelcome({ onNext }: { onNext: () => void }) {
 export default function OnboardingPage() {
   const router = useRouter();
 
-  const [step, setStep] = useState(1);
+  const DRAFT_KEY = "pico_onboarding_draft";
+
+  const [step, setStep] = useState(() => {
+    if (typeof window === "undefined") return 1;
+    try {
+      const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null");
+      return draft?.step ?? 1;
+    } catch { return 1; }
+  });
   const [animating, setAnimating] = useState(false);
   const [direction, setDirection] = useState<"forward" | "backward">("forward");
 
-  const [form, setForm] = useState<FormData>({
-    name: "",
-    type: "",
-    yearBuilt: "",
-    sqft: "",
-    zip: "",
-    state: "",
-    selectedItems: initialSelectedItems(),
-    healthFlags: initialHealthFlags(),
+  const [form, setForm] = useState<FormData>(() => {
+    const blank: FormData = {
+      name: "",
+      type: "",
+      yearBuilt: "",
+      sqft: "",
+      zip: "",
+      state: "",
+      selectedItems: initialSelectedItems(),
+      healthFlags: initialHealthFlags(),
+    };
+    if (typeof window === "undefined") return blank;
+    try {
+      const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null");
+      return draft?.form ? { ...blank, ...draft.form } : blank;
+    } catch { return blank; }
   });
+
+  // Save draft to localStorage on every change
+  useEffect(() => {
+    // Don't save the completion step — that means we're done
+    if (step >= 5) return;
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ step, form }));
+    } catch { /* storage full or unavailable */ }
+  }, [step, form]);
+
+  const clearDraft = useCallback(() => {
+    try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+  }, []);
 
   const updateForm = useCallback((partial: Partial<FormData>) => {
     setForm((prev) => ({ ...prev, ...partial }));
@@ -201,13 +229,18 @@ export default function OnboardingPage() {
         }),
       });
 
-      if (!res.ok) throw new Error("Failed to save");
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        console.error("Onboarding save failed:", res.status, errBody);
+        throw new Error(errBody?.error || "Failed to save");
+      }
+      clearDraft();
       goTo(5, "forward");
-    } catch {
-      console.error("Failed to save onboarding data");
+    } catch (err) {
+      console.error("Failed to save onboarding data", err);
       alert("Something went wrong saving your home. Please try again.");
     }
-  }, [buildApiPayload, form, goTo]);
+  }, [buildApiPayload, form, goTo, clearDraft]);
 
   const translateClass = animating
     ? direction === "forward"
