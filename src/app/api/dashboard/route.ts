@@ -30,7 +30,7 @@ export const GET = apiHandler(async ({ user, request }) => {
     .orderBy(desc(homeHealthScores.calculatedAt))
     .limit(1);
 
-  const score = storedScores.length > 0
+  const computedScore = storedScores.length > 0
     ? {
         overall: storedScores[0].score,
         criticalTasks: storedScores[0].criticalTasksScore,
@@ -49,6 +49,9 @@ export const GET = apiHandler(async ({ user, request }) => {
   // Split tasks into overdue and upcoming
   const now = new Date();
   const today = now.toISOString().split("T")[0];
+
+  const hasTasksDue = tasks.some((t) => t.nextDueDate <= today);
+  const score = hasTasksDue ? computedScore : null;
   const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
     .toISOString()
     .split("T")[0];
