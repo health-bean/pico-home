@@ -232,13 +232,14 @@ export default function OnboardingPage() {
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));
         console.error("Onboarding save failed:", res.status, errBody);
-        throw new Error(errBody?.error || "Failed to save");
+        const details = errBody?.details?.map((d: { path: string; message: string }) => `${d.path}: ${d.message}`).join("\n") || "";
+        throw new Error(`${errBody?.error || "Failed to save"}${details ? `\n${details}` : ""}`);
       }
       clearDraft();
       goTo(5, "forward");
     } catch (err) {
       console.error("Failed to save onboarding data", err);
-      alert("Something went wrong saving your home. Please try again.");
+      alert(`Something went wrong saving your home. Please try again.\n\n${err instanceof Error ? err.message : err}`);
     }
   }, [buildApiPayload, form, goTo, clearDraft]);
 
