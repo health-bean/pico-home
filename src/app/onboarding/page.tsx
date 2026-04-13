@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useTransition, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { FormData } from "./shared";
 import {
@@ -71,7 +71,7 @@ function StepWelcome({ onNext }: { onNext: () => void }) {
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [, startTransition] = useTransition();
+
   const [step, setStep] = useState(1);
   const [animating, setAnimating] = useState(false);
   const [direction, setDirection] = useState<"forward" | "backward">("forward");
@@ -177,39 +177,39 @@ export default function OnboardingPage() {
     return { systems, appliances, householdHealth };
   }, [form]);
 
-  // Submit onboarding data (does NOT navigate — completion screen handles that)
-  const handleSubmit = useCallback(() => {
-    startTransition(async () => {
-      const { systems, appliances, householdHealth } = buildApiPayload();
+  // Submit onboarding data, then show completion screen
+  const handleSubmitAndComplete = useCallback(async () => {
+    const { systems, appliances, householdHealth } = buildApiPayload();
 
-      try {
-        const res = await fetch("/api/onboarding", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            home: {
-              name: form.name.trim() || "My Home",
-              type: form.type || "single_family",
-              ownerRole: form.ownerRole || "i_live_here",
-              yearBuilt: form.yearBuilt ? Number(form.yearBuilt) : null,
-              sqft: form.sqft ? Number(form.sqft) : null,
-              zip: form.zip || "",
-              state: form.state || "",
-              climateZone: CLIMATE_ZONES[form.state] ?? "",
-            },
-            systems,
-            appliances,
-            taskSetups: [],
-            householdHealth: householdHealth || undefined,
-          }),
-        });
+    try {
+      const res = await fetch("/api/onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          home: {
+            name: form.name.trim() || "My Home",
+            type: form.type || "single_family",
+            ownerRole: form.ownerRole || "i_live_here",
+            yearBuilt: form.yearBuilt ? Number(form.yearBuilt) : null,
+            sqft: form.sqft ? Number(form.sqft) : null,
+            zip: form.zip || "",
+            state: form.state || "",
+            climateZone: CLIMATE_ZONES[form.state] ?? "",
+          },
+          systems,
+          appliances,
+          taskSetups: [],
+          householdHealth: householdHealth || undefined,
+        }),
+      });
 
-        if (!res.ok) throw new Error("Failed to save");
-      } catch {
-        console.error("Failed to save onboarding data");
-      }
-    });
-  }, [buildApiPayload, form, startTransition]);
+      if (!res.ok) throw new Error("Failed to save");
+      goTo(5, "forward");
+    } catch {
+      console.error("Failed to save onboarding data");
+      alert("Something went wrong saving your home. Please try again.");
+    }
+  }, [buildApiPayload, form, goTo]);
 
   const translateClass = animating
     ? direction === "forward"
@@ -247,7 +247,7 @@ export default function OnboardingPage() {
             onChange={updateForm}
             onNext={next}
             onBack={back}
-            onSkip={() => { handleSubmit(); goTo(5, "forward"); }}
+            onSkip={() => { handleSubmitAndComplete(); }}
             currentStep={wizardStep}
             totalSteps={TOTAL_STEPS}
           />
@@ -256,9 +256,9 @@ export default function OnboardingPage() {
           <StepHousehold
             data={form}
             onChange={updateForm}
-            onNext={() => { handleSubmit(); goTo(5, "forward"); }}
+            onNext={() => { handleSubmitAndComplete(); }}
             onBack={back}
-            onSkip={() => { handleSubmit(); goTo(5, "forward"); }}
+            onSkip={() => { handleSubmitAndComplete(); }}
             currentStep={wizardStep}
             totalSteps={TOTAL_STEPS}
           />
