@@ -106,25 +106,31 @@ export const US_STATES = [
 ];
 
 export const CLIMATE_ZONES: Record<string, string> = {
-  AL: "Hot-Humid (Zone 3A)", AK: "Subarctic (Zone 7/8)", AZ: "Hot-Dry (Zone 2B)",
-  AR: "Mixed-Humid (Zone 3A)", CA: "Marine / Hot-Dry (Zone 3B-3C)", CO: "Cold (Zone 5B)",
-  CT: "Cold (Zone 5A)", DE: "Mixed-Humid (Zone 4A)", FL: "Hot-Humid (Zone 1A-2A)",
-  GA: "Hot-Humid (Zone 3A)", HI: "Hot-Humid (Zone 1A)", ID: "Cold (Zone 5B-6B)",
-  IL: "Cold (Zone 5A)", IN: "Cold (Zone 5A)", IA: "Cold (Zone 5A)",
-  KS: "Mixed-Dry (Zone 4A)", KY: "Mixed-Humid (Zone 4A)", LA: "Hot-Humid (Zone 2A)",
-  ME: "Cold (Zone 6A)", MD: "Mixed-Humid (Zone 4A)", MA: "Cold (Zone 5A)",
-  MI: "Cold (Zone 5A)", MN: "Cold (Zone 6A)", MS: "Hot-Humid (Zone 3A)",
-  MO: "Mixed-Humid (Zone 4A)", MT: "Cold (Zone 6B)", NE: "Cold (Zone 5A)",
-  NV: "Hot-Dry (Zone 3B)", NH: "Cold (Zone 6A)", NJ: "Mixed-Humid (Zone 4A)",
-  NM: "Hot-Dry (Zone 4B)", NY: "Cold (Zone 5A)", NC: "Mixed-Humid (Zone 3A-4A)",
-  ND: "Cold (Zone 6A)", OH: "Cold (Zone 5A)", OK: "Mixed-Humid (Zone 3A)",
-  OR: "Marine (Zone 4C)", PA: "Cold (Zone 5A)", RI: "Cold (Zone 5A)",
-  SC: "Hot-Humid (Zone 3A)", SD: "Cold (Zone 6A)", TN: "Mixed-Humid (Zone 4A)",
-  TX: "Hot-Humid / Hot-Dry (Zone 2A-3B)", UT: "Cold / Dry (Zone 5B)",
-  VT: "Cold (Zone 6A)", VA: "Mixed-Humid (Zone 4A)", WA: "Marine (Zone 4C)",
-  WV: "Mixed-Humid (Zone 4A)", WI: "Cold (Zone 6A)", WY: "Cold (Zone 6B)",
-  DC: "Mixed-Humid (Zone 4A)",
+  AL: "3A", AK: "7", AZ: "2B", AR: "3A", CA: "3B", CO: "5B",
+  CT: "5A", DE: "4A", FL: "2A", GA: "3A", HI: "1A", ID: "5B",
+  IL: "5A", IN: "5A", IA: "5A", KS: "4A", KY: "4A", LA: "2A",
+  ME: "6A", MD: "4A", MA: "5A", MI: "5A", MN: "6A", MS: "3A",
+  MO: "4A", MT: "6B", NE: "5A", NV: "3B", NH: "6A", NJ: "4A",
+  NM: "4B", NY: "5A", NC: "4A", ND: "6A", OH: "5A", OK: "3A",
+  OR: "4C", PA: "5A", RI: "5A", SC: "3A", SD: "6A", TN: "4A",
+  TX: "2A", UT: "5B", VT: "6A", VA: "4A", WA: "4C", WV: "4A",
+  WI: "6A", WY: "6B", DC: "4A",
 };
+
+const CLIMATE_ZONE_LABELS: Record<string, string> = {
+  "1A": "Hot-Humid", "2A": "Hot-Humid", "2B": "Hot-Dry",
+  "3A": "Mixed-Humid", "3B": "Hot-Dry / Marine", "4A": "Mixed-Humid",
+  "4B": "Mixed-Dry", "4C": "Marine", "5A": "Cold",
+  "5B": "Cold / Dry", "6A": "Cold", "6B": "Cold / Dry",
+  "7": "Subarctic",
+};
+
+export function climateZoneLabel(state: string): string {
+  const code = CLIMATE_ZONES[state];
+  if (!code) return "";
+  const label = CLIMATE_ZONE_LABELS[code] || "";
+  return label ? `${label} (Zone ${code})` : `Zone ${code}`;
+}
 
 export const MAJOR_SYSTEMS: HomeItemGroup[] = [
   {
@@ -437,7 +443,7 @@ export function StepAboutHome({
   currentStep: number;
   totalSteps: number;
 }) {
-  const climateZone = data.state ? CLIMATE_ZONES[data.state] ?? "" : "";
+  const climateZone = data.state ? climateZoneLabel(data.state) : "";
   // Name and property type are required, everything else is optional
   const canProceed = data.name.trim() !== "" && data.type !== "";
 
