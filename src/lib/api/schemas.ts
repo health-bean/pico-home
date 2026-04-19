@@ -3,9 +3,8 @@ import { z } from "zod";
 // ─── Shared enums (match DB enums exactly) ─────────────────────────────────
 
 const taskCategoryValues = [
-  "hvac", "plumbing", "electrical", "safety", "roof_gutters", "exterior",
-  "windows_doors", "appliance", "lawn_landscape", "pest_control", "garage",
-  "pool", "cleaning", "seasonal",
+  "safety", "heating_cooling", "plumbing", "power",
+  "exterior_structure", "lawn_outdoors", "appliances",
 ] as const;
 
 const taskPriorityValues = [
@@ -40,7 +39,7 @@ export const createTaskSchema = z.object({
   homeId: z.string().uuid().optional(),
   name: z.string().min(1).max(255),
   description: z.string().max(2000).optional().nullable(),
-  category: z.enum(taskCategoryValues).default("seasonal"),
+  category: z.enum(taskCategoryValues).default("appliances"),
   priority: z.enum(taskPriorityValues).default("efficiency"),
   frequencyUnit: z.enum(frequencyUnitValues).default("months"),
   frequencyValue: z.number().int().min(1).max(365).default(1),

@@ -68,20 +68,13 @@ export const applianceCategoryEnum = pgEnum("appliance_category", [
 ]);
 
 export const taskCategoryEnum = pgEnum("task_category", [
-  "hvac",
-  "plumbing",
-  "electrical",
   "safety",
-  "roof_gutters",
-  "exterior",
-  "windows_doors",
-  "appliance",
-  "lawn_landscape",
-  "pest_control",
-  "garage",
-  "pool",
-  "cleaning",
-  "seasonal",
+  "heating_cooling",
+  "plumbing",
+  "power",
+  "exterior_structure",
+  "lawn_outdoors",
+  "appliances",
 ]);
 
 export const taskPriorityEnum = pgEnum("task_priority", [

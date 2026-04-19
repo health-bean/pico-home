@@ -3,8 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, ChevronRight, ChevronDown, Check, SkipForward, Clock, Home,
-  Shield, Thermometer, Droplet, Zap, Trees, Square, Refrigerator,
-  Flower2, Bug, Warehouse, Waves, Sparkles, Calendar,
+  Shield, Thermometer, Droplet, Zap, Trees, Refrigerator,
 } from "lucide-react";
 import {
   Button,
@@ -108,19 +107,12 @@ function relativeDueLabel(dateStr: string, today: Date): { text: string; color: 
 
 const CATEGORY_CONFIG: Record<string, { label: string }> = {
   safety: { label: "Safety & Security" },
-  hvac: { label: "Heating & Cooling" },
+  heating_cooling: { label: "Heating & Cooling" },
   plumbing: { label: "Plumbing & Water" },
-  electrical: { label: "Electrical" },
-  roof_gutters: { label: "Roof & Gutters" },
-  exterior: { label: "Exterior" },
-  windows_doors: { label: "Windows & Doors" },
-  appliance: { label: "Appliances" },
-  lawn_landscape: { label: "Lawn & Landscape" },
-  pest_control: { label: "Pest Control" },
-  garage: { label: "Garage" },
-  pool: { label: "Pool & Hot Tub" },
-  cleaning: { label: "Cleaning" },
-  seasonal: { label: "Seasonal" },
+  power: { label: "Power" },
+  exterior_structure: { label: "Exterior & Structure" },
+  lawn_outdoors: { label: "Lawn & Outdoors" },
+  appliances: { label: "Appliances" },
 };
 
 function getCategoryLabel(category: string): string {
@@ -128,25 +120,23 @@ function getCategoryLabel(category: string): string {
 }
 
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  safety: Shield, hvac: Thermometer, plumbing: Droplet, electrical: Zap,
-  roof_gutters: Home, exterior: Trees, windows_doors: Square, appliance: Refrigerator,
-  lawn_landscape: Flower2, pest_control: Bug, garage: Warehouse, pool: Waves,
-  cleaning: Sparkles, seasonal: Calendar,
+  safety: Shield,
+  heating_cooling: Thermometer,
+  plumbing: Droplet,
+  power: Zap,
+  exterior_structure: Home,
+  lawn_outdoors: Trees,
+  appliances: Refrigerator,
 };
 
 const categoryBadgeVariant: Record<string, "default" | "success" | "warning" | "danger" | "info"> = {
-  hvac: "info",
-  plumbing: "info",
-  electrical: "warning",
-  exterior: "success",
-  appliance: "default",
   safety: "danger",
-  lawn: "success",
-  cleaning: "default",
-  roofing: "warning",
-  pest_control: "danger",
-  interior: "default",
-  general: "default",
+  heating_cooling: "info",
+  plumbing: "info",
+  power: "warning",
+  exterior_structure: "success",
+  lawn_outdoors: "success",
+  appliances: "default",
 };
 
 const priorityLabels: Record<string, string> = {
@@ -189,7 +179,7 @@ export default function TasksPage() {
 
   // Add-task form state
   const [newName, setNewName] = useState("");
-  const [newCategory, setNewCategory] = useState("hvac");
+  const [newCategory, setNewCategory] = useState("heating_cooling");
   const [newPriority, setNewPriority] = useState("prevent_damage");
   const [newFreqValue, setNewFreqValue] = useState<number>(1);
   const [newFreqUnit, setNewFreqUnit] = useState("months");
@@ -304,7 +294,7 @@ export default function TasksPage() {
       if (!res.ok) throw new Error("Failed to create task");
       setAddOpen(false);
       setNewName("");
-      setNewCategory("hvac");
+      setNewCategory("heating_cooling");
       setNewPriority("prevent_damage");
       setNewFreqValue(1);
       setNewFreqUnit("months");

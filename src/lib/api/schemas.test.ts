@@ -12,7 +12,7 @@ describe("createTaskSchema", () => {
   it("accepts valid input", () => {
     const result = createTaskSchema.parse({
       name: "Replace HVAC filter",
-      category: "hvac",
+      category: "heating_cooling",
       priority: "safety",
       frequencyUnit: "months",
       frequencyValue: 3,
@@ -22,7 +22,7 @@ describe("createTaskSchema", () => {
 
   it("applies defaults", () => {
     const result = createTaskSchema.parse({ name: "Basic task" });
-    expect(result.category).toBe("seasonal");
+    expect(result.category).toBe("appliances");
     expect(result.priority).toBe("efficiency");
     expect(result.frequencyUnit).toBe("months");
     expect(result.frequencyValue).toBe(1);
