@@ -178,9 +178,8 @@ export const MAJOR_SYSTEMS: HomeItemGroup[] = [
     ],
   },
   {
-    label: "Electrical",
+    label: "Power",
     items: [
-      { key: "electrical", label: "Electrical Panel", icon: "\u26A1", type: "system", mappedSystem: "electrical" },
       { key: "generator", label: "Generator", icon: "\u2699\uFE0F", type: "appliance", mappedAppliance: "generator" as ApplianceCategory },
       { key: "solar", label: "Solar Panels", icon: "\u2600\uFE0F", type: "system", mappedSystem: "solar" },
     ],

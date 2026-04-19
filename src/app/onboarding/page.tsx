@@ -201,6 +201,18 @@ export default function OnboardingPage() {
       }
     }
 
+    // Auto-include universal systems: electrical and plumbing apply to every home
+    const seenSystems = new Set(systems.map((s) => s.key));
+    if (!seenSystems.has("electrical")) systems.push({ key: "electrical", subtype: "standard" });
+    if (!seenSystems.has("plumbing")) systems.push({ key: "plumbing", subtype: "standard" });
+
+    // If any heating/cooling appliance was selected, also register the hvac system
+    // so HVAC-gated templates (air filters, duct cleaning, etc.) get generated
+    const hvacAppliances = ["furnace", "ac_unit", "heat_pump", "boiler", "mini_split", "evap_cooler"];
+    if (!seenSystems.has("hvac") && appliances.some((a) => hvacAppliances.includes(a))) {
+      systems.push({ key: "hvac", subtype: "standard" });
+    }
+
     const householdHealth = Object.values(form.healthFlags).some(Boolean) ? form.healthFlags : undefined;
 
     return { systems, appliances, householdHealth };
