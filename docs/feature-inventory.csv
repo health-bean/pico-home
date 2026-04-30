@@ -1,0 +1,70 @@
+Section,Feature,Status,Priority,Notes
+Landing & Auth,Google OAuth sign-in,Done,,
+Landing & Auth,Apple Sign-In,Not Started,Low,Have dev account; needed for iOS App Store
+Landing & Auth,Landing page copy and branding,Done,,
+Landing & Auth,Beta gate (allowed emails),Done,,
+Onboarding,Onboarding wizard (home type / systems / household),Done,,
+Onboarding,Auto-generate maintenance tasks from selections,Done,,
+Dashboard,Greeting + home name header,Done,,
+Dashboard,Welcome tips card for new users,Done,,Dismissible; tips for backdating / adding systems / notifications
+Dashboard,Health score card (placeholder for new / real for active),Done,,
+Dashboard,Needs attention section (overdue + upcoming with quick-complete),Done,,
+Dashboard,This Month stats (completed / remaining / spent),Partial,High,Counts hardcoded to 0; needs real query
+Dashboard,View all tasks link,Done,,
+Tasks,Category-grouped task list with collapsible sections,Done,,Currently 7 categories; redesign to 8 with sub-groups specced
+Tasks,Sub-groups within categories,Not Started,High,Spec approved: 8 categories with visual sub-group dividers
+Tasks,Filter pills (All / Overdue / Due Soon / Completed),Done,,
+Tasks,Task detail modal,Done,,
+Tasks,Complete / Skip / Snooze actions,Done,,
+Tasks,Backdate completions (when did you last do this?),Done,,
+Tasks,Task editing (name / frequency / notes),Done,,
+Tasks,Custom task creation,Done,,
+Tasks,Toast feedback on actions,Done,,
+Tasks,Show Why It Matters and tips on task detail,Not Started,Medium,Templates already have tips/whyItMatters fields; not shown in UI
+Tasks,Task search,Not Started,Low,No way to search across 50+ tasks
+Tasks,Task assignment to household member,Not Started,Low,Phase 2 collaboration feature
+Tasks,Photo evidence on completion,Not Started,Low,Phase 2
+Tasks,Cost tracking per completion,Not Started,Medium,DB field exists (costCents) but no UI; needed for This Month spent stat
+Home Profile,View home details,Done,,
+Home Profile,Add/remove systems (auto-generates tasks),Done,,
+Home Profile,Add/remove appliances (auto-generates tasks),Done,,
+Home Profile,Household members display,Done,,
+Home Profile,Invite members by email,Done,,
+Home Profile,Edit home details (name / year / sqft),Not Started,High,Can't even fix a typo in home name
+Home Profile,Invite acceptance UI in-app,Not Started,Low,Works via auth callback; no in-app accept/decline screen
+Home Profile,Contractor directory UI,Not Started,Low,API exists but no UI to manage contractors
+Home Profile,Document upload verification,Partial,Medium,Upload UI exists; storage backend needs verification
+Multi-Home,Add second home,Done,,Abbreviated onboarding flow
+Multi-Home,Home switcher UI,Not Started,Medium,API supports homeId param; no UI to switch between homes
+Multi-Home,Cross-home dashboard view,Not Started,Low,Phase 2
+Notifications,Push notification subscription,Done,,
+Notifications,Push notification sending (cron),Done,,Sends for overdue tasks
+Notifications,Email weekly digest (cron),Done,,Monday mornings via Resend
+Notifications,Notification preferences (push / email / time / days),Done,,Settings page
+Notifications,Time zone aware delivery,Not Started,Medium,Currently hardcoded UTC timing
+Notifications,Push retry for expired subscriptions,Not Started,Low,
+Notifications,Email retry on Resend failure,Not Started,Low,
+Health Score,Daily precomputation (cron),Done,,
+Health Score,Live fallback calculation,Done,,
+Health Score,Recalculate on task completion,Not Started,Medium,Only recalculated by daily cron; stale until next day
+Health Score,Score history / trends,Not Started,Low,DB stores history but no visualization
+Sharing & Collaboration,Email invites,Done,,
+Sharing & Collaboration,Member roles (owner / member),Done,,
+Sharing & Collaboration,Permission levels (who can edit / delete),Not Started,Low,All members have equal access currently
+Sharing & Collaboration,Activity log / audit trail,Not Started,Low,Phase 2
+Sharing & Collaboration,Shareable links,Not Started,Low,Phase 2
+Infrastructure,Sentry error monitoring,Done,,
+Infrastructure,CSRF protection,Done,,
+Infrastructure,Rate limiting,Done,,In-memory per instance
+Infrastructure,Row-level security (Supabase),Done,,
+Infrastructure,Supabase custom domain (auth branding),Not Started,High,Users see zlcnrqew...supabase.co during sign-in; confusing
+Infrastructure,Dark mode,Not Started,Low,CSS disabled with comment
+Infrastructure,PWA install prompt,Not Started,Medium,Manifest exists but no install prompt
+Infrastructure,PWA offline support,Not Started,Low,No service worker
+Infrastructure,Performance monitoring (Web Vitals),Not Started,Low,
+Infrastructure,Usage analytics,Not Started,Medium,No visibility into feature adoption
+Infrastructure,SEO / structured data,Not Started,Low,Basic meta tags only
+Mobile / Native,Capacitor integration,Partial,Medium,Package installed but not verified working
+Mobile / Native,iOS App Store submission,Not Started,Medium,Requires Apple Sign-In + Capacitor verification
+Mobile / Native,Android Play Store submission,Not Started,Low,
+Mobile / Native,Native push notifications,Not Started,Medium,Web push only currently
