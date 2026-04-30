@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { homes, homeMembers } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { getAppUser } from "@/lib/auth/get-app-user";
+import { apiHandler } from "@/lib/api/handler";
 
 /**
  * POST /api/dev/reset-onboarding
@@ -13,17 +13,12 @@ import { getAppUser } from "@/lib/auth/get-app-user";
  *
  * Only available in development/preview — blocked in production.
  */
-export async function POST() {
+export const POST = apiHandler(async ({ user }) => {
   if (process.env.VERCEL_ENV === "production") {
     return NextResponse.json(
       { error: "Not available in production" },
       { status: 403 }
     );
-  }
-
-  const user = await getAppUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   // Delete all homes owned by this user (cascades to tasks, systems, etc.)
@@ -42,4 +37,4 @@ export async function POST() {
     homesDeleted: deleted.length,
     message: "Refresh the page — you'll be redirected to onboarding.",
   });
-}
+});

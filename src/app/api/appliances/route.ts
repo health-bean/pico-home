@@ -82,7 +82,7 @@ export const DELETE = apiHandler(async ({ user, request }) => {
 
   const home = await getUserHome(user.id, appliance.homeId);
   if (!home) {
-    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   await db.delete(appliances).where(eq(appliances.id, body.id));

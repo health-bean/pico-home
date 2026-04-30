@@ -160,6 +160,14 @@ export const createContractorSchema = z.object({
   rating: z.number().int().min(1).max(5).optional().nullable(),
 });
 
+export const updateHomeSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  yearBuilt: z.number().int().min(1600).max(new Date().getFullYear() + 5).optional().nullable(),
+  squareFootage: z.number().int().min(1).max(1_000_000).optional().nullable(),
+  zipCode: z.string().max(20).optional(),
+  state: z.string().max(50).optional(),
+});
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;

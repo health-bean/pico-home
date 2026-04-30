@@ -3,16 +3,8 @@ import { getUserHome } from "@/lib/auth/get-user-home";
 import { db } from "@/lib/db";
 import { homeSystems, appliances, homes } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { apiHandler } from "@/lib/api/handler";
-import { z } from "zod";
-
-const updateHomeSchema = z.object({
-  name: z.string().min(1).max(255).optional(),
-  yearBuilt: z.number().int().min(1600).max(new Date().getFullYear() + 5).optional().nullable(),
-  squareFootage: z.number().int().min(1).max(1_000_000).optional().nullable(),
-  zipCode: z.string().max(20).optional(),
-  state: z.string().max(50).optional(),
-});
+import { apiHandler, parseBody } from "@/lib/api/handler";
+import { updateHomeSchema } from "@/lib/api/schemas";
 
 export const GET = apiHandler(async ({ user, request }) => {
   const { searchParams } = new URL(request.url);
@@ -72,16 +64,11 @@ export const PATCH = apiHandler(async ({ user, request }) => {
     return NextResponse.json({ error: "Home not found" }, { status: 404 });
   }
 
-  const body = await request.json();
-  const parsed = updateHomeSchema.safeParse(body);
-
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
-  }
+  const body = await parseBody(request, updateHomeSchema);
 
   const [updated] = await db
     .update(homes)
-    .set(parsed.data)
+    .set(body)
     .where(eq(homes.id, home.id))
     .returning();
 

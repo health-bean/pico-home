@@ -8,7 +8,7 @@ import {
   homes,
   taskCompletions,
 } from "@/lib/db/schema";
-import { eq, and, lte, gte, sql } from "drizzle-orm";
+import { eq, and, lte, gte, inArray, sql } from "drizzle-orm";
 import { verifyCronAuth } from "@/lib/api/cron-auth";
 
 /**
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
           and(
             eq(taskInstances.isActive, true),
             lte(taskInstances.nextDueDate, now.toISOString()),
-            sql`${taskInstances.homeId} = ANY(${homeIds})`
+            inArray(taskInstances.homeId, homeIds)
           )
         );
 
@@ -101,7 +101,7 @@ export async function POST(request: Request) {
             eq(taskInstances.isActive, true),
             gte(taskInstances.nextDueDate, now.toISOString()),
             lte(taskInstances.nextDueDate, nextWeek.toISOString()),
-            sql`${taskInstances.homeId} = ANY(${homeIds})`
+            inArray(taskInstances.homeId, homeIds)
           )
         );
 
