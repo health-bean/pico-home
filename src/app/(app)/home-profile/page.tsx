@@ -355,10 +355,29 @@ export default function HomeProfilePage() {
   const [addingAppliance, setAddingAppliance] = useState(false);
   const [deletingApplianceId, setDeletingApplianceId] = useState<string | null>(null);
 
+  // Home edit state
+  const [editingHome, setEditingHome] = useState(false);
+  const [editHomeName, setEditHomeName] = useState("");
+  const [editYearBuilt, setEditYearBuilt] = useState("");
+  const [editSqft, setEditSqft] = useState("");
+  const [editZip, setEditZip] = useState("");
+  const [editState, setEditState] = useState("");
+  const [savingHome, setSavingHome] = useState(false);
+
   // Upload form state
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadName, setUploadName] = useState("");
   const [uploadType, setUploadType] = useState<string>("other");
+
+  useEffect(() => {
+    if (home) {
+      setEditHomeName(home.name);
+      setEditYearBuilt(home.yearBuilt?.toString() || "");
+      setEditSqft(home.squareFootage?.toString() || "");
+      setEditZip(home.zipCode || "");
+      setEditState(home.state || "");
+    }
+  }, [home]);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -394,6 +413,30 @@ export default function HomeProfilePage() {
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
+
+  const saveHomeEdit = useCallback(async () => {
+    setSavingHome(true);
+    try {
+      const res = await fetch("/api/home-profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editHomeName.trim(),
+          yearBuilt: editYearBuilt ? Number(editYearBuilt) : null,
+          squareFootage: editSqft ? Number(editSqft) : null,
+          zipCode: editZip.trim(),
+          state: editState,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      setEditingHome(false);
+      fetchAll();
+    } catch {
+      // stay in edit mode
+    } finally {
+      setSavingHome(false);
+    }
+  }, [editHomeName, editYearBuilt, editSqft, editZip, editState, fetchAll]);
 
   const handleUpload = async () => {
     if (!uploadFile || !uploadName.trim() || !home) return;
@@ -564,33 +607,104 @@ export default function HomeProfilePage() {
         <span className="absolute right-[-10px] bottom-[-10px] text-[80px] opacity-15 select-none pointer-events-none">
           {"\u{1F3E0}"}
         </span>
-        <h1 className="text-[22px] font-extrabold text-[#78350f] tracking-tight">
-          {home.name}
-        </h1>
-        <p className="text-[13px] text-[#92400e] font-semibold mt-0.5">
-          {homeTypeLabel(home.type)}
-          {home.yearBuilt ? ` \u00B7 Built ${home.yearBuilt}` : ""}
-          {home.squareFootage ? ` \u00B7 ${home.squareFootage.toLocaleString()} sqft` : ""}
-        </p>
-        {home.state && (
-          <p className="text-[12px] text-[#92400e] mt-1">
-            {[home.state, home.zipCode].filter(Boolean).join(", ")}
-          </p>
+
+        {editingHome ? (
+          <div className="flex flex-col gap-3 relative z-10">
+            <Input
+              label="Home name"
+              value={editHomeName}
+              onChange={(e) => setEditHomeName(e.target.value)}
+              placeholder="My Home"
+            />
+            <div className="flex gap-2">
+              <Input
+                label="Year built"
+                type="number"
+                value={editYearBuilt}
+                onChange={(e) => setEditYearBuilt(e.target.value)}
+                placeholder="e.g. 1995"
+              />
+              <Input
+                label="Square footage"
+                type="number"
+                value={editSqft}
+                onChange={(e) => setEditSqft(e.target.value)}
+                placeholder="e.g. 1800"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Input
+                label="State"
+                value={editState}
+                onChange={(e) => setEditState(e.target.value)}
+                placeholder="e.g. TX"
+              />
+              <Input
+                label="ZIP code"
+                value={editZip}
+                onChange={(e) => setEditZip(e.target.value)}
+                placeholder="e.g. 78701"
+              />
+            </div>
+            <div className="flex gap-2 mt-1">
+              <Button
+                variant="primary"
+                onClick={saveHomeEdit}
+                loading={savingHome}
+                disabled={!editHomeName.trim()}
+                className="flex-1"
+              >
+                Save
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setEditingHome(false)}
+                disabled={savingHome}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-start justify-between">
+              <h1 className="text-[22px] font-extrabold text-[#78350f] tracking-tight">
+                {home.name}
+              </h1>
+              <button
+                onClick={() => setEditingHome(true)}
+                className="text-[12px] font-semibold text-[#92400e] opacity-70 hover:opacity-100 transition-opacity ml-2 mt-1 shrink-0"
+              >
+                Edit
+              </button>
+            </div>
+            <p className="text-[13px] text-[#92400e] font-semibold mt-0.5">
+              {homeTypeLabel(home.type)}
+              {home.yearBuilt ? ` \u00B7 Built ${home.yearBuilt}` : ""}
+              {home.squareFootage ? ` \u00B7 ${home.squareFootage.toLocaleString()} sqft` : ""}
+            </p>
+            {home.state && (
+              <p className="text-[12px] text-[#92400e] mt-1">
+                {[home.state, home.zipCode].filter(Boolean).join(", ")}
+              </p>
+            )}
+            <div className="flex gap-4 mt-4">
+              <div>
+                <p className="text-xl font-extrabold text-[#78350f]">{systems.length}</p>
+                <p className="text-[11px] text-[#92400e] font-semibold">Systems</p>
+              </div>
+              <div>
+                <p className="text-xl font-extrabold text-[#78350f]">{applianceList.length}</p>
+                <p className="text-[11px] text-[#92400e] font-semibold">Appliances</p>
+              </div>
+              <div>
+                <p className="text-xl font-extrabold text-[#78350f]">{docs.length}</p>
+                <p className="text-[11px] text-[#92400e] font-semibold">Documents</p>
+              </div>
+            </div>
+          </>
         )}
-        <div className="flex gap-4 mt-4">
-          <div>
-            <p className="text-xl font-extrabold text-[#78350f]">{systems.length}</p>
-            <p className="text-[11px] text-[#92400e] font-semibold">Systems</p>
-          </div>
-          <div>
-            <p className="text-xl font-extrabold text-[#78350f]">{applianceList.length}</p>
-            <p className="text-[11px] text-[#92400e] font-semibold">Appliances</p>
-          </div>
-          <div>
-            <p className="text-xl font-extrabold text-[#78350f]">{docs.length}</p>
-            <p className="text-[11px] text-[#92400e] font-semibold">Documents</p>
-          </div>
-        </div>
       </div>
 
       {/* ---- Systems ---- */}
