@@ -207,6 +207,8 @@ export async function POST(request: Request) {
           isActive: true,
           isCustom: false,
           notificationDaysBefore: 3,
+          tips: template.tips,
+          whyItMatters: template.whyItMatters,
           subgroup: template.subgroup,
         };
       });
@@ -244,6 +246,8 @@ export async function POST(request: Request) {
           isActive: true,
           isCustom: false,
           notificationDaysBefore: 3,
+          tips: template.tips,
+          whyItMatters: template.whyItMatters,
           subgroup: template.subgroup,
         };
       });

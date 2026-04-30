@@ -309,6 +309,8 @@ export const taskInstances = pgTable(
     isCustom: boolean("is_custom").default(false),
     notificationDaysBefore: integer("notification_days_before").default(3),
     notes: text("notes"),
+    tips: text("tips"),
+    whyItMatters: text("why_it_matters"),
     subgroup: varchar("subgroup", { length: 50 }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

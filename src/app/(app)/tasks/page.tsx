@@ -36,6 +36,8 @@ interface Task {
   isCustom: boolean;
   notificationDaysBefore: number;
   notes: string;
+  tips: string | null;
+  whyItMatters: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -964,6 +966,22 @@ export default function TasksPage() {
                     </p>
                   </div>
                 </div>
+
+                {/* Why It Matters */}
+                {selectedTask.whyItMatters && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground mb-1">Why It Matters</h4>
+                    <p className="text-sm text-muted-foreground">{selectedTask.whyItMatters}</p>
+                  </div>
+                )}
+
+                {/* Tips */}
+                {selectedTask.tips && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground mb-1">Tips</h4>
+                    <p className="text-sm text-muted-foreground">{selectedTask.tips}</p>
+                  </div>
+                )}
 
                 {/* Notes */}
                 {selectedTask.notes && (
