@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getUserHome } from "@/lib/auth/get-user-home";
 import { db } from "@/lib/db";
-import { taskInstances, homeMembers, users, homeHealthScores } from "@/lib/db/schema";
-import { eq, and, asc, desc } from "drizzle-orm";
+import { taskInstances, homeMembers, users, homeHealthScores, taskCompletions } from "@/lib/db/schema";
+import { eq, and, asc, desc, gte } from "drizzle-orm";
 import { calculateHomeHealthScore } from "@/lib/tasks/scheduling";
 import { apiHandler } from "@/lib/api/handler";
 
@@ -61,6 +61,19 @@ export const GET = apiHandler(async ({ user, request }) => {
     (t) => t.nextDueDate >= today && t.nextDueDate <= weekFromNow
   );
 
+  // Count completions this month
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const completionsThisMonth = await db
+    .select()
+    .from(taskCompletions)
+    .innerJoin(taskInstances, eq(taskCompletions.taskInstanceId, taskInstances.id))
+    .where(
+      and(
+        eq(taskInstances.homeId, home.id),
+        gte(taskCompletions.completedAt, startOfMonth)
+      )
+    );
+
   // Get household members
   const members = await db
     .select({
@@ -86,5 +99,6 @@ export const GET = apiHandler(async ({ user, request }) => {
     userName: user.name,
     members,
     memberRole: home.memberRole,
+    completedThisMonth: completionsThisMonth.length,
   });
 });

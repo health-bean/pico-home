@@ -34,6 +34,7 @@ interface DashboardData {
   upcoming: DashboardTask[];
   totalActive: number;
   userName: string;
+  completedThisMonth: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -277,10 +278,9 @@ export default function DashboardPage() {
   // Combine all tasks that need attention (overdue first, then upcoming)
   const needsAttention = [...overdue, ...upcoming];
 
-  // Stats for "This Week" card
-  const completedCount = 0; // Would need API data for completed-this-week
+  // Stats for "This Month" card
+  const completedCount = data.completedThisMonth;
   const remainingCount = upcoming.length + overdue.length;
-  const spentAmount = 0; // Would need API data for spend tracking
 
 
   return (
@@ -508,7 +508,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ---- This Week Card ---- */}
+      {/* ---- This Month Card ---- */}
       <div className="rounded-2xl border border-[var(--color-neutral-200)] bg-white p-5">
         <div className="flex items-center">
           {/* Completed */}
@@ -531,19 +531,6 @@ export default function DashboardPage() {
             </span>
             <span className="text-[11px] font-semibold uppercase text-[var(--color-neutral-400)]">
               Remaining
-            </span>
-          </div>
-
-          {/* Divider */}
-          <div className="h-10 w-px bg-neutral-200" />
-
-          {/* Spent */}
-          <div className="flex flex-1 flex-col items-center gap-1">
-            <span className="text-2xl font-extrabold text-green-600">
-              ${spentAmount}
-            </span>
-            <span className="text-[11px] font-semibold uppercase text-[var(--color-neutral-400)]">
-              Spent
             </span>
           </div>
         </div>
