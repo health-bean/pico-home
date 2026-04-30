@@ -267,7 +267,7 @@ export function ProgressBar({ currentStep, totalSteps }: { currentStep: number; 
 export function StepTitle({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div>
-      <h2 className="text-[22px] font-extrabold text-[#1c1917] tracking-tight mb-1.5">
+      <h2 className="text-[22px] font-extrabold text-[var(--color-neutral-900)] tracking-tight mb-1.5">
         {title}
       </h2>
       <p className="text-sm text-[var(--color-neutral-400)] mb-6 leading-relaxed">
@@ -293,8 +293,8 @@ export function ContinueButton({
       type="button"
       onClick={onClick}
       disabled={disabled || loading}
-      className={`w-full h-[48px] bg-[#1c1917] text-white rounded-xl font-bold text-[14px] mt-6 transition-all flex items-center justify-center gap-2 ${
-        disabled || loading ? "opacity-50 cursor-not-allowed" : "hover:bg-[#292524] active:scale-[0.98]"
+      className={`w-full h-[48px] bg-[var(--color-neutral-900)] text-white rounded-xl font-bold text-[14px] mt-6 transition-all flex items-center justify-center gap-2 ${
+        disabled || loading ? "opacity-50 cursor-not-allowed" : "hover:bg-[var(--color-neutral-800)] active:scale-[0.98]"
       }`}
     >
       {loading && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -477,7 +477,7 @@ export function StepAboutHome({
                 }`}
               >
                 <span className="text-lg">{ht.icon}</span>
-                <span className="text-xs font-semibold text-[#1c1917]">{ht.label}</span>
+                <span className="text-xs font-semibold text-[var(--color-neutral-900)]">{ht.label}</span>
               </button>
             ))}
           </div>
@@ -522,7 +522,7 @@ export function StepAboutHome({
         {climateZone && (
           <div className="rounded-xl border border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)] px-4 py-3">
             <span className="text-xs text-[var(--color-neutral-400)]">Climate zone: </span>
-            <span className="text-xs font-semibold text-[#1c1917]">{climateZone}</span>
+            <span className="text-xs font-semibold text-[var(--color-neutral-900)]">{climateZone}</span>
           </div>
         )}
       </div>
@@ -629,7 +629,7 @@ export function StepMajorSystems({
                       }`}
                     >
                       <span className="text-lg">{item.icon}</span>
-                      <span className="text-xs font-semibold text-[#1c1917]">
+                      <span className="text-xs font-semibold text-[var(--color-neutral-900)]">
                         {item.label}
                         {isHeatPumpCoolingMirror && (
                           <span className="block text-[10px] font-normal text-[var(--color-neutral-400)]">Selected above</span>
@@ -730,7 +730,7 @@ export function StepHousehold({
               {opt.icon}
             </div>
             <div className="flex-1 min-w-0">
-              <span className="text-sm font-semibold text-[#1c1917] block">{opt.label}</span>
+              <span className="text-sm font-semibold text-[var(--color-neutral-900)] block">{opt.label}</span>
               <span className="text-xs text-[var(--color-neutral-400)]">{opt.desc}</span>
             </div>
             <SelectionCheckmark selected={data.healthFlags[opt.key]} />
@@ -766,15 +766,15 @@ export function StepComplete({
   buttonLabel?: string;
 }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center -mx-5 -my-6 px-8 bg-gradient-to-b from-[#fffbeb] via-[#fef3c7] to-[#fde68a]">
+    <div className="flex flex-1 flex-col items-center justify-center -mx-5 -my-6 px-8 bg-gradient-to-b from-[var(--color-primary-50)] via-[var(--color-primary-100)] to-[var(--color-primary-200)]">
       <div className="flex flex-col items-center text-center max-w-xs">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/60 backdrop-blur-sm shadow-sm mb-5">
           <span className="text-3xl">{"\u2705"}</span>
         </div>
-        <h1 className="text-[26px] font-extrabold text-[#451a03] tracking-tight leading-tight">
+        <h1 className="text-[26px] font-extrabold text-[var(--color-primary-950)] tracking-tight leading-tight">
           {title ?? "You\u0027re all set!"}
         </h1>
-        <p className="mt-2 text-sm text-[#92400e] leading-relaxed">
+        <p className="mt-2 text-sm text-[var(--color-primary-800)] leading-relaxed">
           {description ?? (
             <>
               We&apos;re building your personalized maintenance plan
@@ -792,18 +792,18 @@ export function StepComplete({
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/50 text-base">
                 {item.icon}
               </div>
-              <span className="text-[10px] font-bold text-[#78350f]">{item.label}</span>
+              <span className="text-[10px] font-bold text-[var(--color-primary-900)]">{item.label}</span>
             </div>
           ))}
         </div>
-        <p className="mt-5 text-xs text-[#92400e]">
+        <p className="mt-5 text-xs text-[var(--color-primary-800)]">
           You can add appliances, contractors, and more from your home profile anytime.
         </p>
         <button
           type="button"
           onClick={onFinish}
           disabled={loading}
-          className="w-full h-[48px] bg-[#451a03] text-white rounded-xl font-bold text-[14px] mt-6 transition-all hover:bg-[#78350f] active:scale-[0.98] flex items-center justify-center gap-2"
+          className="w-full h-[48px] bg-[var(--color-primary-950)] text-white rounded-xl font-bold text-[14px] mt-6 transition-all hover:bg-[var(--color-primary-900)] active:scale-[0.98] flex items-center justify-center gap-2"
         >
           {loading && <Loader2 className="h-4 w-4 animate-spin" />}
           {buttonLabel ?? "Go to My Dashboard"}

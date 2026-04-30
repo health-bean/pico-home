@@ -125,7 +125,7 @@ function scoreMessage(score: number): string {
 
 function DashboardSkeleton() {
   return (
-    <div className="mx-auto max-w-lg space-y-6 px-5 py-8 pb-28 bg-[#fafaf9] min-h-screen">
+    <div className="mx-auto max-w-lg space-y-6 px-5 py-8 pb-28 bg-[var(--color-neutral-50)] min-h-screen">
       <div className="flex items-center justify-between">
         <div className="space-y-2">
           <Skeleton className="h-4 w-24" />
@@ -155,9 +155,9 @@ function ScorePlaceholder() {
       <div className="flex items-center gap-5">
         <div className="relative shrink-0 h-[100px] w-[100px]">
           <svg width={100} height={100} viewBox="0 0 100 100" className="-rotate-90">
-            <circle cx={50} cy={50} r={42} fill="none" stroke="#f5f5f4" strokeWidth={8} />
+            <circle cx={50} cy={50} r={42} fill="none" stroke="var(--color-neutral-100)" strokeWidth={8} />
             <circle
-              cx={50} cy={50} r={42} fill="none" stroke="#fde68a" strokeWidth={8}
+              cx={50} cy={50} r={42} fill="none" stroke="var(--color-primary-200)" strokeWidth={8}
               strokeLinecap="round"
               strokeDasharray={`${2 * Math.PI * 42}`}
               strokeDashoffset={`${2 * Math.PI * 42 * 0.75}`}
@@ -251,7 +251,7 @@ export default function DashboardPage() {
   // Error state
   if (error) {
     return (
-      <div className="mx-auto max-w-lg px-5 py-8 bg-[#fafaf9] min-h-screen">
+      <div className="mx-auto max-w-lg px-5 py-8 bg-[var(--color-neutral-50)] min-h-screen">
         <EmptyState
           title="Something went wrong"
           description={error}
@@ -284,7 +284,7 @@ export default function DashboardPage() {
 
 
   return (
-    <div className="mx-auto max-w-lg space-y-6 px-5 py-8 pb-28 bg-[#fafaf9] min-h-screen font-[family-name:var(--font-plus-jakarta-sans)]">
+    <div className="mx-auto max-w-lg space-y-6 px-5 py-8 pb-28 bg-[var(--color-neutral-50)] min-h-screen font-[family-name:var(--font-plus-jakarta-sans)]">
       {/* ---- Header ---- */}
       <div>
         <p className="text-sm font-medium text-[var(--color-neutral-400)]">
@@ -361,7 +361,7 @@ export default function DashboardPage() {
                     cy={RING_SIZE / 2}
                     r={RING_RADIUS}
                     fill="none"
-                    stroke="#f5f5f4"
+                    stroke="var(--color-neutral-100)"
                     strokeWidth={8}
                   />
                   <circle

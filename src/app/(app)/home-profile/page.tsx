@@ -669,38 +669,38 @@ export default function HomeProfilePage() {
         ) : (
           <>
             <div className="flex items-start justify-between">
-              <h1 className="text-[22px] font-extrabold text-[#78350f] tracking-tight">
+              <h1 className="text-[22px] font-extrabold text-[var(--color-primary-900)] tracking-tight">
                 {home.name}
               </h1>
               <button
                 onClick={() => setEditingHome(true)}
-                className="text-[12px] font-semibold text-[#92400e] opacity-70 hover:opacity-100 transition-opacity ml-2 mt-1 shrink-0"
+                className="text-[12px] font-semibold text-[var(--color-primary-800)] opacity-70 hover:opacity-100 transition-opacity ml-2 mt-1 shrink-0"
               >
                 Edit
               </button>
             </div>
-            <p className="text-[13px] text-[#92400e] font-semibold mt-0.5">
+            <p className="text-[13px] text-[var(--color-primary-800)] font-semibold mt-0.5">
               {homeTypeLabel(home.type)}
               {home.yearBuilt ? ` \u00B7 Built ${home.yearBuilt}` : ""}
               {home.squareFootage ? ` \u00B7 ${home.squareFootage.toLocaleString()} sqft` : ""}
             </p>
             {home.state && (
-              <p className="text-[12px] text-[#92400e] mt-1">
+              <p className="text-[12px] text-[var(--color-primary-800)] mt-1">
                 {[home.state, home.zipCode].filter(Boolean).join(", ")}
               </p>
             )}
             <div className="flex gap-4 mt-4">
               <div>
-                <p className="text-xl font-extrabold text-[#78350f]">{systems.length}</p>
-                <p className="text-[11px] text-[#92400e] font-semibold">Systems</p>
+                <p className="text-xl font-extrabold text-[var(--color-primary-900)]">{systems.length}</p>
+                <p className="text-[11px] text-[var(--color-primary-800)] font-semibold">Systems</p>
               </div>
               <div>
-                <p className="text-xl font-extrabold text-[#78350f]">{applianceList.length}</p>
-                <p className="text-[11px] text-[#92400e] font-semibold">Appliances</p>
+                <p className="text-xl font-extrabold text-[var(--color-primary-900)]">{applianceList.length}</p>
+                <p className="text-[11px] text-[var(--color-primary-800)] font-semibold">Appliances</p>
               </div>
               <div>
-                <p className="text-xl font-extrabold text-[#78350f]">{docs.length}</p>
-                <p className="text-[11px] text-[#92400e] font-semibold">Documents</p>
+                <p className="text-xl font-extrabold text-[var(--color-primary-900)]">{docs.length}</p>
+                <p className="text-[11px] text-[var(--color-primary-800)] font-semibold">Documents</p>
               </div>
             </div>
           </>

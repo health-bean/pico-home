@@ -27,7 +27,7 @@ function HomeContent() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-[#fffbeb] via-[#fef3c7] via-[60%] to-[#fbbf24]">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-[var(--color-primary-50)] via-[var(--color-primary-100)] via-[60%] to-[var(--color-primary-400)]">
       {/* Top section */}
       <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
         {/* App icon */}
@@ -36,12 +36,12 @@ function HomeContent() {
         </div>
 
         {/* Headline */}
-        <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-[#451a03]">
+        <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-[var(--color-primary-950)]">
           Home care, simplified.
         </h1>
 
         {/* Subtext */}
-        <p className="mt-3 text-base text-[#92400e]">
+        <p className="mt-3 text-base text-[var(--color-primary-800)]">
           Smart home maintenance tracking and reminders. Never forget when you
           last changed that filter.
         </p>
@@ -58,7 +58,7 @@ function HomeContent() {
               <div className="flex h-[48px] w-[48px] items-center justify-center rounded-xl bg-white/60 text-xl backdrop-blur-sm">
                 {item.icon}
               </div>
-              <span className="text-xs font-bold text-[#78350f]">
+              <span className="text-xs font-bold text-[var(--color-primary-900)]">
                 {item.label}
               </span>
             </div>
@@ -80,7 +80,7 @@ function HomeContent() {
         )}
         <button
           onClick={handleGoogleSignIn}
-          className="flex h-[52px] w-full items-center justify-center gap-3 rounded-xl bg-white text-[15px] font-bold text-[#1c1917] shadow-sm"
+          className="flex h-[52px] w-full items-center justify-center gap-3 rounded-xl bg-white text-[15px] font-bold text-[var(--color-neutral-900)] shadow-sm"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24">
             <path
@@ -106,7 +106,7 @@ function HomeContent() {
         {/* Apple Sign-In — disabled until Apple Developer account is configured */}
         <button
           disabled
-          className="flex h-[52px] w-full items-center justify-center gap-3 rounded-xl bg-[#1c1917] text-[15px] font-bold text-white opacity-40"
+          className="flex h-[52px] w-full items-center justify-center gap-3 rounded-xl bg-[var(--color-neutral-900)] text-[15px] font-bold text-white opacity-40"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
             <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
@@ -115,15 +115,15 @@ function HomeContent() {
           <span className="text-[11px] font-medium opacity-70">Coming soon</span>
         </button>
 
-        <p className="mt-4 text-center text-[11px] text-[#92400e]">
+        <p className="mt-4 text-center text-[11px] text-[var(--color-primary-800)]">
           Your data stays private
         </p>
-        <div className="mt-2 flex justify-center gap-3 text-[11px] text-[#92400e]/70">
-          <a href="/privacy" className="underline hover:text-[#92400e]">
+        <div className="mt-2 flex justify-center gap-3 text-[11px] text-[var(--color-primary-800)]/70">
+          <a href="/privacy" className="underline hover:text-[var(--color-primary-800)]">
             Privacy Policy
           </a>
           <span>·</span>
-          <a href="/terms" className="underline hover:text-[#92400e]">
+          <a href="/terms" className="underline hover:text-[var(--color-primary-800)]">
             Terms of Service
           </a>
         </div>
