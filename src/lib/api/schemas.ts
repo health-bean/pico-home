@@ -3,8 +3,8 @@ import { z } from "zod";
 // ─── Shared enums (match DB enums exactly) ─────────────────────────────────
 
 const taskCategoryValues = [
-  "safety", "heating_cooling", "plumbing", "power",
-  "exterior_structure", "lawn_outdoors", "appliances",
+  "safety", "air_quality", "heating_cooling", "plumbing", "power",
+  "exterior_structure", "outdoors_stuff", "appliances",
 ] as const;
 
 const taskPriorityValues = [

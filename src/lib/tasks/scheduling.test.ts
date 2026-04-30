@@ -110,6 +110,7 @@ describe("getApplicableTemplates", () => {
 describe("getSeasonalTasks", () => {
   const base = {
     description: "Test task",
+    subgroup: "other",
     estimatedMinutes: null,
     estimatedCostLow: null,
     estimatedCostHigh: null,
@@ -139,7 +140,7 @@ describe("getSeasonalTasks", () => {
       ...base,
       id: "spring-only",
       name: "Spring Task",
-      category: "lawn_outdoors",
+      category: "outdoors_stuff",
       priority: "cosmetic",
       frequencyUnit: "years",
       frequencyValue: 1,

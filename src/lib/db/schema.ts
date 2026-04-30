@@ -69,11 +69,12 @@ export const applianceCategoryEnum = pgEnum("appliance_category", [
 
 export const taskCategoryEnum = pgEnum("task_category", [
   "safety",
+  "air_quality",
   "heating_cooling",
   "plumbing",
   "power",
   "exterior_structure",
-  "lawn_outdoors",
+  "outdoors_stuff",
   "appliances",
 ]);
 
@@ -308,6 +309,7 @@ export const taskInstances = pgTable(
     isCustom: boolean("is_custom").default(false),
     notificationDaysBefore: integer("notification_days_before").default(3),
     notes: text("notes"),
+    subgroup: varchar("subgroup", { length: 50 }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),

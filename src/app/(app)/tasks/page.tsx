@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, ChevronRight, ChevronDown, Check, SkipForward, Clock, Home,
-  Shield, Thermometer, Droplet, Zap, Trees, Refrigerator,
+  Shield, Thermometer, Droplet, Zap, Trees, Refrigerator, Wind, Fence,
 } from "lucide-react";
 import {
   Button,
@@ -26,6 +26,7 @@ interface Task {
   name: string;
   description: string;
   category: string;
+  subgroup: string | null;
   priority: string;
   frequencyUnit: string;
   frequencyValue: number;
@@ -108,11 +109,12 @@ function relativeDueLabel(dateStr: string, today: Date): { text: string; color: 
 
 const CATEGORY_CONFIG: Record<string, { label: string }> = {
   safety: { label: "Safety & Security" },
+  air_quality: { label: "Air Quality & Health" },
   heating_cooling: { label: "Heating & Cooling" },
   plumbing: { label: "Plumbing & Water" },
   power: { label: "Power" },
   exterior_structure: { label: "Exterior & Structure" },
-  lawn_outdoors: { label: "Lawn & Outdoors" },
+  outdoors_stuff: { label: "Outdoors Stuff" },
   appliances: { label: "Appliances" },
 };
 
@@ -122,23 +124,54 @@ function getCategoryLabel(category: string): string {
 
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   safety: Shield,
+  air_quality: Wind,
   heating_cooling: Thermometer,
   plumbing: Droplet,
   power: Zap,
   exterior_structure: Home,
-  lawn_outdoors: Trees,
+  outdoors_stuff: Fence,
   appliances: Refrigerator,
 };
 
 const categoryBadgeVariant: Record<string, "default" | "success" | "warning" | "danger" | "info"> = {
   safety: "danger",
+  air_quality: "warning",
   heating_cooling: "info",
   plumbing: "info",
   power: "warning",
   exterior_structure: "success",
-  lawn_outdoors: "success",
+  outdoors_stuff: "success",
   appliances: "default",
 };
+
+const SUBGROUP_LABELS: Record<string, string> = {
+  fire_safety: "Fire Safety",
+  child_safety: "Child Safety",
+  accessibility: "Accessibility",
+  air_filters_ducts: "Air Filters & Ducts",
+  heating_system: "Heating System",
+  cooling_system: "Cooling System",
+  heat_pump: "Heat Pump",
+  fireplace: "Fireplace",
+  mini_split: "Mini-Split",
+  water_heater: "Water Heater",
+  pipes_drains: "Pipes & Drains",
+  water_treatment: "Water Treatment",
+  well_septic: "Well & Septic",
+  electrical: "Electrical",
+  generator: "Generator",
+  solar: "Solar",
+  roof_gutters: "Roof & Gutters",
+  walls_windows_foundation: "Walls, Windows & Foundation",
+  garage: "Garage",
+  pest_control: "Pest Control",
+  yard_structures: "Yard & Structures",
+  irrigation: "Irrigation",
+  pool_hot_tub: "Pool & Hot Tub",
+};
+
+// Categories that show tasks in flat list (no sub-group headers)
+const FLAT_CATEGORIES = new Set(["appliances", "air_quality"]);
 
 const priorityLabels: Record<string, string> = {
   safety: "Critical",
@@ -498,6 +531,26 @@ export default function TasksPage() {
 
     if (visibleTasks.length === 0) return null;
 
+    // Group tasks by subgroup for non-flat categories
+    const isFlat = FLAT_CATEGORIES.has(category);
+    const subgroupMap: Record<string, Task[]> = {};
+    if (!isFlat) {
+      for (const task of visibleTasks) {
+        const sg = task.subgroup || "other";
+        if (!subgroupMap[sg]) subgroupMap[sg] = [];
+        subgroupMap[sg].push(task);
+      }
+    }
+
+    // Sort sub-groups: those with overdue tasks first, then alphabetical
+    const sortedSubgroups = Object.keys(subgroupMap).sort((a, b) => {
+      const aOverdue = subgroupMap[a].some((t) => daysBetween(t.nextDueDate, today) < 0);
+      const bOverdue = subgroupMap[b].some((t) => daysBetween(t.nextDueDate, today) < 0);
+      if (aOverdue && !bOverdue) return -1;
+      if (!aOverdue && bOverdue) return 1;
+      return (SUBGROUP_LABELS[a] || a).localeCompare(SUBGROUP_LABELS[b] || b);
+    });
+
     return (
       <section key={category} className="mb-4">
         <button onClick={() => toggleCategory(category)} className="w-full flex items-center gap-2.5 px-1 py-2">
@@ -518,7 +571,29 @@ export default function TasksPage() {
         </button>
         {isExpanded && (
           <div className="flex flex-col gap-2 mt-1">
-            {visibleTasks.map((task) => renderTaskRow(task, getStatusGroup(task, today)))}
+            {isFlat ? (
+              visibleTasks.map((task) => renderTaskRow(task, getStatusGroup(task, today)))
+            ) : (
+              sortedSubgroups.map((sg) => {
+                const sgTasks = subgroupMap[sg];
+                const sgOverdue = sgTasks.filter((t) => daysBetween(t.nextDueDate, today) < 0).length;
+                return (
+                  <div key={sg}>
+                    <div className="flex items-center gap-2 px-1 pt-2 pb-1">
+                      <span className="text-[12px] font-bold text-stone-700">
+                        {SUBGROUP_LABELS[sg] || sg}
+                      </span>
+                      {sgOverdue > 0 && (
+                        <span className="inline-flex items-center justify-center rounded-full bg-red-50 px-1.5 py-0.5 text-[9px] font-bold text-red-600">
+                          {sgOverdue} overdue
+                        </span>
+                      )}
+                    </div>
+                    {sgTasks.map((task) => renderTaskRow(task, getStatusGroup(task, today)))}
+                  </div>
+                );
+              })
+            )}
           </div>
         )}
       </section>

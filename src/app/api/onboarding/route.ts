@@ -207,6 +207,7 @@ export async function POST(request: Request) {
           isActive: true,
           isCustom: false,
           notificationDaysBefore: 3,
+          subgroup: template.subgroup,
         };
       });
 
@@ -243,6 +244,7 @@ export async function POST(request: Request) {
           isActive: true,
           isCustom: false,
           notificationDaysBefore: 3,
+          subgroup: template.subgroup,
         };
       });
 
