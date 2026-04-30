@@ -10,3 +10,4 @@ export { Progress } from "./progress";
 export { Avatar } from "./avatar";
 export { EmptyState } from "./empty-state";
 export { Skeleton, SkeletonText, SkeletonCard, SkeletonAvatar } from "./skeleton";
+export { Textarea, type TextareaProps } from "./textarea";

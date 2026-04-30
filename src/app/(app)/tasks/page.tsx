@@ -2,127 +2,45 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, ChevronRight, ChevronDown, Check, SkipForward, Clock, Home,
-  Shield, Thermometer, Droplet, Zap, Trees, Refrigerator, Wind, Fence,
+import {
+  Plus,
+  ChevronRight,
+  ChevronDown,
+  Check,
+  Home,
+  Shield,
+  Thermometer,
+  Droplet,
+  Zap,
+  Refrigerator,
+  Wind,
+  Fence,
 } from "lucide-react";
 import {
-  Button,
-  Badge,
-  Input,
-  Select,
-  Dialog,
   EmptyState,
   SkeletonCard,
   useToast,
 } from "@/components/ui";
+import {
+  type Task,
+  type FilterKey,
+  type StatusGroup,
+  getToday,
+  daysBetween,
+  getStatusGroup,
+  relativeDueLabel,
+  getCategoryLabel,
+  SUBGROUP_LABELS,
+  FLAT_CATEGORIES,
+  priorityLabels,
+  filterOptions,
+} from "./task-constants";
+import { TaskDetailDialog } from "./task-detail-dialog";
+import { AddTaskDialog } from "./add-task-dialog";
 
 // ---------------------------------------------------------------------------
-// Types
+// Category icons (kept here because they reference React/Lucide components)
 // ---------------------------------------------------------------------------
-
-interface Task {
-  id: string;
-  homeId: string;
-  name: string;
-  description: string;
-  category: string;
-  subgroup: string | null;
-  priority: string;
-  frequencyUnit: string;
-  frequencyValue: number;
-  nextDueDate: string; // "YYYY-MM-DD"
-  lastCompletedDate: string | null;
-  isActive: boolean;
-  isCustom: boolean;
-  notificationDaysBefore: number;
-  notes: string;
-  tips: string | null;
-  whyItMatters: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-type FilterKey = "all" | "overdue" | "due_soon" | "completed";
-type StatusGroup = "overdue" | "due_soon" | "upcoming";
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function getToday(): Date {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-}
-
-function daysBetween(dateStr: string, today: Date): number {
-  const d = new Date(dateStr + "T00:00:00");
-  return Math.round((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-}
-
-function getStatusGroup(task: Task, today: Date): StatusGroup {
-  const diff = daysBetween(task.nextDueDate, today);
-  if (diff < 0) return "overdue";
-  if (diff <= 7) return "due_soon";
-  return "upcoming";
-}
-
-function relativeDueLabel(dateStr: string, today: Date): { text: string; color: string } {
-  const diff = daysBetween(dateStr, today);
-  if (diff < -1) {
-    return {
-      text: `${Math.abs(diff)} days overdue`,
-      color: "text-red-600",
-    };
-  }
-  if (diff === -1) {
-    return {
-      text: "1 day overdue",
-      color: "text-red-600",
-    };
-  }
-  if (diff === 0) {
-    return { text: "Due today", color: "text-amber-600" };
-  }
-  if (diff === 1) {
-    return { text: "Due tomorrow", color: "text-amber-600" };
-  }
-  if (diff <= 7) {
-    return {
-      text: `Due in ${diff} days`,
-      color: "text-amber-600",
-    };
-  }
-  if (diff <= 14) {
-    const weeks = Math.round(diff / 7);
-    return {
-      text: `Due in ${weeks} week${weeks > 1 ? "s" : ""}`,
-      color: "text-[var(--color-neutral-400)]",
-    };
-  }
-  return {
-    text: `Due in ${diff} days`,
-    color: "text-[var(--color-neutral-400)]",
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Category & Priority mappings
-// ---------------------------------------------------------------------------
-
-const CATEGORY_CONFIG: Record<string, { label: string }> = {
-  safety: { label: "Safety & Security" },
-  air_quality: { label: "Air Quality & Health" },
-  heating_cooling: { label: "Heating & Cooling" },
-  plumbing: { label: "Plumbing & Water" },
-  power: { label: "Power" },
-  exterior_structure: { label: "Exterior & Structure" },
-  outdoors_stuff: { label: "Outdoors Stuff" },
-  appliances: { label: "Appliances" },
-};
-
-function getCategoryLabel(category: string): string {
-  return CATEGORY_CONFIG[category]?.label || category;
-}
 
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   safety: Shield,
@@ -134,60 +52,6 @@ const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>
   outdoors_stuff: Fence,
   appliances: Refrigerator,
 };
-
-const categoryBadgeVariant: Record<string, "default" | "success" | "warning" | "danger" | "info"> = {
-  safety: "danger",
-  air_quality: "warning",
-  heating_cooling: "info",
-  plumbing: "info",
-  power: "warning",
-  exterior_structure: "success",
-  outdoors_stuff: "success",
-  appliances: "default",
-};
-
-const SUBGROUP_LABELS: Record<string, string> = {
-  fire_safety: "Fire Safety",
-  child_safety: "Child Safety",
-  accessibility: "Accessibility",
-  air_filters_ducts: "Air Filters & Ducts",
-  heating_system: "Heating System",
-  cooling_system: "Cooling System",
-  heat_pump: "Heat Pump",
-  fireplace: "Fireplace",
-  mini_split: "Mini-Split",
-  water_heater: "Water Heater",
-  pipes_drains: "Pipes & Drains",
-  water_treatment: "Water Treatment",
-  well_septic: "Well & Septic",
-  electrical: "Electrical",
-  generator: "Generator",
-  solar: "Solar",
-  roof_gutters: "Roof & Gutters",
-  walls_windows_foundation: "Walls, Windows & Foundation",
-  garage: "Garage",
-  pest_control: "Pest Control",
-  yard_structures: "Yard & Structures",
-  irrigation: "Irrigation",
-  pool_hot_tub: "Pool & Hot Tub",
-};
-
-// Categories that show tasks in flat list (no sub-group headers)
-const FLAT_CATEGORIES = new Set(["appliances", "air_quality"]);
-
-const priorityLabels: Record<string, string> = {
-  safety: "Critical",
-  prevent_damage: "Preventive",
-  efficiency: "Efficiency",
-  cosmetic: "Cosmetic",
-};
-
-const filterOptions: { key: FilterKey; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "overdue", label: "Overdue" },
-  { key: "due_soon", label: "Due Soon" },
-  { key: "completed", label: "Completed" },
-];
 
 // ---------------------------------------------------------------------------
 // Component
@@ -203,16 +67,7 @@ export default function TasksPage() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [completionDate, setCompletionDate] = useState<string>("");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
-
-  // Edit mode state
-  const [editing, setEditing] = useState(false);
-  const [editName, setEditName] = useState("");
-  const [editFreqValue, setEditFreqValue] = useState(1);
-  const [editFreqUnit, setEditFreqUnit] = useState("months");
-  const [editNotes, setEditNotes] = useState("");
-  const [editSaving, setEditSaving] = useState(false);
 
   const toggleCategory = useCallback((category: string) => {
     setExpandedCategories((prev) => {
@@ -222,31 +77,6 @@ export default function TasksPage() {
       return next;
     });
   }, []);
-
-  // Add-task form state
-  const [newName, setNewName] = useState("");
-  const [newCategory, setNewCategory] = useState("heating_cooling");
-  const [newPriority, setNewPriority] = useState("prevent_damage");
-  const [newFreqValue, setNewFreqValue] = useState<number>(1);
-  const [newFreqUnit, setNewFreqUnit] = useState("months");
-  const [newNotes, setNewNotes] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  // Reset completion date when selecting a new task
-  useEffect(() => {
-    setCompletionDate("");
-  }, [selectedTask?.id]);
-
-  // Populate edit fields when a task is selected
-  useEffect(() => {
-    if (selectedTask) {
-      setEditName(selectedTask.name);
-      setEditFreqValue(selectedTask.frequencyValue);
-      setEditFreqUnit(selectedTask.frequencyUnit);
-      setEditNotes(selectedTask.notes || "");
-      setEditing(false);
-    }
-  }, [selectedTask]);
 
   const today = getToday();
 
@@ -273,34 +103,8 @@ export default function TasksPage() {
   }, [fetchTasks]);
 
   // -------------------------------------------------------------------------
-  // Actions
+  // Actions (stay here because they need fetchTasks)
   // -------------------------------------------------------------------------
-
-  const saveTaskEdit = useCallback(async () => {
-    if (!selectedTask) return;
-    setEditSaving(true);
-    try {
-      const res = await fetch(`/api/tasks/${selectedTask.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: editName.trim(),
-          frequencyValue: editFreqValue,
-          frequencyUnit: editFreqUnit,
-          notes: editNotes.trim() || null,
-        }),
-      });
-      if (!res.ok) throw new Error("Failed to update");
-      setEditing(false);
-      setSelectedTask(null);
-      await fetchTasks();
-      toast("Task updated", "success");
-    } catch {
-      toast("Failed to update task", "error");
-    } finally {
-      setEditSaving(false);
-    }
-  }, [selectedTask, editName, editFreqValue, editFreqUnit, editNotes, fetchTasks, toast]);
 
   const completeTask = useCallback(
     async (id: string, completedDate?: string) => {
@@ -367,40 +171,6 @@ export default function TasksPage() {
     [fetchTasks, toast]
   );
 
-  const handleAddTask = useCallback(async () => {
-    if (!newName.trim()) return;
-    setSaving(true);
-    try {
-      const res = await fetch("/api/tasks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: newName.trim(),
-          description: "",
-          category: newCategory,
-          priority: newPriority,
-          frequencyValue: newFreqValue,
-          frequencyUnit: newFreqUnit,
-          notes: newNotes.trim(),
-        }),
-      });
-      if (!res.ok) throw new Error("Failed to create task");
-      setAddOpen(false);
-      setNewName("");
-      setNewCategory("heating_cooling");
-      setNewPriority("prevent_damage");
-      setNewFreqValue(1);
-      setNewFreqUnit("months");
-      setNewNotes("");
-      await fetchTasks();
-      toast("Task added!", "success");
-    } catch {
-      toast("Failed to add task", "error");
-    } finally {
-      setSaving(false);
-    }
-  }, [newName, newCategory, newPriority, newFreqValue, newFreqUnit, newNotes, fetchTasks, toast]);
-
   // -------------------------------------------------------------------------
   // Filtering & grouping
   // -------------------------------------------------------------------------
@@ -446,7 +216,6 @@ export default function TasksPage() {
   completedTasks.sort(byDate);
 
   // Auto-expand urgent categories on mount
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (activeTasks.length === 0) return;
     const urgent = new Set<string>();
@@ -455,7 +224,7 @@ export default function TasksPage() {
       if (diff <= 7) urgent.add(task.category);
     }
     setExpandedCategories(urgent);
-  }, [tasks.length > 0]);
+  }, [tasks.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // -------------------------------------------------------------------------
   // Render helpers
@@ -466,10 +235,10 @@ export default function TasksPage() {
     const priLabel = priorityLabels[task.priority] || task.priority;
     const stripColor =
       group === "overdue"
-        ? "bg-[var(--color-danger-500)]"
+        ? "bg-[#ef4444]"
         : group === "due_soon"
-          ? "bg-[var(--color-primary-500)]"
-          : "bg-[var(--color-neutral-200)]";
+          ? "bg-[#f59e0b]"
+          : "bg-[#e7e5e4]";
     const isActioning = actionLoading === task.id;
     const isUpcoming = group === "upcoming";
 
@@ -657,7 +426,7 @@ export default function TasksPage() {
           </h1>
           <button
             onClick={() => setAddOpen(true)}
-            className="h-9 w-9 flex items-center justify-center bg-[var(--color-neutral-900)] rounded-xl transition-colors"
+            className="h-9 w-9 flex items-center justify-center bg-[#1c1917] rounded-xl transition-colors"
           >
             <Plus className="w-[18px] h-[18px] text-white" />
           </button>
@@ -673,96 +442,11 @@ export default function TasksPage() {
           }}
         />
 
-        {/* Add Task Dialog — keep available even in empty state */}
-        <Dialog open={addOpen} onClose={() => setAddOpen(false)} title="Add Task" size="md">
-          {renderAddTaskForm()}
-        </Dialog>
-      </div>
-    );
-  }
-
-  // -------------------------------------------------------------------------
-  // Add Task form (shared)
-  // -------------------------------------------------------------------------
-
-  function renderAddTaskForm() {
-    return (
-      <div className="space-y-4 mt-2">
-        <Input
-          label="Task Name"
-          placeholder="e.g. Clean dryer vent"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          required
+        <AddTaskDialog
+          open={addOpen}
+          onClose={() => setAddOpen(false)}
+          onTaskAdded={fetchTasks}
         />
-
-        <Select
-          label="Category"
-          value={newCategory}
-          onChange={(e) => setNewCategory(e.target.value)}
-          options={Object.entries(CATEGORY_CONFIG).map(([value, { label }]) => ({
-            value,
-            label,
-          }))}
-        />
-
-        <Select
-          label="Priority"
-          value={newPriority}
-          onChange={(e) => setNewPriority(e.target.value)}
-          options={[
-            { value: "safety", label: "Critical" },
-            { value: "prevent_damage", label: "Preventive" },
-            { value: "efficiency", label: "Efficiency" },
-            { value: "cosmetic", label: "Cosmetic" },
-          ]}
-        />
-
-        <div className="grid grid-cols-2 gap-3">
-          <Input
-            label="Frequency"
-            type="number"
-            min={1}
-            placeholder="1"
-            value={String(newFreqValue)}
-            onChange={(e) => setNewFreqValue(Math.max(1, parseInt(e.target.value) || 1))}
-          />
-          <Select
-            label="Unit"
-            value={newFreqUnit}
-            onChange={(e) => setNewFreqUnit(e.target.value)}
-            options={[
-              { value: "days", label: "Days" },
-              { value: "weeks", label: "Weeks" },
-              { value: "months", label: "Months" },
-              { value: "years", label: "Years" },
-            ]}
-          />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-foreground">Notes</label>
-          <textarea
-            className="flex min-h-[80px] w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            placeholder="Any additional notes..."
-            value={newNotes}
-            onChange={(e) => setNewNotes(e.target.value)}
-          />
-        </div>
-
-        <div className="flex gap-2 pt-2">
-          <Button
-            variant="primary"
-            className="flex-1"
-            onClick={handleAddTask}
-            disabled={!newName.trim() || saving}
-          >
-            {saving ? "Saving..." : "Save Task"}
-          </Button>
-          <Button variant="outline" className="flex-1" onClick={() => setAddOpen(false)}>
-            Cancel
-          </Button>
-        </div>
       </div>
     );
   }
@@ -780,7 +464,7 @@ export default function TasksPage() {
         </h1>
         <button
           onClick={() => setAddOpen(true)}
-          className="h-9 w-9 flex items-center justify-center bg-[var(--color-neutral-900)] rounded-xl transition-colors"
+          className="h-9 w-9 flex items-center justify-center bg-[#1c1917] rounded-xl transition-colors"
         >
           <Plus className="w-[18px] h-[18px] text-white" />
         </button>
@@ -798,7 +482,7 @@ export default function TasksPage() {
                 onClick={() => setFilter(opt.key)}
                 className={`shrink-0 rounded-full px-3.5 py-1.5 text-[13px] transition-colors ${
                   isActive
-                    ? "bg-[var(--color-neutral-900)] text-white font-semibold"
+                    ? "bg-[#1c1917] text-white font-semibold"
                     : "bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)] font-medium"
                 }`}
               >
@@ -838,223 +522,25 @@ export default function TasksPage() {
         {filter === "completed" && completedTasks.length === 0 && <EmptyState icon={<Check className="h-8 w-8" />} title="No completed tasks" description="You haven't completed any tasks yet." />}
       </div>
 
-      {/* ------------------------------------------------------------------- */}
-      {/* Task Detail Dialog                                                   */}
-      {/* ------------------------------------------------------------------- */}
-      <Dialog
-        open={!!selectedTask}
-        onClose={() => { setSelectedTask(null); setEditing(false); }}
-        title={editing ? "Edit Task" : selectedTask?.name}
-        size="lg"
-      >
-        {selectedTask && (
-          <div className="space-y-5 mt-2">
-            {editing ? (
-              <div className="space-y-4">
-                <Input
-                  label="Task Name"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                />
-                <div className="grid grid-cols-2 gap-3">
-                  <Input
-                    label="Frequency"
-                    type="number"
-                    min={1}
-                    value={String(editFreqValue)}
-                    onChange={(e) => setEditFreqValue(Math.max(1, parseInt(e.target.value) || 1))}
-                  />
-                  <Select
-                    label="Unit"
-                    value={editFreqUnit}
-                    onChange={(e) => setEditFreqUnit(e.target.value)}
-                    options={[
-                      { value: "days", label: "Days" },
-                      { value: "weeks", label: "Weeks" },
-                      { value: "months", label: "Months" },
-                      { value: "years", label: "Years" },
-                    ]}
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-foreground">Notes</label>
-                  <textarea
-                    className="flex min-h-[80px] w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    placeholder="Any notes..."
-                    value={editNotes}
-                    onChange={(e) => setEditNotes(e.target.value)}
-                  />
-                </div>
-                <div className="flex gap-2 pt-2">
-                  <Button variant="primary" className="flex-1" onClick={saveTaskEdit} disabled={!editName.trim() || editSaving}>
-                    {editSaving ? "Saving..." : "Save Changes"}
-                  </Button>
-                  <Button variant="outline" className="flex-1" onClick={() => setEditing(false)}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="flex justify-end">
-                  <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
-                    Edit
-                  </Button>
-                </div>
+      {/* Task Detail Dialog */}
+      <TaskDetailDialog
+        task={selectedTask}
+        onClose={() => {
+          setSelectedTask(null);
+          fetchTasks();
+        }}
+        onComplete={completeTask}
+        onSkip={skipTask}
+        onSnooze={snoozeTask}
+        actionLoading={actionLoading}
+      />
 
-                {selectedTask.description && (
-                  <p className="text-sm text-muted-foreground">{selectedTask.description}</p>
-                )}
-
-                <div className="flex flex-wrap gap-2">
-                  <Badge
-                    variant={categoryBadgeVariant[selectedTask.category] || "default"}
-                    size="md"
-                  >
-                    {getCategoryLabel(selectedTask.category)}
-                  </Badge>
-                  <Badge
-                    variant={
-                      selectedTask.priority === "safety"
-                        ? "danger"
-                        : selectedTask.priority === "prevent_damage"
-                          ? "warning"
-                          : selectedTask.priority === "efficiency"
-                            ? "info"
-                            : "success"
-                    }
-                    size="md"
-                  >
-                    {priorityLabels[selectedTask.priority] || selectedTask.priority} Priority
-                  </Badge>
-                </div>
-
-                {/* Details grid */}
-                <div className="grid grid-cols-2 gap-4 rounded-lg bg-muted/50 p-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Frequency</p>
-                    <p className="text-sm font-medium text-foreground">
-                      Every {selectedTask.frequencyValue} {selectedTask.frequencyUnit}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Next Due</p>
-                    <p className="text-sm font-medium text-foreground">
-                      {new Date(selectedTask.nextDueDate + "T00:00:00").toLocaleDateString("en-US", {
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Category</p>
-                    <p className="text-sm font-medium text-foreground">
-                      {getCategoryLabel(selectedTask.category)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Last Completed</p>
-                    <p className="text-sm font-medium text-foreground">
-                      {selectedTask.lastCompletedDate
-                        ? new Date(selectedTask.lastCompletedDate + "T00:00:00").toLocaleDateString("en-US", {
-                            month: "long",
-                            day: "numeric",
-                            year: "numeric",
-                          })
-                        : "Never"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Why It Matters */}
-                {selectedTask.whyItMatters && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-foreground mb-1">Why It Matters</h4>
-                    <p className="text-sm text-muted-foreground">{selectedTask.whyItMatters}</p>
-                  </div>
-                )}
-
-                {/* Tips */}
-                {selectedTask.tips && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-foreground mb-1">Tips</h4>
-                    <p className="text-sm text-muted-foreground">{selectedTask.tips}</p>
-                  </div>
-                )}
-
-                {/* Notes */}
-                {selectedTask.notes && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-foreground mb-1">Notes</h4>
-                    <p className="text-sm text-muted-foreground">{selectedTask.notes}</p>
-                  </div>
-                )}
-
-                {/* Backdate option */}
-                {selectedTask.isActive && (
-                  <div>
-                    <label className="text-xs text-muted-foreground">When did you last do this? (optional)</label>
-                    <input
-                      type="date"
-                      value={completionDate}
-                      max={new Date().toISOString().split("T")[0]}
-                      onChange={(e) => setCompletionDate(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    />
-                  </div>
-                )}
-
-                {/* Actions */}
-                {selectedTask.isActive && (
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      variant="primary"
-                      className="flex-1"
-                      onClick={() => {
-                        completeTask(selectedTask.id, completionDate || undefined);
-                        setSelectedTask(null);
-                      }}
-                    >
-                      <Check className="h-4 w-4" />
-                      Complete
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => {
-                        skipTask(selectedTask.id);
-                        setSelectedTask(null);
-                      }}
-                    >
-                      <SkipForward className="h-4 w-4" />
-                      Skip
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="flex-1"
-                      onClick={() => {
-                        snoozeTask(selectedTask.id);
-                        setSelectedTask(null);
-                      }}
-                    >
-                      <Clock className="h-4 w-4" />
-                      Snooze
-                    </Button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
-      </Dialog>
-
-      {/* ------------------------------------------------------------------- */}
-      {/* Add Task Dialog                                                      */}
-      {/* ------------------------------------------------------------------- */}
-      <Dialog open={addOpen} onClose={() => setAddOpen(false)} title="Add Task" size="md">
-        {renderAddTaskForm()}
-      </Dialog>
+      {/* Add Task Dialog */}
+      <AddTaskDialog
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onTaskAdded={fetchTasks}
+      />
     </div>
   );
 }
