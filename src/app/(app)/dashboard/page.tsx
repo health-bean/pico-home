@@ -272,7 +272,7 @@ export default function DashboardPage() {
     return <DashboardSkeleton />;
   }
 
-  const { score, overdue, upcoming, userName } = data;
+  const { score, overdue, upcoming } = data;
 
   // Combine all tasks that need attention (overdue first, then upcoming)
   const needsAttention = [...overdue, ...upcoming];
@@ -282,25 +282,17 @@ export default function DashboardPage() {
   const remainingCount = upcoming.length + overdue.length;
   const spentAmount = 0; // Would need API data for spend tracking
 
-  const firstInitial = (userName || "?").charAt(0).toUpperCase();
 
   return (
     <div className="mx-auto max-w-lg space-y-6 px-5 py-8 pb-28 bg-[#fafaf9] min-h-screen font-[family-name:var(--font-plus-jakarta-sans)]">
       {/* ---- Header ---- */}
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-[var(--color-neutral-400)]">
-            {greeting}
-          </p>
-          <h1 className="text-2xl font-extrabold tracking-tight text-stone-900">
-            {data.home.name}
-          </h1>
-        </div>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#fbbf24] to-[#f59e0b]">
-          <span className="text-sm font-extrabold text-white">
-            {firstInitial}
-          </span>
-        </div>
+      <div>
+        <p className="text-sm font-medium text-[var(--color-neutral-400)]">
+          {greeting}
+        </p>
+        <h1 className="text-2xl font-extrabold tracking-tight text-stone-900">
+          {data.home.name}
+        </h1>
       </div>
 
       {/* ---- Welcome Nudge Card ---- */}
