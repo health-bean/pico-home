@@ -169,6 +169,7 @@ export default function TasksPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [completionDate, setCompletionDate] = useState<string>("");
+  const [completionCost, setCompletionCost] = useState<string>("");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   // Edit mode state
@@ -197,9 +198,10 @@ export default function TasksPage() {
   const [newNotes, setNewNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Reset completion date when selecting a new task
+  // Reset completion date and cost when selecting a new task
   useEffect(() => {
     setCompletionDate("");
+    setCompletionCost("");
   }, [selectedTask?.id]);
 
   // Populate edit fields when a task is selected
@@ -268,17 +270,20 @@ export default function TasksPage() {
   }, [selectedTask, editName, editFreqValue, editFreqUnit, editNotes, fetchTasks, toast]);
 
   const completeTask = useCallback(
-    async (id: string, completedDate?: string) => {
+    async (id: string, completedDate?: string, costCents?: number) => {
       setActionLoading(id);
       try {
+        const body: Record<string, unknown> = {};
+        if (completedDate) body.completedDate = completedDate;
+        if (costCents !== undefined) body.costCents = costCents;
         const res = await fetch(`/api/tasks/${id}/complete`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(completedDate ? { completedDate } : {}),
+          body: JSON.stringify(body),
         });
         if (!res.ok) throw new Error("Failed to complete task");
-        await fetchTasks();
         toast("Task completed!", "success");
+        await fetchTasks();
       } catch {
         toast("Failed to complete task", "error");
       } finally {
@@ -910,6 +915,25 @@ export default function TasksPage() {
                   </div>
                 )}
 
+                {/* Cost option */}
+                {selectedTask.isActive && (
+                  <div>
+                    <label className="text-xs text-muted-foreground">Cost (optional)</label>
+                    <div className="relative mt-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={completionCost}
+                        onChange={(e) => setCompletionCost(e.target.value)}
+                        className="w-full rounded-lg border border-border bg-white pl-7 pr-3 py-2 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {/* Actions */}
                 {selectedTask.isActive && (
                   <div className="flex gap-2 pt-2">
@@ -917,7 +941,7 @@ export default function TasksPage() {
                       variant="primary"
                       className="flex-1"
                       onClick={() => {
-                        completeTask(selectedTask.id, completionDate || undefined);
+                        completeTask(selectedTask.id, completionDate || undefined, completionCost ? Math.round(parseFloat(completionCost) * 100) : undefined);
                         setSelectedTask(null);
                       }}
                     >
