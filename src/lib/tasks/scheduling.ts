@@ -135,8 +135,26 @@ export function getSeasonalTasks(
 }
 
 /**
- * Calculate a home upkeep score based on task completion status.
+ * Convert frequency value + unit to an approximate number of days.
+ */
+function frequencyToDays(value: number, unit: string): number {
+  switch (unit) {
+    case "days": return value;
+    case "weeks": return value * 7;
+    case "months": return value * 30;
+    case "years": return value * 365;
+    case "one_time": return 365; // treat as yearly for scoring purposes
+    default: return 30;
+  }
+}
+
+/**
+ * Calculate a home maintenance score based on task completion status.
  * Returns scores 0-100 for overall and three sub-categories.
+ *
+ * Decay is scaled by task frequency — being 3 days late on a weekly task
+ * (43% of a cycle) is much worse than 3 days late on a yearly task (0.8%).
+ * A task scores 0 when it's one full cycle overdue.
  *
  * IMPORTANT: These scores reflect task completion compliance only —
  * NOT the actual condition or safety of the home. This distinction
@@ -148,6 +166,8 @@ export function calculateHomeHealthScore(
     priority: string;
     lastCompletedDate: Date | null;
     isActive: boolean;
+    frequencyValue: number;
+    frequencyUnit: string;
   }[]
 ): {
   overall: number;
@@ -170,7 +190,7 @@ export function calculateHomeHealthScore(
     cosmetic: 1,
   };
 
-  // Score each task: on-time = 100, overdue decays based on how overdue
+  // Score each task: on-time = 100, overdue decays proportional to cycle length
   function scoreTask(task: (typeof activeTasks)[number]): number {
     const dueDate = new Date(task.nextDueDate);
     if (dueDate >= now) return 100; // Not yet due
@@ -179,8 +199,10 @@ export function calculateHomeHealthScore(
       (now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)
     );
 
-    // Decay: lose 2 points per day overdue, floor at 0
-    return Math.max(0, 100 - daysOverdue * 2);
+    // Decay scaled by frequency: score hits 0 when one full cycle overdue
+    const cycleDays = frequencyToDays(task.frequencyValue, task.frequencyUnit);
+    const overdueFraction = daysOverdue / cycleDays;
+    return Math.max(0, Math.round(100 * (1 - overdueFraction)));
   }
 
   // Calculate category scores

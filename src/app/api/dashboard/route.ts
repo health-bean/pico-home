@@ -43,6 +43,8 @@ export const GET = apiHandler(async ({ user, request }) => {
           priority: t.priority,
           lastCompletedDate: t.lastCompletedDate ? new Date(t.lastCompletedDate) : null,
           isActive: t.isActive ?? true,
+          frequencyValue: t.frequencyValue,
+          frequencyUnit: t.frequencyUnit,
         }))
       );
 

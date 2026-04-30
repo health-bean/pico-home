@@ -190,6 +190,9 @@ describe("calculateHomeHealthScore", () => {
     d.setDate(d.getDate() - daysAgo);
     return d;
   };
+  const monthly = { frequencyValue: 1, frequencyUnit: "months" };
+  const yearly = { frequencyValue: 1, frequencyUnit: "years" };
+  const weekly = { frequencyValue: 1, frequencyUnit: "weeks" };
 
   it("returns all 100s for empty task list", () => {
     const result = calculateHomeHealthScore([]);
@@ -203,46 +206,54 @@ describe("calculateHomeHealthScore", () => {
 
   it("returns high scores when all tasks are on-time", () => {
     const result = calculateHomeHealthScore([
-      { nextDueDate: future, priority: "safety", lastCompletedDate: new Date(), isActive: true },
-      { nextDueDate: future, priority: "prevent_damage", lastCompletedDate: new Date(), isActive: true },
-      { nextDueDate: future, priority: "efficiency", lastCompletedDate: new Date(), isActive: true },
+      { nextDueDate: future, priority: "safety", lastCompletedDate: new Date(), isActive: true, ...monthly },
+      { nextDueDate: future, priority: "prevent_damage", lastCompletedDate: new Date(), isActive: true, ...monthly },
+      { nextDueDate: future, priority: "efficiency", lastCompletedDate: new Date(), isActive: true, ...monthly },
     ]);
     expect(result.overall).toBe(100);
     expect(result.criticalTasks).toBe(100);
     expect(result.preventiveCare).toBe(100);
   });
 
-  it("decays score for overdue tasks (2 points per day)", () => {
-    const result = calculateHomeHealthScore([
-      { nextDueDate: past(10), priority: "safety", lastCompletedDate: null, isActive: true },
+  it("decays score proportional to cycle length", () => {
+    // 10 days overdue on a monthly task (30-day cycle) = ~33% overdue = score ~67
+    const monthlyResult = calculateHomeHealthScore([
+      { nextDueDate: past(10), priority: "safety", lastCompletedDate: null, isActive: true, ...monthly },
     ]);
-    // ~10 days overdue = 100 - ~20 = ~80 (±2 due to time-of-day rounding)
-    expect(result.criticalTasks).toBeGreaterThanOrEqual(78);
-    expect(result.criticalTasks).toBeLessThanOrEqual(82);
+    expect(monthlyResult.criticalTasks).toBeGreaterThanOrEqual(64);
+    expect(monthlyResult.criticalTasks).toBeLessThanOrEqual(70);
+
+    // 10 days overdue on a yearly task (365-day cycle) = ~2.7% overdue = score ~97
+    const yearlyResult = calculateHomeHealthScore([
+      { nextDueDate: past(10), priority: "safety", lastCompletedDate: null, isActive: true, ...yearly },
+    ]);
+    expect(yearlyResult.criticalTasks).toBeGreaterThanOrEqual(96);
+    expect(yearlyResult.criticalTasks).toBeLessThanOrEqual(98);
   });
 
-  it("floors score at 0 for very overdue tasks", () => {
+  it("floors score at 0 when one full cycle overdue", () => {
+    // 7 days overdue on a weekly task = one full cycle = score 0
     const result = calculateHomeHealthScore([
-      { nextDueDate: past(100), priority: "cosmetic", lastCompletedDate: null, isActive: true },
+      { nextDueDate: past(7), priority: "cosmetic", lastCompletedDate: null, isActive: true, ...weekly },
     ]);
-    // 100 days * 2 = 200, clamped to 0 for cosmetic category
-    // homeEfficiency averages efficiency (100, no tasks) and cosmetic (0)
+    // homeEfficiency averages efficiency (100, no tasks) and cosmetic (0) = ~50
     expect(result.homeEfficiency).toBeLessThanOrEqual(50);
+    // Overall should be very low since it's the only task
+    expect(result.overall).toBeLessThanOrEqual(5);
   });
 
   it("ignores inactive tasks", () => {
     const result = calculateHomeHealthScore([
-      { nextDueDate: past(50), priority: "safety", lastCompletedDate: null, isActive: false },
+      { nextDueDate: past(50), priority: "safety", lastCompletedDate: null, isActive: false, ...monthly },
     ]);
-    // Inactive tasks are filtered out, so empty = all 100s
     expect(result.overall).toBe(100);
   });
 
   it("weights safety tasks higher than cosmetic in overall score", () => {
-    // One on-time safety task (weight 4) and one very overdue cosmetic (weight 1)
+    // One on-time safety task (weight 4) and one full-cycle-overdue cosmetic (weight 1)
     const result = calculateHomeHealthScore([
-      { nextDueDate: future, priority: "safety", lastCompletedDate: new Date(), isActive: true },
-      { nextDueDate: past(50), priority: "cosmetic", lastCompletedDate: null, isActive: true },
+      { nextDueDate: future, priority: "safety", lastCompletedDate: new Date(), isActive: true, ...monthly },
+      { nextDueDate: past(30), priority: "cosmetic", lastCompletedDate: null, isActive: true, ...monthly },
     ]);
     // Safety=100*4=400, cosmetic=0*1=0 => 400/5 = 80
     expect(result.overall).toBe(80);

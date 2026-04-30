@@ -68,6 +68,8 @@ export const POST = apiHandler(async ({ user, request }) => {
       priority: taskInstances.priority,
       lastCompletedDate: taskInstances.lastCompletedDate,
       isActive: taskInstances.isActive,
+      frequencyValue: taskInstances.frequencyValue,
+      frequencyUnit: taskInstances.frequencyUnit,
     })
     .from(taskInstances)
     .where(and(eq(taskInstances.homeId, task.homeId), eq(taskInstances.isActive, true)));
@@ -77,6 +79,8 @@ export const POST = apiHandler(async ({ user, request }) => {
     priority: t.priority,
     lastCompletedDate: t.lastCompletedDate ? new Date(t.lastCompletedDate) : null,
     isActive: t.isActive ?? true,
+    frequencyValue: t.frequencyValue,
+    frequencyUnit: t.frequencyUnit,
   }));
 
   const newScore = calculateHomeHealthScore(scoreData);

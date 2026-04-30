@@ -32,6 +32,8 @@ export async function POST(request: Request) {
         priority: taskInstances.priority,
         lastCompletedDate: taskInstances.lastCompletedDate,
         isActive: taskInstances.isActive,
+        frequencyValue: taskInstances.frequencyValue,
+        frequencyUnit: taskInstances.frequencyUnit,
       })
       .from(taskInstances)
       .where(eq(taskInstances.homeId, homeId));
@@ -45,6 +47,8 @@ export async function POST(request: Request) {
           ? new Date(t.lastCompletedDate)
           : null,
         isActive: t.isActive ?? true,
+        frequencyValue: t.frequencyValue,
+        frequencyUnit: t.frequencyUnit,
       }));
 
     const score = calculateHomeHealthScore(activeTasks);

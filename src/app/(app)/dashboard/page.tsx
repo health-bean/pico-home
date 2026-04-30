@@ -171,7 +171,7 @@ function ScorePlaceholder() {
         <div className="flex flex-1 flex-col gap-1">
           <p className="text-[15px] font-bold text-stone-900">Your score is building...</p>
           <p className="text-xs text-[var(--color-neutral-400)] leading-relaxed">
-            As tasks come due and you complete them, your home health score will appear here.
+            As tasks come due and you complete them, your maintenance score will appear here.
           </p>
         </div>
       </div>
@@ -383,7 +383,7 @@ export default function DashboardPage() {
                     {score.overall}
                   </span>
                   <span className="text-xs font-semibold text-[var(--color-neutral-400)]">
-                    Health
+                    Score
                   </span>
                 </div>
               </div>
