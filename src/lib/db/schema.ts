@@ -306,6 +306,7 @@ export const taskInstances = pgTable(
     nextDueDate: date("next_due_date").notNull(),
     lastCompletedDate: date("last_completed_date"),
     isActive: boolean("is_active").default(true),
+    dismissedAt: timestamp("dismissed_at", { withTimezone: true }),
     isCustom: boolean("is_custom").default(false),
     notificationDaysBefore: integer("notification_days_before").default(3),
     notes: text("notes"),

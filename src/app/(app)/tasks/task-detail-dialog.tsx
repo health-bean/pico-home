@@ -24,6 +24,7 @@ interface TaskDetailDialogProps {
   onComplete: (id: string, completedDate?: string) => Promise<void>;
   onSkip: (id: string) => Promise<void>;
   onSnooze: (id: string) => Promise<void>;
+  onDismiss: (id: string) => Promise<void>;
   actionLoading: string | null;
 }
 
@@ -33,6 +34,7 @@ export function TaskDetailDialog({
   onComplete,
   onSkip,
   onSnooze,
+  onDismiss,
   actionLoading,
 }: TaskDetailDialogProps) {
   const { toast } = useToast();
@@ -328,6 +330,20 @@ export function TaskDetailDialog({
                     Snooze
                   </Button>
                 </div>
+              )}
+
+              {/* Dismiss option — only for system-generated tasks */}
+              {task.isActive && !task.isCustom && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onDismiss(task.id);
+                    onClose();
+                  }}
+                  className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors pt-1"
+                >
+                  Not relevant — I don&apos;t have this
+                </button>
               )}
             </>
           )}

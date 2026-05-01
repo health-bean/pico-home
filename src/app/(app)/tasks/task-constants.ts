@@ -20,6 +20,7 @@ export interface Task {
   notes: string;
   tips: string | null;
   whyItMatters: string | null;
+  dismissedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

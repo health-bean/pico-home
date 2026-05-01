@@ -171,6 +171,27 @@ export default function TasksPage() {
     [fetchTasks, toast]
   );
 
+  const dismissTask = useCallback(
+    async (id: string) => {
+      setActionLoading(id);
+      try {
+        const res = await fetch(`/api/tasks/${id}/dismiss`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+        if (!res.ok) throw new Error("Failed to dismiss task");
+        toast("Task dismissed — it won't appear again", "success");
+        await fetchTasks();
+      } catch {
+        toast("Failed to dismiss task", "error");
+      } finally {
+        setActionLoading(null);
+      }
+    },
+    [fetchTasks, toast]
+  );
+
   // -------------------------------------------------------------------------
   // Filtering & grouping
   // -------------------------------------------------------------------------
@@ -532,6 +553,7 @@ export default function TasksPage() {
         onComplete={completeTask}
         onSkip={skipTask}
         onSnooze={snoozeTask}
+        onDismiss={dismissTask}
         actionLoading={actionLoading}
       />
 
