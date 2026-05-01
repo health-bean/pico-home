@@ -192,12 +192,34 @@ export default function TasksPage() {
     [fetchTasks, toast]
   );
 
+  const restoreTask = useCallback(
+    async (id: string) => {
+      setActionLoading(id);
+      try {
+        const res = await fetch(`/api/tasks/${id}/restore`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+        if (!res.ok) throw new Error("Failed to restore task");
+        toast("Task restored", "success");
+        await fetchTasks();
+      } catch {
+        toast("Failed to restore task", "error");
+      } finally {
+        setActionLoading(null);
+      }
+    },
+    [fetchTasks, toast]
+  );
+
   // -------------------------------------------------------------------------
   // Filtering & grouping
   // -------------------------------------------------------------------------
 
   const activeTasks = tasks.filter((t) => t.isActive);
-  const completedTasks = tasks.filter((t) => !t.isActive);
+  const completedTasks = tasks.filter((t) => !t.isActive && !t.dismissedAt);
+  const dismissedTasks = tasks.filter((t) => !t.isActive && t.dismissedAt);
 
   const byDate = (a: Task, b: Task) =>
     new Date(a.nextDueDate).getTime() - new Date(b.nextDueDate).getTime();
@@ -232,6 +254,7 @@ export default function TasksPage() {
     overdue: overdueCount,
     due_soon: dueSoonCount,
     completed: completedTasks.length,
+    dismissed: dismissedTasks.length,
   };
 
   completedTasks.sort(byDate);
@@ -403,7 +426,7 @@ export default function TasksPage() {
         </div>
         {/* Filter pills skeleton */}
         <div className="flex gap-2 mb-6">
-          {[1, 2, 3, 4].map((i) => (
+          {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="h-8 w-20 animate-pulse rounded-full bg-neutral-200" />
           ))}
         </div>
@@ -527,7 +550,7 @@ export default function TasksPage() {
 
       {/* Task groups */}
       <div>
-        {filter !== "completed" && sortedCategories.map((cat) => renderCategorySection(cat, tasksByCategory[cat]))}
+        {filter !== "completed" && filter !== "dismissed" && sortedCategories.map((cat) => renderCategorySection(cat, tasksByCategory[cat]))}
         {filter === "completed" && completedTasks.length > 0 && (
           <section className="mb-5">
             <h2 className="text-xs font-bold uppercase tracking-widest mb-2.5 text-green-600">
@@ -538,9 +561,37 @@ export default function TasksPage() {
             </div>
           </section>
         )}
+        {filter === "dismissed" && dismissedTasks.length > 0 && (
+          <section className="mb-5">
+            <h2 className="text-xs font-bold uppercase tracking-widest mb-2.5 text-[var(--color-neutral-400)]">
+              Dismissed <span className="ml-1.5 text-[11px] font-normal opacity-60">({dismissedTasks.length})</span>
+            </h2>
+            <p className="text-xs text-muted-foreground mb-3">Tasks you marked as not relevant. Tap to restore.</p>
+            <div className="flex flex-col gap-2">
+              {dismissedTasks.map((task) => (
+                <button
+                  key={task.id}
+                  onClick={() => restoreTask(task.id)}
+                  disabled={actionLoading === task.id}
+                  className={`w-full bg-white rounded-2xl border border-[var(--color-neutral-200)] p-3.5 flex items-center gap-3 text-left opacity-60 hover:opacity-100 transition-all ${
+                    actionLoading === task.id ? "opacity-30 scale-95" : ""
+                  }`}
+                >
+                  <div className="w-1 h-8 rounded-full shrink-0 bg-[var(--color-neutral-200)]" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-[var(--color-neutral-900)] truncate">{task.name}</p>
+                    <p className="text-xs text-[var(--color-neutral-400)] mt-0.5">{getCategoryLabel(task.category)}</p>
+                  </div>
+                  <span className="text-xs font-medium text-[var(--color-primary-600)] shrink-0">Restore</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
         {filter === "overdue" && overdueCount === 0 && <EmptyState icon={<Check className="h-8 w-8" />} title="No overdue tasks" description="You're all caught up!" />}
         {filter === "due_soon" && dueSoonCount === 0 && <EmptyState icon={<Check className="h-8 w-8" />} title="Nothing due soon" description="No tasks due in the next 7 days." />}
         {filter === "completed" && completedTasks.length === 0 && <EmptyState icon={<Check className="h-8 w-8" />} title="No completed tasks" description="You haven't completed any tasks yet." />}
+        {filter === "dismissed" && dismissedTasks.length === 0 && <EmptyState icon={<Check className="h-8 w-8" />} title="No dismissed tasks" description="You haven't dismissed any tasks." />}
       </div>
 
       {/* Task Detail Dialog */}

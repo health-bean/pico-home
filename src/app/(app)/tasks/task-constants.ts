@@ -25,7 +25,7 @@ export interface Task {
   updatedAt: string;
 }
 
-export type FilterKey = "all" | "overdue" | "due_soon" | "completed";
+export type FilterKey = "all" | "overdue" | "due_soon" | "completed" | "dismissed";
 export type StatusGroup = "overdue" | "due_soon" | "upcoming";
 
 // ---------------------------------------------------------------------------
@@ -167,4 +167,5 @@ export const filterOptions: { key: FilterKey; label: string }[] = [
   { key: "overdue", label: "Overdue" },
   { key: "due_soon", label: "Due Soon" },
   { key: "completed", label: "Completed" },
+  { key: "dismissed", label: "Dismissed" },
 ];
