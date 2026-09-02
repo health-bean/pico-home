@@ -82,12 +82,12 @@ export function relativeDueLabel(
     const weeks = Math.round(diff / 7);
     return {
       text: `Due in ${weeks} week${weeks > 1 ? "s" : ""}`,
-      color: "text-[var(--color-neutral-400)]",
+      color: "text-[var(--color-neutral-500)]",
     };
   }
   return {
     text: `Due in ${diff} days`,
-    color: "text-[var(--color-neutral-400)]",
+    color: "text-[var(--color-neutral-500)]",
   };
 }
 

@@ -100,7 +100,7 @@ function Section({
 }) {
   return (
     <div>
-      <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-neutral-400)] mb-2">
+      <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-neutral-500)] mb-2">
         {label}
       </p>
       <div className="bg-white rounded-2xl border border-[var(--color-neutral-200)] overflow-hidden">
@@ -137,7 +137,7 @@ function Row({
         {label}
       </span>
       {toggle ?? (
-        <span className="text-[13px] text-[var(--color-neutral-400)] font-medium">
+        <span className="text-[13px] text-[var(--color-neutral-500)] font-medium">
           {value}
           {chevron && " \u203A"}
         </span>

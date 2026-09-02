@@ -170,7 +170,7 @@ function ScorePlaceholder() {
         </div>
         <div className="flex flex-1 flex-col gap-1">
           <p className="text-[15px] font-bold text-stone-900">Your score is building...</p>
-          <p className="text-xs text-[var(--color-neutral-400)] leading-relaxed">
+          <p className="text-xs text-[var(--color-neutral-500)] leading-relaxed">
             As tasks come due and you complete them, your maintenance score will appear here.
           </p>
         </div>
@@ -287,7 +287,7 @@ export default function DashboardPage() {
     <div className="mx-auto max-w-lg space-y-6 px-5 py-8 pb-28 bg-[var(--color-neutral-50)] min-h-screen font-[family-name:var(--font-plus-jakarta-sans)]">
       {/* ---- Header ---- */}
       <div>
-        <p className="text-sm font-medium text-[var(--color-neutral-400)]">
+        <p className="text-sm font-medium text-[var(--color-neutral-500)]">
           {greeting}
         </p>
         <h1 className="text-2xl font-extrabold tracking-tight text-stone-900">
@@ -382,7 +382,7 @@ export default function DashboardPage() {
                   <span className="text-3xl font-extrabold text-stone-900">
                     {score.overall}
                   </span>
-                  <span className="text-xs font-semibold text-[var(--color-neutral-400)]">
+                  <span className="text-xs font-semibold text-[var(--color-neutral-500)]">
                     Score
                   </span>
                 </div>
@@ -462,7 +462,7 @@ export default function DashboardPage() {
                         strokeWidth="3"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="animate-spin text-neutral-400"
+                        className="animate-spin text-neutral-500"
                       >
                         <path d="M12 2a10 10 0 0 1 10 10" />
                       </svg>
@@ -474,7 +474,7 @@ export default function DashboardPage() {
                     <p className="text-sm font-semibold text-stone-900 truncate">
                       {task.name}
                     </p>
-                    <p className="text-xs text-[var(--color-neutral-400)] mt-0.5">
+                    <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">
                       {dueMeta} &middot; Every {task.frequencyValue}{" "}
                       {task.frequencyUnit}
                     </p>
@@ -500,7 +500,7 @@ export default function DashboardPage() {
           <p className="text-sm font-semibold text-stone-900">
             {score ? "All caught up!" : "You're all set for now"}
           </p>
-          <p className="text-xs text-[var(--color-neutral-400)] mt-1">
+          <p className="text-xs text-[var(--color-neutral-500)] mt-1">
             {score
               ? "No tasks need your attention right now."
               : "We'll let you know when your first tasks are due."}
@@ -516,7 +516,7 @@ export default function DashboardPage() {
             <span className="text-2xl font-extrabold text-stone-900">
               {completedCount}
             </span>
-            <span className="text-[11px] font-semibold uppercase text-[var(--color-neutral-400)]">
+            <span className="text-[11px] font-semibold uppercase text-[var(--color-neutral-500)]">
               Completed
             </span>
           </div>
@@ -529,7 +529,7 @@ export default function DashboardPage() {
             <span className="text-2xl font-extrabold text-amber-500">
               {remainingCount}
             </span>
-            <span className="text-[11px] font-semibold uppercase text-[var(--color-neutral-400)]">
+            <span className="text-[11px] font-semibold uppercase text-[var(--color-neutral-500)]">
               Remaining
             </span>
           </div>

@@ -259,7 +259,7 @@ function MembersSection() {
 
       <div className="bg-white rounded-2xl border border-[var(--color-neutral-200)] overflow-hidden">
         {allEntries.length === 0 && (
-          <p className="text-sm text-[var(--color-neutral-400)] text-center py-6">
+          <p className="text-sm text-[var(--color-neutral-500)] text-center py-6">
             Invite family members to share this home&apos;s maintenance plan.
           </p>
         )}
@@ -278,7 +278,7 @@ function MembersSection() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold truncate">{m.name || m.email}</p>
-                  <p className="text-xs text-[var(--color-neutral-400)]">{m.role === "owner" ? "Owner" : "Member"}</p>
+                  <p className="text-xs text-[var(--color-neutral-500)]">{m.role === "owner" ? "Owner" : "Member"}</p>
                 </div>
                 {entry.i === 0 && (
                   <span className="bg-[var(--color-primary-50)] text-[var(--color-primary-600)] rounded-full px-2.5 py-0.5 text-[11px] font-bold">You</span>
@@ -297,7 +297,7 @@ function MembersSection() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold truncate">{inv.invitedEmail}</p>
-                  <p className="text-xs text-[var(--color-neutral-400)]">Pending invite</p>
+                  <p className="text-xs text-[var(--color-neutral-500)]">Pending invite</p>
                 </div>
                 <Badge variant="warning" size="sm">Pending</Badge>
               </div>
@@ -724,7 +724,7 @@ export default function HomeProfilePage() {
         {systems.length === 0 ? (
           <div className="bg-white rounded-2xl border border-[var(--color-neutral-200)] p-6 text-center">
             <Wrench className="mx-auto h-8 w-8 text-neutral-300 mb-2" />
-            <p className="text-sm text-[var(--color-neutral-400)]">
+            <p className="text-sm text-[var(--color-neutral-500)]">
               No systems yet. Add your home systems to get tailored tasks.
             </p>
           </div>
@@ -738,7 +738,7 @@ export default function HomeProfilePage() {
                   <span className="text-[16px]">{info.emoji}</span>
                   <div>
                     <span className="text-[13px] font-semibold">{info.label}</span>
-                    {s.subtype && s.subtype !== "standard" && <span className="text-[11px] text-[var(--color-neutral-400)] ml-1.5">{s.subtype}</span>}
+                    {s.subtype && s.subtype !== "standard" && <span className="text-[11px] text-[var(--color-neutral-500)] ml-1.5">{s.subtype}</span>}
                   </div>
                   <button
                     onClick={() => handleDeleteSystem(s.id)}
@@ -810,7 +810,7 @@ export default function HomeProfilePage() {
         {applianceList.length === 0 ? (
           <div className="bg-white rounded-2xl border border-[var(--color-neutral-200)] p-6 text-center">
             <Wrench className="mx-auto h-8 w-8 text-neutral-300 mb-2" />
-            <p className="text-sm text-[var(--color-neutral-400)]">
+            <p className="text-sm text-[var(--color-neutral-500)]">
               No appliances yet. Add your appliances to track warranties and maintenance.
             </p>
           </div>
@@ -818,7 +818,7 @@ export default function HomeProfilePage() {
           <div className="bg-white rounded-2xl border border-[var(--color-neutral-200)] overflow-hidden">
             {Object.entries(appliancesByGroup).map(([group, items]) => (
               <div key={group}>
-                <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--color-neutral-400)] px-4 pt-3 pb-1">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--color-neutral-500)] px-4 pt-3 pb-1">
                   {group}
                 </p>
                 {items.map((a, idx) => {
@@ -832,7 +832,7 @@ export default function HomeProfilePage() {
                     >
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold truncate">{a.name}</p>
-                        <p className="text-xs text-[var(--color-neutral-400)]">
+                        <p className="text-xs text-[var(--color-neutral-500)]">
                           {[a.brand, a.model].filter(Boolean).join(" ") || "No details"}
                         </p>
                       </div>
@@ -845,7 +845,7 @@ export default function HomeProfilePage() {
                         <button
                           onClick={() => handleDeleteAppliance(a.id)}
                           disabled={isDeleting}
-                          className="p-1.5 text-neutral-400 hover:text-red-500 transition-colors"
+                          className="p-1.5 text-neutral-500 hover:text-red-500 transition-colors"
                           title="Remove appliance"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -921,7 +921,7 @@ export default function HomeProfilePage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">{c.name}</p>
-                    <p className="text-xs text-[var(--color-neutral-400)]">
+                    <p className="text-xs text-[var(--color-neutral-500)]">
                       {[c.specialty?.replace(/_/g, " "), c.company].filter(Boolean).join(" \u00B7 ") || "General"}
                     </p>
                   </div>
@@ -961,7 +961,7 @@ export default function HomeProfilePage() {
         {docs.length === 0 ? (
           <div className="bg-white rounded-2xl border border-[var(--color-neutral-200)] p-6 text-center">
             <FileText className="mx-auto h-8 w-8 text-neutral-300 mb-2" />
-            <p className="text-sm text-[var(--color-neutral-400)]">
+            <p className="text-sm text-[var(--color-neutral-500)]">
               No documents yet. Upload warranties, manuals, or receipts.
             </p>
           </div>
@@ -992,7 +992,7 @@ export default function HomeProfilePage() {
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">{d.name}</p>
-                    <p className="text-xs text-[var(--color-neutral-400)]">
+                    <p className="text-xs text-[var(--color-neutral-500)]">
                       {d.type?.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) ?? "Document"}
                       {d.fileSizeBytes ? ` \u00B7 ${formatFileSize(d.fileSizeBytes)}` : ""}
                     </p>
@@ -1000,7 +1000,7 @@ export default function HomeProfilePage() {
                   <button
                     onClick={() => handleDeleteDoc(d.id)}
                     disabled={isDeleting}
-                    className="p-1.5 text-neutral-400 hover:text-red-500 transition-colors"
+                    className="p-1.5 text-neutral-500 hover:text-red-500 transition-colors"
                     title="Delete document"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -1044,7 +1044,7 @@ export default function HomeProfilePage() {
                 className="text-sm"
               />
               {uploadFile && (
-                <p className="text-xs text-[var(--color-neutral-400)]">
+                <p className="text-xs text-[var(--color-neutral-500)]">
                   {uploadFile.name} ({formatFileSize(uploadFile.size)})
                 </p>
               )}
