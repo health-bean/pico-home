@@ -47,3 +47,6 @@ android/.gradle/
 android/app/build/
 android/build/
 .superpowers/
+
+# Impeccable critique snapshots
+.impeccable/
