@@ -287,43 +287,46 @@ export default function TasksPage() {
     const isUpcoming = group === "upcoming";
 
     return (
-      <button
+      <div
         key={task.id}
-        onClick={() => setSelectedTask(task)}
-        className={`w-full bg-white rounded-2xl border border-[var(--color-neutral-200)] p-3.5 flex items-center gap-3 text-left transition-all duration-300 ${
+        className={`w-full bg-white rounded-2xl border border-[var(--color-neutral-200)] p-3.5 flex items-center gap-3 transition-all duration-300 ${
           isActioning ? "opacity-30 scale-95" : ""
         } ${isUpcoming ? "opacity-60" : ""} ${!task.isActive ? "opacity-60" : ""}`}
       >
         {/* Priority strip */}
         <div className={`w-1 h-8 rounded-full shrink-0 ${stripColor}`} />
 
-        {/* Checkbox circle */}
+        {/* Checkbox circle — padded hit area, same visual size */}
         <button
-          onClick={(e) => {
-            e.stopPropagation();
+          onClick={() => {
             if (task.isActive) completeTask(task.id);
           }}
           disabled={isActioning || !task.isActive}
-          className="w-[22px] h-[22px] rounded-full border-2 border-[var(--color-neutral-300)] shrink-0 flex items-center justify-center hover:border-neutral-400 transition-colors disabled:opacity-50"
-          title="Complete task"
+          aria-label={`Mark "${task.name}" complete`}
+          className="p-2 -m-2 shrink-0 disabled:opacity-50"
         >
-          {!task.isActive && <Check className="w-3 h-3 text-neutral-500" />}
+          <span className="w-[22px] h-[22px] rounded-full border-2 border-[var(--color-neutral-300)] flex items-center justify-center hover:border-neutral-400 transition-colors">
+            {!task.isActive && <Check className="w-3 h-3 text-neutral-500" />}
+          </span>
         </button>
 
-        {/* Task info */}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-[var(--color-neutral-900)] truncate">
-            {task.name}
-          </p>
-          <p className="text-xs text-[var(--color-neutral-500)] mt-0.5 truncate">
-            {getCategoryLabel(task.category)} &middot; {priLabel} &middot;{" "}
-            <span className={due.color}>{due.text}</span>
-          </p>
-        </div>
-
-        {/* Chevron */}
-        <ChevronRight className="w-4 h-4 text-[var(--color-neutral-300)] shrink-0" />
-      </button>
+        {/* Task info — opens the detail dialog */}
+        <button
+          onClick={() => setSelectedTask(task)}
+          className="flex-1 min-w-0 flex items-center gap-3 text-left"
+        >
+          <span className="flex-1 min-w-0 block">
+            <span className="block text-sm font-semibold text-[var(--color-neutral-900)] truncate">
+              {task.name}
+            </span>
+            <span className="block text-xs text-[var(--color-neutral-500)] mt-0.5 truncate">
+              {getCategoryLabel(task.category)} &middot; {priLabel} &middot;{" "}
+              <span className={due.color}>{due.text}</span>
+            </span>
+          </span>
+          <ChevronRight className="w-4 h-4 text-[var(--color-neutral-300)] shrink-0" />
+        </button>
+      </div>
     );
   }
 
