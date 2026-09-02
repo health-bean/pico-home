@@ -50,9 +50,13 @@ export function TaskDetailDialog({
   // Completion date state
   const [completionDate, setCompletionDate] = useState("");
 
-  // Reset completion date when selecting a new task
+  // Safety-task dismissal requires an explicit confirm
+  const [confirmingDismiss, setConfirmingDismiss] = useState(false);
+
+  // Reset per-task state when selecting a new task
   useEffect(() => {
     setCompletionDate("");
+    setConfirmingDismiss(false);
   }, [task?.id]);
 
   // Populate edit fields when a task is selected
@@ -293,57 +297,100 @@ export function TaskDetailDialog({
                 </div>
               )}
 
-              {/* Actions */}
+              {/* Actions — each explains its consequence */}
               {task.isActive && (
-                <div className="flex gap-2 pt-2">
-                  <Button
-                    variant="primary"
-                    className="flex-1"
+                <div className="flex flex-col gap-2 pt-2">
+                  <button
+                    type="button"
                     onClick={() => {
                       onComplete(task.id, completionDate || undefined);
                       onClose();
                     }}
+                    className="w-full flex items-center gap-3 rounded-xl bg-primary px-4 py-3 text-left text-white shadow-sm transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   >
-                    <Check className="h-4 w-4" />
-                    Complete
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1"
+                    <Check className="h-4 w-4 shrink-0" />
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-sm font-semibold">Complete</span>
+                      <span className="block text-xs opacity-85">
+                        Logs it and schedules the next one
+                      </span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => {
                       onSkip(task.id);
                       onClose();
                     }}
+                    className="w-full flex items-center gap-3 rounded-xl border border-border bg-white px-4 py-3 text-left text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    <SkipForward className="h-4 w-4" />
-                    Skip
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="flex-1"
+                    <SkipForward className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-sm font-semibold">Skip</span>
+                      <span className="block text-xs text-muted-foreground">
+                        Not this time — moves to the next cycle, no credit
+                      </span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => {
                       onSnooze(task.id);
                       onClose();
                     }}
+                    className="w-full flex items-center gap-3 rounded-xl border border-border bg-white px-4 py-3 text-left text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    <Clock className="h-4 w-4" />
-                    Snooze
-                  </Button>
+                    <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-sm font-semibold">Snooze</span>
+                      <span className="block text-xs text-muted-foreground">
+                        Remind me again in 7 days
+                      </span>
+                    </span>
+                  </button>
                 </div>
               )}
 
-              {/* Dismiss option — only for system-generated tasks */}
+              {/* Dismiss option — only for system-generated tasks; safety
+                  tasks require an explicit confirm */}
               {task.isActive && !task.isCustom && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onDismiss(task.id);
-                    onClose();
-                  }}
-                  className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors pt-1"
-                >
-                  Not relevant — I don&apos;t have this
-                </button>
+                confirmingDismiss ? (
+                  <div className="rounded-xl border border-[var(--color-danger-500)]/30 bg-[var(--color-danger-50)] p-3 text-center">
+                    <p className="text-xs font-semibold text-[var(--color-danger-700)]">
+                      This is a safety task. Dismiss it anyway?
+                    </p>
+                    <div className="mt-2 flex justify-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => {
+                          onDismiss(task.id);
+                          onClose();
+                        }}
+                      >
+                        Dismiss
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setConfirmingDismiss(false)}>
+                        Keep it
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (task.priority === "safety") {
+                        setConfirmingDismiss(true);
+                      } else {
+                        onDismiss(task.id);
+                        onClose();
+                      }
+                    }}
+                    className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors pt-1"
+                  >
+                    Not relevant — I don&apos;t have this
+                  </button>
+                )
               )}
             </>
           )}

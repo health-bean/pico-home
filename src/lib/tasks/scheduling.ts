@@ -88,6 +88,16 @@ export function adjustFrequencyForHealth(
 }
 
 /**
+ * Base date for a snooze: an overdue task snoozes from today ("remind me in
+ * N days"), a future task from its due date. Snoozing a long-overdue task
+ * used to add days to the stale due date, leaving it still overdue.
+ */
+export function snoozeBaseDate(nextDueDate: string, now: Date = new Date()): Date {
+  const due = new Date(nextDueDate);
+  return due.getTime() < now.getTime() ? new Date(now) : due;
+}
+
+/**
  * Check whether a template should be included based on health flags.
  * If no healthRequired keys, always include. Otherwise, at least one must match.
  */

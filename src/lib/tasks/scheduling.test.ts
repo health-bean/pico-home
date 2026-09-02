@@ -6,6 +6,7 @@ import {
   calculateHomeHealthScore,
   adjustFrequencyForHealth,
   shouldIncludeHealthTemplate,
+  snoozeBaseDate,
 } from "./scheduling";
 import type { TaskTemplate } from "./templates";
 
@@ -316,6 +317,20 @@ describe("adjustFrequencyForHealth", () => {
       frequencyValue: 6,
       frequencyUnit: "months",
     });
+  });
+});
+
+// ─── snoozeBaseDate ─────────────────────────────────────────────────────────
+
+describe("snoozeBaseDate", () => {
+  it("snoozes an overdue task from today, not from its stale due date", () => {
+    const base = snoozeBaseDate("2026-01-01", new Date("2026-09-02T12:00:00"));
+    expect(base.toISOString().slice(0, 10)).toBe("2026-09-02");
+  });
+
+  it("snoozes a future task from its due date", () => {
+    const base = snoozeBaseDate("2026-12-01", new Date("2026-09-02T12:00:00"));
+    expect(base.toISOString().slice(0, 10)).toBe("2026-12-01");
   });
 });
 
