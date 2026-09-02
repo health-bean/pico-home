@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { taskInstances, taskCompletions, homeHealthScores } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
-import { getNextDueDate, calculateHomeHealthScore } from "@/lib/tasks/scheduling";
+import { taskInstances, taskCompletions } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import { getNextDueDate } from "@/lib/tasks/scheduling";
+import { recalculateHomeScore } from "@/lib/tasks/score-store";
 import type { FrequencyUnit } from "@/lib/tasks/templates";
 import { z } from "zod";
 import { apiHandler, parseBodyOrDefault } from "@/lib/api/handler";
@@ -29,8 +30,15 @@ export const POST = apiHandler(async ({ user, request }) => {
     ? new Date(body.completedDate + "T12:00:00") // noon to avoid timezone issues
     : now;
 
+  // Snapshot pre-action state for the undo token
+  const previous = {
+    nextDueDate: task.nextDueDate,
+    lastCompletedDate: task.lastCompletedDate,
+    isActive: task.isActive ?? true,
+  };
+
   // Record completion
-  await db.insert(taskCompletions).values({
+  const [completion] = await db.insert(taskCompletions).values({
     taskInstanceId: task.id,
     completedBy: user.id,
     completedAt: completionDate,
@@ -39,7 +47,7 @@ export const POST = apiHandler(async ({ user, request }) => {
     timeSpentMinutes: body.timeSpentMinutes ?? null,
     notes: body.notes ?? null,
     skipped: false,
-  });
+  }).returning({ id: taskCompletions.id });
 
   // Calculate next due date from the completion date
   const nextDue = getNextDueDate(
@@ -62,39 +70,17 @@ export const POST = apiHandler(async ({ user, request }) => {
     .where(eq(taskInstances.id, parsed.data));
 
   // Recalculate health score immediately
-  const allTasks = await db
-    .select({
-      nextDueDate: taskInstances.nextDueDate,
-      priority: taskInstances.priority,
-      lastCompletedDate: taskInstances.lastCompletedDate,
-      isActive: taskInstances.isActive,
-      frequencyValue: taskInstances.frequencyValue,
-      frequencyUnit: taskInstances.frequencyUnit,
-    })
-    .from(taskInstances)
-    .where(and(eq(taskInstances.homeId, task.homeId), eq(taskInstances.isActive, true)));
+  await recalculateHomeScore(task.homeId);
 
-  const scoreData = allTasks.map((t) => ({
-    nextDueDate: new Date(t.nextDueDate),
-    priority: t.priority,
-    lastCompletedDate: t.lastCompletedDate ? new Date(t.lastCompletedDate) : null,
-    isActive: t.isActive ?? true,
-    frequencyValue: t.frequencyValue,
-    frequencyUnit: t.frequencyUnit,
-  }));
-
-  const newScore = calculateHomeHealthScore(scoreData);
-
-  // Upsert the score
-  await db.delete(homeHealthScores).where(eq(homeHealthScores.homeId, task.homeId));
-  await db.insert(homeHealthScores).values({
-    homeId: task.homeId,
-    score: newScore.overall,
-    criticalTasksScore: newScore.criticalTasks,
-    preventiveCareScore: newScore.preventiveCare,
-    homeEfficiencyScore: newScore.homeEfficiency,
-    calculatedAt: new Date(),
+  return NextResponse.json({
+    success: true,
+    nextDueDate: nextDue,
+    deactivated: isOneTime,
+    undo: {
+      completionId: completion.id,
+      previousNextDueDate: previous.nextDueDate,
+      previousLastCompletedDate: previous.lastCompletedDate,
+      previousIsActive: previous.isActive,
+    },
   });
-
-  return NextResponse.json({ success: true, nextDueDate: nextDue, deactivated: isOneTime });
 });

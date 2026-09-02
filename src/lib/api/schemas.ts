@@ -58,6 +58,18 @@ export const snoozeTaskSchema = z.object({
   days: z.number().int().min(1).max(365).default(7),
 });
 
+/** Undo token returned by complete/skip and passed back verbatim.
+ *  Restores own-home task state only (same trust level as PATCH edit). */
+export const undoTaskSchema = z.object({
+  completionId: z.string().uuid(),
+  previousNextDueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  previousLastCompletedDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable(),
+  previousIsActive: z.boolean(),
+});
+
 export const updateTaskSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   frequencyValue: z.number().int().min(1).max(365).optional(),

@@ -106,6 +106,24 @@ export default function TasksPage() {
   // Actions (stay here because they need fetchTasks)
   // -------------------------------------------------------------------------
 
+  const undoTask = useCallback(
+    async (id: string, undo: unknown) => {
+      try {
+        const res = await fetch(`/api/tasks/${id}/undo`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(undo),
+        });
+        if (!res.ok) throw new Error("Failed to undo");
+        toast("Restored", "info");
+        await fetchTasks();
+      } catch {
+        toast("Couldn't undo — check the task's dates", "error");
+      }
+    },
+    [fetchTasks, toast]
+  );
+
   const completeTask = useCallback(
     async (id: string, completedDate?: string) => {
       setActionLoading(id);
@@ -118,7 +136,12 @@ export default function TasksPage() {
           body: JSON.stringify(body),
         });
         if (!res.ok) throw new Error("Failed to complete task");
-        toast("Task completed!", "success");
+        const data = await res.json();
+        toast(
+          "Task completed!",
+          "success",
+          data.undo ? { label: "Undo", onClick: () => undoTask(id, data.undo) } : undefined
+        );
         await fetchTasks();
       } catch {
         toast("Failed to complete task", "error");
@@ -126,7 +149,7 @@ export default function TasksPage() {
         setActionLoading(null);
       }
     },
-    [fetchTasks, toast]
+    [fetchTasks, toast, undoTask]
   );
 
   const skipTask = useCallback(
@@ -139,15 +162,20 @@ export default function TasksPage() {
           body: JSON.stringify({}),
         });
         if (!res.ok) throw new Error("Failed to skip task");
+        const data = await res.json();
         await fetchTasks();
-        toast("Task skipped", "info");
+        toast(
+          "Skipped — moved to its next cycle",
+          "info",
+          data.undo ? { label: "Undo", onClick: () => undoTask(id, data.undo) } : undefined
+        );
       } catch {
         toast("Failed to skip task", "error");
       } finally {
         setActionLoading(null);
       }
     },
-    [fetchTasks, toast]
+    [fetchTasks, toast, undoTask]
   );
 
   const snoozeTask = useCallback(

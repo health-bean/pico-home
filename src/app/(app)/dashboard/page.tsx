@@ -225,6 +225,21 @@ export default function DashboardPage() {
     localStorage.setItem("pico_welcome_dismissed", "1");
   }, []);
 
+  async function undoTask(taskId: string, undo: unknown) {
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/undo`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(undo),
+      });
+      if (!res.ok) throw new Error("Failed to undo");
+      toast("Restored", "info");
+      await fetchDashboard();
+    } catch {
+      toast("Couldn't undo — check the task's dates", "error");
+    }
+  }
+
   async function completeTask(taskId: string) {
     setCompletingIds((prev) => new Set(prev).add(taskId));
     try {
@@ -234,8 +249,13 @@ export default function DashboardPage() {
         body: JSON.stringify({}),
       });
       if (!res.ok) throw new Error("Failed to complete task");
+      const data = await res.json();
       await fetchDashboard();
-      toast("Task completed!", "success");
+      toast(
+        "Task completed!",
+        "success",
+        data.undo ? { label: "Undo", onClick: () => undoTask(taskId, data.undo) } : undefined
+      );
     } catch {
       toast("Failed to complete task", "error");
     } finally {
