@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getUserHome } from "@/lib/auth/get-user-home";
 import { db } from "@/lib/db";
 import { taskInstances, homeMembers, users, homeHealthScores, taskCompletions } from "@/lib/db/schema";
-import { eq, and, asc, desc, gte } from "drizzle-orm";
+import { eq, and, asc, desc, gte, sql } from "drizzle-orm";
 import { calculateHomeHealthScore } from "@/lib/tasks/scheduling";
 import { apiHandler } from "@/lib/api/handler";
 
@@ -52,8 +52,9 @@ export const GET = apiHandler(async ({ user, request }) => {
   const now = new Date();
   const today = now.toISOString().split("T")[0];
 
-  const hasTasksDue = tasks.some((t) => t.nextDueDate <= today);
-  const score = hasTasksDue ? computedScore : null;
+  // Score is always visible — hiding it until something was overdue meant the
+  // first score a user ever saw was their worst one.
+  const score = computedScore;
   const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
     .toISOString()
     .split("T")[0];
@@ -62,6 +63,26 @@ export const GET = apiHandler(async ({ user, request }) => {
   const upcomingTasks = tasks.filter(
     (t) => t.nextDueDate >= today && t.nextDueDate <= weekFromNow
   );
+
+  // Focus: the top 3 actionable tasks — overdue first, then due soon;
+  // safety priority first within each group, then by date.
+  const safetyFirstThenDate = (
+    a: (typeof tasks)[number],
+    b: (typeof tasks)[number]
+  ) =>
+    (a.priority === "safety" ? 0 : 1) - (b.priority === "safety" ? 0 : 1) ||
+    a.nextDueDate.localeCompare(b.nextDueDate);
+  const focus = [
+    ...[...overdueTasks].sort(safetyFirstThenDate),
+    ...[...upcomingTasks].sort(safetyFirstThenDate),
+  ]
+    .slice(0, 3)
+    .map((t) => ({
+      id: t.id,
+      name: t.name,
+      nextDueDate: t.nextDueDate,
+      priority: t.priority,
+    }));
 
   // Count completions this month
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -75,6 +96,14 @@ export const GET = apiHandler(async ({ user, request }) => {
         gte(taskCompletions.completedAt, startOfMonth)
       )
     );
+
+  // All-time completions — zero means the user hasn't closed the loop once,
+  // so the UI keeps welcome framing and never renders the score as a failure.
+  const [allTime] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(taskCompletions)
+    .innerJoin(taskInstances, eq(taskCompletions.taskInstanceId, taskInstances.id))
+    .where(eq(taskInstances.homeId, home.id));
 
   // Get household members
   const members = await db
@@ -102,5 +131,7 @@ export const GET = apiHandler(async ({ user, request }) => {
     members,
     memberRole: home.memberRole,
     completedThisMonth: completionsThisMonth.length,
+    completionsAllTime: allTime?.n ?? 0,
+    focus,
   });
 });
