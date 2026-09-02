@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
-import Link from "next/link";
 import { BottomNav } from "./bottom-nav";
 import { ToastProvider, Button } from "@/components/ui";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
@@ -60,14 +59,8 @@ function HomeSwitcher() {
               )}
             </button>
           ))}
-          <Link
-            href="/onboarding"
-            className="flex w-full items-center gap-3 border-t border-border px-3 py-2.5 text-left transition-colors hover:bg-muted last:rounded-b-lg"
-            onClick={() => setOpen(false)}
-          >
-            <span className="text-sm">➕</span>
-            <span className="text-sm font-medium text-primary">Add Another Property</span>
-          </Link>
+          {/* Multi-home creation is hidden for V1 — /api/onboarding no-ops for
+              onboarded users, so the old "Add Another Property" link was a dead end. */}
         </div>
       )}
     </div>
