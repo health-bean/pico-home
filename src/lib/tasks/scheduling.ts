@@ -84,6 +84,8 @@ export function getApplicableTemplates(home: {
   type: HomeType;
   systems: SystemType[];
   appliances: ApplianceCategory[];
+  /** Declared subtypes per system, e.g. { water_source: ["municipal"] }. "standard" means unknown. */
+  systemSubtypes?: Partial<Record<SystemType, string[]>>;
 }, healthFlags?: HealthFlags): TaskTemplate[] {
   return TASK_TEMPLATES.filter((template) => {
     // Check home type applicability
@@ -100,6 +102,22 @@ export function getApplicableTemplates(home: {
         home.systems.includes(s)
       );
       if (!hasMatchingSystem) return false;
+    }
+
+    // If the template constrains system subtypes (e.g. well vs municipal water),
+    // honor them when the home declared a real subtype for that system.
+    // "standard" is the placeholder for "didn't say" — fail open and include.
+    if (template.applicableSystemSubtypes) {
+      for (const [system, allowed] of Object.entries(
+        template.applicableSystemSubtypes
+      )) {
+        if (!home.systems.includes(system as SystemType)) continue;
+        const declared = (home.systemSubtypes?.[system as SystemType] ?? []).filter(
+          (s) => s !== "standard"
+        );
+        if (declared.length === 0) continue; // subtype unknown — include
+        if (!declared.some((s) => allowed.includes(s))) return false;
+      }
     }
 
     // If the template is for specific appliances, check that at least one matches

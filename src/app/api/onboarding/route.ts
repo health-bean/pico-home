@@ -142,11 +142,17 @@ export async function POST(request: Request) {
 
     // Get all applicable templates for this home's configuration
     const healthFlags: HealthFlags = body.householdHealth ?? {};
+    const systemSubtypes: Partial<Record<SystemType, string[]>> = {};
+    for (const s of body.systems) {
+      const key = s.key as SystemType;
+      (systemSubtypes[key] ??= []).push(s.subtype);
+    }
     const applicableTemplates = getApplicableTemplates(
       {
         type: body.home.type as HomeType,
         systems: body.systems.map((s) => s.key as SystemType),
         appliances: body.appliances as ApplianceCategory[],
+        systemSubtypes,
       },
       healthFlags
     );

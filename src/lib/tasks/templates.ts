@@ -63,6 +63,9 @@ export interface TaskTemplate {
   applicableHomeTypes: HomeType[];
   applicableSystems: SystemType[];
   applicableApplianceCategories: ApplianceCategory[];
+  /** Optional per-system subtype constraint, e.g. { water_source: ["well"] }.
+   *  Only enforced when the home declared a real subtype for that system. */
+  applicableSystemSubtypes?: Partial<Record<SystemType, string[]>>;
   seasonalMonths: number[];
   healthCategories: HealthCategory[];
   tips: string | null;
@@ -1139,6 +1142,7 @@ const plumbingTemplates: TaskTemplate[] = [
     diyDifficulty: "easy",
     applicableHomeTypes: HOUSES_ONLY,
     applicableSystems: ["water_source"],
+    applicableSystemSubtypes: { water_source: ["well"] },
     applicableApplianceCategories: [],
     seasonalMonths: [4, 5],
     healthCategories: ["clean_water"],
@@ -1162,6 +1166,7 @@ const plumbingTemplates: TaskTemplate[] = [
     diyDifficulty: "professional",
     applicableHomeTypes: HOUSES_ONLY,
     applicableSystems: ["sewage"],
+    applicableSystemSubtypes: { sewage: ["septic"] },
     applicableApplianceCategories: [],
     seasonalMonths: [],
     healthCategories: [],
@@ -1356,7 +1361,7 @@ const electricalTemplates: TaskTemplate[] = [
     diyDifficulty: "easy",
     applicableHomeTypes: ALL_DETACHED,
     applicableSystems: ["solar"],
-    applicableApplianceCategories: ["solar_panels"],
+    applicableApplianceCategories: [],
     seasonalMonths: [3, 9],
     healthCategories: [],
     tips: "You can do a visual inspection from the ground with binoculars — you don't need to get on the roof for this check. Look for cracked panels, debris accumulation, and any new shading from tree branches that have grown. Also check your inverter display or monitoring app to see if all strings are producing power. A sudden production drop often means a panel or string has a fault.",
@@ -1379,7 +1384,7 @@ const electricalTemplates: TaskTemplate[] = [
     diyDifficulty: "moderate",
     applicableHomeTypes: ALL_DETACHED,
     applicableSystems: ["solar"],
-    applicableApplianceCategories: ["solar_panels"],
+    applicableApplianceCategories: [],
     seasonalMonths: [4, 10],
     healthCategories: [],
     tips: "If you can safely access your roof, use a soft brush and squeegee with plain water — no soap or abrasive cleaners, which can leave residue or scratch the anti-reflective coating. Clean early morning or evening when panels are cool; water on hot panels can cause thermal shock. If your roof pitch or height makes access unsafe, hire a solar cleaning service ($100-300 for most homes). Don't pressure wash.",
