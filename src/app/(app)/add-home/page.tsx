@@ -37,6 +37,7 @@ export default function AddHomePage() {
     state: "",
     selectedItems: initialSelectedItems(),
     healthFlags: initialHealthFlags(),
+    taskSetups: {},
   });
 
   const updateForm = useCallback((partial: Partial<FormData>) => {
