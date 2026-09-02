@@ -190,3 +190,6 @@ View your full task list: ${process.env.NEXT_PUBLIC_APP_URL || "https://picohome
     errors: errors.length > 0 ? errors : undefined,
   });
 }
+
+// Vercel Cron invokes cron paths with HTTP GET; keep POST for manual runs.
+export const GET = POST;
