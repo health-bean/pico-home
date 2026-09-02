@@ -16,6 +16,7 @@ const pool = new pg.Pool({ connectionString: match[1].trim(), ssl: { rejectUnaut
 const files = [
   "drizzle/0008_backfill_dangerous_copy.sql",
   "drizzle/0009_revoke_postgrest_access.sql",
+  "drizzle/0010_storage_policies_use_definer_fn.sql",
 ];
 
 for (const file of files) {
