@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { taskInstances } from "@/lib/db/schema";
 import { eq, asc, sql } from "drizzle-orm";
 import { apiHandler, parseBody } from "@/lib/api/handler";
+import { parsePagination } from "@/lib/api/pagination";
 import { createTaskSchema } from "@/lib/api/schemas";
 
 export const GET = apiHandler(async ({ user, request }) => {
@@ -15,15 +16,8 @@ export const GET = apiHandler(async ({ user, request }) => {
     return NextResponse.json({ tasks: [] });
   }
 
-  // Pagination
-  const limit = Math.min(
-    Math.max(parseInt(searchParams.get("limit") ?? "50", 10) || 50, 1),
-    200
-  );
-  const offset = Math.max(
-    parseInt(searchParams.get("offset") ?? "0", 10) || 0,
-    0
-  );
+  // Pagination — default sized to never truncate a full home task list
+  const { limit, offset } = parsePagination(searchParams);
 
   const tasks = await db
     .select()
