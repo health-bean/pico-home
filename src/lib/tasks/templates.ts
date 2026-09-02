@@ -534,7 +534,7 @@ const hvacTemplates: TaskTemplate[] = [
     healthCategories: ["clean_air", "fire_safety"],
     tips: "Ask the technician to inspect the heat exchanger for cracks, check the flue and venting for blockages, test the pressure relief valve, and test for CO leaks. A cracked heat exchanger can leak carbon monoxide into your home silently.",
     whyItMatters: "Boilers operate under pressure and burn gas or oil — a malfunctioning boiler is a serious safety hazard. Annual service catches cracked heat exchangers, faulty pressure relief valves, and flue blockages before they become emergencies.",
-    healthMultipliers: { hasYoungChildren: 1.5, hasElderly: 1.5 },
+    healthMultipliers: {},
     healthRequired: [],
   },
   {
@@ -673,7 +673,7 @@ const hvacTemplates: TaskTemplate[] = [
     healthCategories: ["clean_air", "mold_prevention"],
     tips: "Replace the cooling pads (aspen or rigid media) — old pads lose efficiency and harbor bacteria. Clean the reservoir pan with a mild bleach solution (1 tablespoon bleach per gallon of water), rinse well, and wipe clean. Check the water distribution tubes for mineral deposits and clear any blockages with a pin. Lubricate the pump and blower motor if they have oil ports.",
     whyItMatters: "Evaporative coolers that aren't properly prepped at startup can distribute mold, bacteria, and mineral scale throughout your home. A 15-minute mineral buildup on pads from last season can cut cooling efficiency by 20-30% right from day one.",
-    healthMultipliers: { hasAllergies: 1.5, hasImmunocompromised: 1.5 },
+    healthMultipliers: {},
     healthRequired: [],
   },
   {
@@ -860,7 +860,7 @@ const hvacTemplates: TaskTemplate[] = [
     healthCategories: ["clean_air", "mold_prevention"],
     tips: "Mini-split evaporator coils are prone to mold and slime buildup because they operate in moist conditions. Some companies offer 'fogging' treatments that sanitize the coil and remove the musty smell that means mold is present. Ask if they'll also check refrigerant charge and inspect the condensate drain.",
     whyItMatters: "Mold growth on mini-split evaporator coils blows mold spores directly into your room air. The coils and blower wheel require specialized cleaning tools and coil cleaner that can only be safely applied by a technician. Skipping annual service is the top cause of that musty smell when the unit runs.",
-    healthMultipliers: { hasAllergies: 1.5, hasImmunocompromised: 1.5, prioritizeAirQuality: 1.5 },
+    healthMultipliers: {},
     healthRequired: [],
   },
 ];
@@ -1389,7 +1389,7 @@ const electricalTemplates: TaskTemplate[] = [
     healthCategories: [],
     tips: "You can do a visual inspection from the ground with binoculars — you don't need to get on the roof for this check. Look for cracked panels, debris accumulation, and any new shading from tree branches that have grown. Also check your inverter display or monitoring app to see if all strings are producing power. A sudden production drop often means a panel or string has a fault.",
     whyItMatters: "A single cracked panel or loose connection can drag down the output of an entire string of panels. Catching shading from tree growth early means a simple trim rather than discovering you've lost 20-30% of production over months.",
-    healthMultipliers: { prioritizeEnergyEfficiency: 1.5 },
+    healthMultipliers: {},
     healthRequired: [],
   },
   {
@@ -1412,7 +1412,7 @@ const electricalTemplates: TaskTemplate[] = [
     healthCategories: [],
     tips: "If you can safely access your roof, use a soft brush and squeegee with plain water — no soap or abrasive cleaners, which can leave residue or scratch the anti-reflective coating. Clean early morning or evening when panels are cool; water on hot panels can cause thermal shock. If your roof pitch or height makes access unsafe, hire a solar cleaning service ($100-300 for most homes). Don't pressure wash.",
     whyItMatters: "Studies show a layer of dust and grime can reduce solar panel output by 5-25% depending on your climate. In dry, dusty areas (Southwest US, for example), dirty panels are one of the biggest causes of underperformance. Spring cleaning removes winter grime before peak solar months.",
-    healthMultipliers: { prioritizeEnergyEfficiency: 1.5 },
+    healthMultipliers: {},
     healthRequired: [],
   },
 ];
