@@ -25,7 +25,7 @@ interface TaskDetailDialogProps {
   onSkip: (id: string) => Promise<void>;
   onSnooze: (id: string) => Promise<void>;
   onDismiss: (id: string) => Promise<void>;
-  actionLoading: string | null;
+  actionLoading?: string | null;
 }
 
 export function TaskDetailDialog({
@@ -35,7 +35,6 @@ export function TaskDetailDialog({
   onSkip,
   onSnooze,
   onDismiss,
-  actionLoading,
 }: TaskDetailDialogProps) {
   const { toast } = useToast();
 
