@@ -245,6 +245,7 @@ export function TaskDetailDialog({
                           year: "numeric",
                         })
                       : "Never"}
+                    {task.lastCompletedBy ? ` · by ${task.lastCompletedBy}` : ""}
                   </p>
                 </div>
               </div>

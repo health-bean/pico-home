@@ -7,7 +7,7 @@ import { updateNotificationPreferencesSchema } from "@/lib/api/schemas";
 
 const DEFAULTS = {
   pushEnabled: true,
-  emailEnabled: false,
+  emailEnabled: true,
   reminderTime: "09:00",
   reminderDaysBefore: [1, 3, 7],
   weeklyDigest: true,

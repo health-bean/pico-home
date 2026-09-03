@@ -14,6 +14,7 @@ export interface Task {
   frequencyValue: number;
   nextDueDate: string; // "YYYY-MM-DD"
   lastCompletedDate: string | null;
+  lastCompletedBy?: string | null;
   isActive: boolean;
   isCustom: boolean;
   notificationDaysBefore: number;

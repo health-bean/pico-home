@@ -7,6 +7,7 @@ import {
   taskInstances,
   homes,
   taskCompletions,
+  notificationLog,
 } from "@/lib/db/schema";
 import { eq, and, lte, gte, inArray, sql } from "drizzle-orm";
 import { verifyCronAuth } from "@/lib/api/cron-auth";
@@ -27,24 +28,29 @@ export async function POST(request: Request) {
   const today = now.getDay(); // 0 = Sunday, 1 = Monday
 
   // Find users who opted into weekly digest and whose digest day matches today
-  const digestUsers = await db
+  // LEFT JOIN so users who never opened Settings still get defaults
+  // (digest on, Monday). emailEnabled=false is an explicit opt-out.
+  const candidateUsers = await db
     .select({
       userId: users.id,
       email: users.email,
       name: users.name,
       timezone: users.timezone,
+      weeklyDigest: notificationPreferences.weeklyDigest,
+      emailEnabled: notificationPreferences.emailEnabled,
+      weeklyDigestDay: notificationPreferences.weeklyDigestDay,
     })
     .from(users)
-    .innerJoin(
+    .leftJoin(
       notificationPreferences,
       eq(users.id, notificationPreferences.userId)
-    )
-    .where(
-      and(
-        eq(notificationPreferences.weeklyDigest, true),
-        eq(notificationPreferences.weeklyDigestDay, today)
-      )
     );
+  const digestUsers = candidateUsers.filter(
+    (u) =>
+      (u.weeklyDigest ?? true) &&
+      (u.emailEnabled ?? true) &&
+      (u.weeklyDigestDay ?? 1) === today
+  );
 
   if (digestUsers.length === 0) {
     return NextResponse.json({ success: true, sent: 0 });
@@ -53,8 +59,17 @@ export async function POST(request: Request) {
   let sent = 0;
   const errors: string[] = [];
 
+  const sentOn = now.toISOString().split("T")[0];
   for (const digestUser of digestUsers) {
     try {
+      // Idempotency: one digest per user per day, even across retries
+      const inserted = await db
+        .insert(notificationLog)
+        .values({ userId: digestUser.userId, kind: "weekly_digest", sentOn })
+        .onConflictDoNothing()
+        .returning({ id: notificationLog.id });
+      if (inserted.length === 0) continue;
+
       // Get user's homes
       const userHomes = await db
         .select({

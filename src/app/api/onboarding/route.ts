@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import {
-  users,
   homes,
   homeMembers,
   homeSystems,
@@ -12,6 +11,7 @@ import {
 } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getApplicableTemplates, getNextDueDate, adjustFrequencyForHealth } from "@/lib/tasks/scheduling";
+import { upsertAppUser } from "@/lib/auth/upsert-user";
 import { getInitialDueDate, selectStarterTemplates } from "@/lib/tasks/initial-due";
 import type { HealthFlags } from "@/lib/tasks/scheduling";
 import type { HomeType, SystemType, ApplianceCategory } from "@/lib/tasks/templates";
@@ -48,24 +48,10 @@ export async function POST(request: Request) {
     const raw = await request.json();
     const body = onboardingSchema.parse(raw);
 
-    // Upsert our app user record (may not exist yet during first onboarding)
-    let [appUser] = await db
-      .select()
-      .from(users)
-      .where(eq(users.authId, authUser.id));
-
+    // Upsert our app user record (race-safe; adopts deleted-auth rows)
+    const appUser = await upsertAppUser(authUser);
     if (!appUser) {
-      [appUser] = await db
-        .insert(users)
-        .values({
-          authId: authUser.id,
-          email: authUser.email!.toLowerCase(),
-          name:
-            authUser.user_metadata?.full_name ??
-            authUser.email!.split("@")[0],
-          avatarUrl: authUser.user_metadata?.avatar_url ?? null,
-        })
-        .returning();
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Guard against double-submission: if user already has a home, return it
