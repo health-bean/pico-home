@@ -35,6 +35,8 @@ interface DashboardData {
   totalActive: number;
   userName: string;
   completedThisMonth: number;
+  completionsAllTime: number;
+  focus: { id: string; name: string; nextDueDate: string; priority: string }[];
 }
 
 // ---------------------------------------------------------------------------
@@ -223,6 +225,21 @@ export default function DashboardPage() {
     localStorage.setItem("pico_welcome_dismissed", "1");
   }, []);
 
+  async function undoTask(taskId: string, undo: unknown) {
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/undo`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(undo),
+      });
+      if (!res.ok) throw new Error("Failed to undo");
+      toast("Restored", "info");
+      await fetchDashboard();
+    } catch {
+      toast("Couldn't undo — check the task's dates", "error");
+    }
+  }
+
   async function completeTask(taskId: string) {
     setCompletingIds((prev) => new Set(prev).add(taskId));
     try {
@@ -232,8 +249,13 @@ export default function DashboardPage() {
         body: JSON.stringify({}),
       });
       if (!res.ok) throw new Error("Failed to complete task");
+      const data = await res.json();
       await fetchDashboard();
-      toast("Task completed!", "success");
+      toast(
+        "Task completed!",
+        "success",
+        data.undo ? { label: "Undo", onClick: () => undoTask(taskId, data.undo) } : undefined
+      );
     } catch {
       toast("Failed to complete task", "error");
     } finally {
@@ -282,9 +304,13 @@ export default function DashboardPage() {
   const completedCount = data.completedThisMonth;
   const remainingCount = upcoming.length + overdue.length;
 
+  // Before the first-ever completion, keep welcome framing and never render
+  // the score as a failure — it debuts as a baseline, not a verdict.
+  const isDebut = (data.completionsAllTime ?? 0) === 0;
+
 
   return (
-    <div className="mx-auto max-w-lg space-y-6 px-5 py-8 pb-28 bg-[var(--color-neutral-50)] min-h-screen font-[family-name:var(--font-plus-jakarta-sans)]">
+    <div className="mx-auto max-w-lg space-y-6 px-5 py-8 pb-28 bg-[var(--color-neutral-50)] min-h-screen">
       {/* ---- Header ---- */}
       <div>
         <p className="text-sm font-medium text-[var(--color-neutral-500)]">
@@ -296,7 +322,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ---- Welcome Nudge Card ---- */}
-      {showWelcome && !score && (
+      {showWelcome && isDebut && (
         <div className="rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-5 relative">
           <button
             onClick={dismissWelcome}
@@ -314,15 +340,21 @@ export default function DashboardPage() {
           <ul className="space-y-1.5 text-xs text-stone-600">
             <li className="flex items-center gap-2">
               <span className="text-amber-500 font-bold">1.</span>
-              <span>Mark tasks you&apos;ve already done with the date you last did them</span>
+              <Link href="/tasks" className="underline underline-offset-2 hover:text-stone-900">
+                Mark tasks you&apos;ve already done with the date you last did them
+              </Link>
             </li>
             <li className="flex items-center gap-2">
               <span className="text-amber-500 font-bold">2.</span>
-              <span>Add any systems or appliances we missed from your home profile</span>
+              <Link href="/home-profile" className="underline underline-offset-2 hover:text-stone-900">
+                Add any systems or appliances we missed from your home profile
+              </Link>
             </li>
             <li className="flex items-center gap-2">
               <span className="text-amber-500 font-bold">3.</span>
-              <span>Set up notifications so you never miss a task</span>
+              <Link href="/settings" className="underline underline-offset-2 hover:text-stone-900">
+                Set up notifications so you never miss a task
+              </Link>
             </li>
           </ul>
         </div>
@@ -342,8 +374,12 @@ export default function DashboardPage() {
         return (
           <div className="rounded-2xl border border-[var(--color-neutral-200)] bg-white p-5">
             <div className="flex items-center gap-5">
-              {/* Circular progress ring */}
-              <div className="relative shrink-0 h-[100px] w-[100px]">
+              {/* Circular progress ring — tappable, leads to the tasks driving it */}
+              <Link
+                href="/tasks"
+                aria-label="See the tasks driving your score"
+                className="relative shrink-0 h-[100px] w-[100px] block rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
                 <svg
                   width={RING_SIZE}
                   height={RING_SIZE}
@@ -386,12 +422,16 @@ export default function DashboardPage() {
                     Score
                   </span>
                 </div>
-              </div>
+              </Link>
 
               {/* Category breakdown */}
               <div className="flex flex-1 flex-col gap-1">
                 <p className="text-[15px] font-bold text-stone-900 mb-2">
-                  {scoreMessage(score.overall)}
+                  {isDebut
+                    ? "Every home starts somewhere — start with your starter tasks."
+                    : score.overall < 60 && data.focus[0]
+                      ? `Needs attention — start with: ${data.focus[0].name}`
+                      : scoreMessage(score.overall)}
                 </p>
                 {categories.map((cat) => (
                   <div key={cat.label} className="flex items-center justify-between">

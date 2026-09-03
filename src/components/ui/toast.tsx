@@ -21,14 +21,20 @@ const toastVariants = cva(
 
 type ToastVariant = "success" | "error" | "warning" | "info";
 
+interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 interface Toast {
   id: string;
   message: string;
   variant: ToastVariant;
+  action?: ToastAction;
 }
 
 interface ToastContextValue {
-  toast: (message: string, variant?: ToastVariant) => void;
+  toast: (message: string, variant?: ToastVariant, action?: ToastAction) => void;
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -42,21 +48,36 @@ export function useToast() {
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const toast = useCallback((message: string, variant: ToastVariant = "info") => {
-    const id = crypto.randomUUID();
-    setToasts((prev) => [...prev, { id, message, variant }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
-  }, []);
+  const toast = useCallback(
+    (message: string, variant: ToastVariant = "info", action?: ToastAction) => {
+      const id = crypto.randomUUID();
+      setToasts((prev) => [...prev, { id, message, variant, action }]);
+      // Toasts with an action (e.g. Undo) stay longer so it can be reached
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, action ? 8000 : 4000);
+    },
+    []
+  );
 
   return (
     <ToastContext value={{ toast }}>
       {children}
       <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
         {toasts.map((t) => (
-          <div key={t.id} className={cn(toastVariants({ variant: t.variant }))}>
+          <div key={t.id} className={cn(toastVariants({ variant: t.variant }))} role="status">
             <p className="text-sm font-medium">{t.message}</p>
+            {t.action && (
+              <button
+                onClick={() => {
+                  t.action!.onClick();
+                  setToasts((prev) => prev.filter((x) => x.id !== t.id));
+                }}
+                className="ml-auto pointer-events-auto shrink-0 text-sm font-bold underline underline-offset-2"
+              >
+                {t.action.label}
+              </button>
+            )}
             <button
               onClick={() => setToasts((prev) => prev.filter((x) => x.id !== t.id))}
               className="ml-auto pointer-events-auto text-current opacity-60 hover:opacity-100"

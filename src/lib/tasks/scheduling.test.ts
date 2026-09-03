@@ -6,6 +6,7 @@ import {
   calculateHomeHealthScore,
   adjustFrequencyForHealth,
   shouldIncludeHealthTemplate,
+  snoozeBaseDate,
 } from "./scheduling";
 import type { TaskTemplate } from "./templates";
 
@@ -263,29 +264,73 @@ describe("calculateHomeHealthScore", () => {
 // ─── adjustFrequencyForHealth ───────────────────────────────────────────────
 
 describe("adjustFrequencyForHealth", () => {
-  it("returns original frequency when no flags set", () => {
-    const result = adjustFrequencyForHealth(3, { hasAllergies: 0.5 }, {});
-    expect(result).toBe(3);
+  it("returns original frequency and unit when no flags set", () => {
+    expect(adjustFrequencyForHealth(3, "months", { hasAllergies: 0.5 }, {})).toEqual({
+      frequencyValue: 3,
+      frequencyUnit: "months",
+    });
   });
 
-  it("applies multiplier when flag is set", () => {
-    const result = adjustFrequencyForHealth(6, { hasAllergies: 0.5 }, { hasAllergies: true });
-    expect(result).toBe(3);
+  it("halves within the same unit when the result divides cleanly", () => {
+    expect(
+      adjustFrequencyForHealth(6, "months", { hasAllergies: 0.5 }, { hasAllergies: true })
+    ).toEqual({ frequencyValue: 3, frequencyUnit: "months" });
   });
 
-  it("applies lowest multiplier when multiple flags match", () => {
-    const result = adjustFrequencyForHealth(6, { hasAllergies: 0.5, hasPets: 0.75 }, { hasAllergies: true, hasPets: true });
-    expect(result).toBe(3);
+  it("downshifts 1 month × 0.5 to 2 weeks instead of rounding to a no-op", () => {
+    expect(
+      adjustFrequencyForHealth(1, "months", { hasYoungChildren: 0.5 }, { hasYoungChildren: true })
+    ).toEqual({ frequencyValue: 2, frequencyUnit: "weeks" });
   });
 
-  it("returns at least 1", () => {
-    const result = adjustFrequencyForHealth(1, { hasAllergies: 0.25 }, { hasAllergies: true });
-    expect(result).toBe(1);
+  it("downshifts 1 year × 0.5 to 6 months", () => {
+    expect(
+      adjustFrequencyForHealth(1, "years", { hasAllergies: 0.5 }, { hasAllergies: true })
+    ).toEqual({ frequencyValue: 6, frequencyUnit: "months" });
+  });
+
+  it("downshifts 3 months × 0.5 to 6 weeks", () => {
+    expect(
+      adjustFrequencyForHealth(3, "months", { hasAllergies: 0.5 }, { hasAllergies: true })
+    ).toEqual({ frequencyValue: 6, frequencyUnit: "weeks" });
+  });
+
+  it("applies the lowest multiplier when multiple flags match", () => {
+    expect(
+      adjustFrequencyForHealth(
+        12,
+        "months",
+        { hasAllergies: 0.5, hasImmunocompromised: 0.25 },
+        { hasAllergies: true, hasImmunocompromised: true }
+      )
+    ).toEqual({ frequencyValue: 3, frequencyUnit: "months" });
+  });
+
+  it("leaves one_time untouched", () => {
+    expect(
+      adjustFrequencyForHealth(1, "one_time", { hasAllergies: 0.5 }, { hasAllergies: true })
+    ).toEqual({ frequencyValue: 1, frequencyUnit: "one_time" });
   });
 
   it("returns original when multipliers is empty", () => {
-    const result = adjustFrequencyForHealth(6, {}, { hasAllergies: true });
-    expect(result).toBe(6);
+    expect(adjustFrequencyForHealth(6, "months", {}, { hasAllergies: true })).toEqual({
+      frequencyValue: 6,
+      frequencyUnit: "months",
+    });
+  });
+});
+
+// ─── snoozeBaseDate ─────────────────────────────────────────────────────────
+
+describe("snoozeBaseDate", () => {
+  it("snoozes an overdue task from today, not from its stale due date", () => {
+    const base = snoozeBaseDate("2026-01-01", new Date("2026-09-02T12:00:00"));
+    expect(base.toISOString().slice(0, 10)).toBe("2026-09-02");
+  });
+
+  it("snoozes a future task from its due date", () => {
+    const base = snoozeBaseDate("2026-12-01", new Date("2026-09-02T12:00:00"));
+    expect(base.toISOString().slice(0, 10)).toBe("2026-12-01");
   });
 });
 

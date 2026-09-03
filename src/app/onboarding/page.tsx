@@ -5,13 +5,15 @@ import { useRouter } from "next/navigation";
 import type { FormData } from "./shared";
 import {
   CLIMATE_ZONES,
-  MAJOR_SYSTEMS,
   initialSelectedItems,
   initialHealthFlags,
+  buildHomeSelection,
+  starterCandidates,
   ProgressBar,
   StepAboutHome,
   StepMajorSystems,
   StepHousehold,
+  StepQuickCheck,
   StepComplete,
 } from "./shared";
 
@@ -19,7 +21,7 @@ import {
 // Constants
 // ---------------------------------------------------------------------------
 
-const TOTAL_STEPS = 4; // Welcome + 3 wizard steps (About, Systems, Household) + completion
+const TOTAL_STEPS = 5; // Welcome + 4 wizard steps (About, Systems, Household, Quick check) + completion
 
 // ---------------------------------------------------------------------------
 // Step 1: Welcome
@@ -88,6 +90,7 @@ export default function OnboardingPage() {
     state: "",
     selectedItems: initialSelectedItems(),
     healthFlags: initialHealthFlags(),
+    taskSetups: {},
   });
 
   // Restore draft from localStorage on mount (avoids hydration mismatch)
@@ -96,7 +99,7 @@ export default function OnboardingPage() {
       const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null");
       if (draft?.form) {
         setForm((prev) => ({ ...prev, ...draft.form }));
-        if (draft.step && draft.step > 1 && draft.step < 5) {
+        if (draft.step && draft.step > 1 && draft.step < 6) {
           setStep(draft.step);
         }
       }
@@ -107,7 +110,7 @@ export default function OnboardingPage() {
   // Save draft to localStorage on every change (after initial load)
   useEffect(() => {
     if (!draftLoaded) return;
-    if (step >= 5) return;
+    if (step >= 6) return;
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify({ step, form }));
     } catch { /* storage full or unavailable */ }
@@ -179,43 +182,25 @@ export default function OnboardingPage() {
 
   // Convert unified selectedItems back to separate systems and appliances for the API
   const buildApiPayload = useCallback(() => {
-    const systems: { key: string; subtype: string }[] = [];
-    const appliances: string[] = [];
-    const seenAppliances = new Set<string>();
+    const { systems, appliances } = buildHomeSelection(form);
 
-    for (const group of MAJOR_SYSTEMS) {
-      for (const item of group.items) {
-        const selection = form.selectedItems[item.key];
-        if (!selection?.enabled) continue;
-        if (item.type === "system" && item.mappedSystem) {
-          const subtypes = selection.subtypes.length > 0 ? [...selection.subtypes] : ["standard"];
-          for (const st of subtypes) {
-            systems.push({ key: item.mappedSystem, subtype: st });
+    // Quick-check answers → taskSetups: "done" schedules the next cycle from
+    // now; everything else (default) is tracked and lands due today.
+    const now = new Date();
+    const taskSetups = starterCandidates(form).map((t) =>
+      form.taskSetups[t.id] === "done"
+        ? {
+            templateId: t.id,
+            state: "done" as const,
+            doneMonth: now.getMonth() + 1,
+            doneYear: now.getFullYear(),
           }
-        } else if (item.type === "appliance" && item.mappedAppliance) {
-          if (!seenAppliances.has(item.mappedAppliance)) {
-            seenAppliances.add(item.mappedAppliance);
-            appliances.push(item.mappedAppliance);
-          }
-        }
-      }
-    }
-
-    // Auto-include universal systems: electrical and plumbing apply to every home
-    const seenSystems = new Set(systems.map((s) => s.key));
-    if (!seenSystems.has("electrical")) systems.push({ key: "electrical", subtype: "standard" });
-    if (!seenSystems.has("plumbing")) systems.push({ key: "plumbing", subtype: "standard" });
-
-    // If any heating/cooling appliance was selected, also register the hvac system
-    // so HVAC-gated templates (air filters, duct cleaning, etc.) get generated
-    const hvacAppliances = ["furnace", "ac_unit", "heat_pump", "boiler", "mini_split", "evap_cooler"];
-    if (!seenSystems.has("hvac") && appliances.some((a) => hvacAppliances.includes(a))) {
-      systems.push({ key: "hvac", subtype: "standard" });
-    }
+        : { templateId: t.id, state: "track" as const }
+    );
 
     const householdHealth = Object.values(form.healthFlags).some(Boolean) ? form.healthFlags : undefined;
 
-    return { systems, appliances, householdHealth };
+    return { systems, appliances, taskSetups, householdHealth };
   }, [form]);
 
   // Submit onboarding data, then show completion screen
@@ -238,7 +223,6 @@ export default function OnboardingPage() {
           },
           systems,
           appliances,
-          taskSetups: [],
           householdHealth: householdHealth || undefined,
         }),
       });
@@ -269,7 +253,7 @@ export default function OnboardingPage() {
   return (
     <div className="flex min-h-dvh flex-col bg-[#fafaf9]">
       {/* Progress bar for steps 2+ */}
-      {step > 1 && step < 5 && (
+      {step > 1 && step < 6 && (
         <div className="sticky top-0 z-10 bg-[#fafaf9]/80 px-5 pb-3 pt-4 backdrop-blur-sm">
           <ProgressBar currentStep={wizardStep} totalSteps={TOTAL_STEPS - 1} />
         </div>
@@ -302,6 +286,17 @@ export default function OnboardingPage() {
           <StepHousehold
             data={form}
             onChange={updateForm}
+            onNext={next}
+            onBack={back}
+            onSkip={next}
+            currentStep={wizardStep}
+            totalSteps={TOTAL_STEPS}
+          />
+        )}
+        {step === 5 && (
+          <StepQuickCheck
+            data={form}
+            onChange={updateForm}
             onNext={() => { handleSubmitAndComplete(); }}
             onBack={back}
             onSkip={() => { handleSubmitAndComplete(); }}
@@ -309,7 +304,7 @@ export default function OnboardingPage() {
             totalSteps={TOTAL_STEPS}
           />
         )}
-        {step === 5 && (
+        {step === 6 && (
           <StepComplete
             systemCount={Object.values(form.selectedItems).filter((s) => s.enabled).length}
             onFinish={() => router.push("/dashboard")}

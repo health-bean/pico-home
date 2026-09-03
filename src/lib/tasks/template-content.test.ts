@@ -1,5 +1,15 @@
 import { describe, it, expect } from "vitest";
 import { TASK_TEMPLATES } from "./templates";
+import { adjustFrequencyForHealth } from "./scheduling";
+import type { HealthFlagKey, FrequencyUnit } from "./templates";
+
+const UNIT_DAYS: Record<FrequencyUnit, number> = {
+  days: 1,
+  weeks: 7,
+  months: 30,
+  years: 365,
+  one_time: 0,
+};
 
 /** Content invariants for the task template library.
  *  These guard against factual/safety errors and structural drift. */
@@ -23,6 +33,36 @@ describe("template content safety", () => {
   it("has a dedicated CO detector replacement task (CO sensors expire)", () => {
     const ids = TASK_TEMPLATES.map((t) => t.id);
     expect(ids).toContain("safety-replace-co-detectors");
+  });
+});
+
+describe("health multiplier invariants", () => {
+  it("all multipliers are < 1 (values > 1 were never applied and have inverted semantics)", () => {
+    for (const t of TASK_TEMPLATES) {
+      for (const [flag, m] of Object.entries(t.healthMultipliers)) {
+        expect(m, `${t.id} multiplier for ${flag}`).toBeLessThan(1);
+      }
+    }
+  });
+
+  it("every multiplier actually shortens the effective interval (no rounding no-ops)", () => {
+    for (const t of TASK_TEMPLATES) {
+      const baseDays = t.frequencyValue * UNIT_DAYS[t.frequencyUnit];
+      for (const flag of Object.keys(t.healthMultipliers) as HealthFlagKey[]) {
+        const adjusted = adjustFrequencyForHealth(
+          t.frequencyValue,
+          t.frequencyUnit,
+          t.healthMultipliers,
+          { [flag]: true }
+        );
+        const adjustedDays =
+          adjusted.frequencyValue * UNIT_DAYS[adjusted.frequencyUnit];
+        expect(
+          adjustedDays,
+          `${t.id} multiplier for ${flag} should shorten the interval`
+        ).toBeLessThan(baseDays);
+      }
+    }
   });
 });
 

@@ -8,7 +8,11 @@ import {
 import type {
   SystemType,
   ApplianceCategory,
+  HomeType,
+  TaskTemplate,
 } from "@/lib/tasks/templates";
+import { getApplicableTemplates } from "@/lib/tasks/scheduling";
+import { selectStarterTemplates } from "@/lib/tasks/initial-due";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -22,6 +26,8 @@ export interface HomeItem {
   mappedSystem?: SystemType;
   mappedAppliance?: ApplianceCategory;
   subtypes?: { value: string; label: string }[];
+  /** Pre-checked in onboarding (opt-out) — used for near-universal appliances. */
+  defaultChecked?: boolean;
 }
 
 export interface HomeItemGroup {
@@ -38,6 +44,8 @@ export interface FormData {
   state: string;
   selectedItems: Record<string, { enabled: boolean; subtypes: string[] }>;
   healthFlags: Record<string, boolean>;
+  /** Quick-check step: starter template id → whether it was done recently. */
+  taskSetups: Record<string, "track" | "done">;
 }
 
 // ---------------------------------------------------------------------------
@@ -212,6 +220,20 @@ export const MAJOR_SYSTEMS: HomeItemGroup[] = [
       { key: "hot-tub", label: "Hot Tub / Spa", icon: "\u2668\uFE0F", type: "appliance", mappedAppliance: "hot_tub" as ApplianceCategory },
     ],
   },
+  {
+    label: "Around the house",
+    items: [
+      { key: "dryer", label: "Clothes Dryer", icon: "\u{1F32A}\uFE0F", type: "appliance", mappedAppliance: "dryer" as ApplianceCategory, defaultChecked: true },
+      { key: "washing-machine", label: "Washing Machine", icon: "\u{1F9FA}", type: "appliance", mappedAppliance: "washing_machine" as ApplianceCategory, defaultChecked: true },
+      { key: "dishwasher", label: "Dishwasher", icon: "\u{1F37D}\uFE0F", type: "appliance", mappedAppliance: "dishwasher" as ApplianceCategory, defaultChecked: true },
+      { key: "refrigerator", label: "Refrigerator", icon: "\u{1F9CA}", type: "appliance", mappedAppliance: "refrigerator" as ApplianceCategory, defaultChecked: true },
+      { key: "oven-range", label: "Range / Oven", icon: "\u{1F373}", type: "appliance", mappedAppliance: "oven_range" as ApplianceCategory, defaultChecked: true },
+      { key: "garbage-disposal", label: "Garbage Disposal", icon: "\u{1F300}", type: "appliance", mappedAppliance: "garbage_disposal" as ApplianceCategory },
+      { key: "garage-door", label: "Garage Door Opener", icon: "\u{1F6AA}", type: "appliance", mappedAppliance: "garage_door" as ApplianceCategory },
+      { key: "sump-pump", label: "Sump Pump", icon: "\u{1F573}\uFE0F", type: "appliance", mappedAppliance: "sump_pump" as ApplianceCategory },
+      { key: "water-softener", label: "Water Softener", icon: "\u{1F9C2}", type: "appliance", mappedAppliance: "water_softener" as ApplianceCategory },
+    ],
+  },
 ];
 
 export const HEALTH_OPTIONS: { key: string; label: string; icon: string; desc: string }[] = [
@@ -232,10 +254,69 @@ export function initialSelectedItems(): Record<string, { enabled: boolean; subty
   const map: Record<string, { enabled: boolean; subtypes: string[] }> = {};
   for (const group of MAJOR_SYSTEMS) {
     for (const item of group.items) {
-      map[item.key] = { enabled: false, subtypes: [] };
+      map[item.key] = { enabled: item.defaultChecked ?? false, subtypes: [] };
     }
   }
   return map;
+}
+
+/** Map the wizard's selections to the API payload's systems/appliances shape.
+ *  Single source of truth for onboarding submit AND starter-task preview. */
+export function buildHomeSelection(form: FormData): {
+  systems: { key: string; subtype: string }[];
+  appliances: string[];
+} {
+  const systems: { key: string; subtype: string }[] = [];
+  const appliances: string[] = [];
+  const seenAppliances = new Set<string>();
+
+  for (const group of MAJOR_SYSTEMS) {
+    for (const item of group.items) {
+      const selection = form.selectedItems[item.key];
+      if (!selection?.enabled) continue;
+      if (item.type === "system" && item.mappedSystem) {
+        const subtypes = selection.subtypes.length > 0 ? [...selection.subtypes] : ["standard"];
+        for (const st of subtypes) {
+          systems.push({ key: item.mappedSystem, subtype: st });
+        }
+      } else if (item.type === "appliance" && item.mappedAppliance) {
+        if (!seenAppliances.has(item.mappedAppliance)) {
+          seenAppliances.add(item.mappedAppliance);
+          appliances.push(item.mappedAppliance);
+        }
+      }
+    }
+  }
+
+  // Auto-include universal systems: electrical and plumbing apply to every home
+  const seenSystems = new Set(systems.map((s) => s.key));
+  if (!seenSystems.has("electrical")) systems.push({ key: "electrical", subtype: "standard" });
+  if (!seenSystems.has("plumbing")) systems.push({ key: "plumbing", subtype: "standard" });
+
+  // If any heating/cooling appliance was selected, also register the hvac system
+  // so HVAC-gated templates (air filters, duct cleaning, etc.) get generated
+  const hvacAppliances = ["furnace", "ac_unit", "heat_pump", "boiler", "mini_split", "evap_cooler"];
+  if (!seenSystems.has("hvac") && appliances.some((a) => hvacAppliances.includes(a))) {
+    systems.push({ key: "hvac", subtype: "standard" });
+  }
+
+  return { systems, appliances };
+}
+
+/** The starter tasks the Quick check step asks about for this home. */
+export function starterCandidates(form: FormData): TaskTemplate[] {
+  const { systems, appliances } = buildHomeSelection(form);
+  const systemSubtypes: Partial<Record<SystemType, string[]>> = {};
+  for (const s of systems) {
+    (systemSubtypes[s.key as SystemType] ??= []).push(s.subtype);
+  }
+  const applicable = getApplicableTemplates({
+    type: (form.type || "single_family") as HomeType,
+    systems: systems.map((s) => s.key as SystemType),
+    appliances: appliances as ApplianceCategory[],
+    systemSubtypes,
+  });
+  return selectStarterTemplates(applicable);
 }
 
 export function initialHealthFlags(): Record<string, boolean> {
@@ -737,6 +818,97 @@ export function StepHousehold({
           </button>
         ))}
       </div>
+
+      <ContinueButton onClick={onNext} />
+      <BackButton onClick={onBack} />
+      <SkipLink onClick={onSkip} />
+      <StepIndicator current={currentStep} total={totalSteps} />
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Step: Quick Check (seed day one from what the user already did)
+// ---------------------------------------------------------------------------
+
+function quickCheckChipClass(selected: boolean): string {
+  return `flex-1 h-9 rounded-lg text-xs font-semibold border-2 transition-all ${
+    selected
+      ? "border-[var(--color-primary-500)] bg-[var(--color-primary-50)] text-[var(--color-primary-800)]"
+      : "border-[var(--color-neutral-200)] text-[var(--color-neutral-500)] hover:border-[var(--color-neutral-300)]"
+  }`;
+}
+
+export function StepQuickCheck({
+  data,
+  onChange,
+  onNext,
+  onBack,
+  onSkip,
+  currentStep,
+  totalSteps,
+}: {
+  data: FormData;
+  onChange: (d: Partial<FormData>) => void;
+  onNext: () => void;
+  onBack: () => void;
+  onSkip: () => void;
+  currentStep: number;
+  totalSteps: number;
+}) {
+  const candidates = starterCandidates(data);
+
+  const setState = (id: string, state: "track" | "done") => {
+    onChange({ taskSetups: { ...data.taskSetups, [id]: state } });
+  };
+
+  return (
+    <>
+      <StepTitle
+        title="Have you done any of these lately?"
+        subtitle="Anything you haven't — or can't remember — goes on your list for this week."
+      />
+
+      {candidates.length === 0 ? (
+        <p className="text-sm text-[var(--color-neutral-500)]">
+          Nothing to check — your plan is ready.
+        </p>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {candidates.map((t) => {
+            const state = data.taskSetups[t.id] ?? "track";
+            return (
+              <div
+                key={t.id}
+                className="bg-white rounded-2xl border-2 border-[var(--color-neutral-200)] p-3.5"
+              >
+                <p className="text-sm font-semibold text-[var(--color-neutral-900)]">{t.name}</p>
+                {t.whyItMatters && (
+                  <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">
+                    {t.whyItMatters.split(". ")[0]}.
+                  </p>
+                )}
+                <div className="mt-2.5 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setState(t.id, "done")}
+                    className={quickCheckChipClass(state === "done")}
+                  >
+                    Done recently
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setState(t.id, "track")}
+                    className={quickCheckChipClass(state === "track")}
+                  >
+                    Put it on my list
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <ContinueButton onClick={onNext} />
       <BackButton onClick={onBack} />

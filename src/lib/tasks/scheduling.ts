@@ -46,22 +46,55 @@ export function getNextDueDate(
 }
 
 /**
- * Adjust a task's frequency value based on active health flags.
- * Applies the lowest matching multiplier (more frequent = smaller value).
- * Always returns at least 1.
+ * Adjust a task's frequency based on active health flags.
+ * Applies the lowest matching multiplier (< 1 = more frequent), scaling in
+ * DAYS and downshifting units when needed so small frequencies don't round
+ * back to a no-op (1 month × 0.5 → 2 weeks, 1 year × 0.5 → 6 months).
+ * Picks the largest unit within 15% of the target to keep schedules
+ * human-readable.
  */
 export function adjustFrequencyForHealth(
   frequencyValue: number,
+  frequencyUnit: FrequencyUnit,
   multipliers: Partial<Record<HealthFlagKey, number>>,
   flags: HealthFlags
-): number {
-  let lowestMultiplier = 1;
+): { frequencyValue: number; frequencyUnit: FrequencyUnit } {
+  let lowest = 1;
   for (const [key, multiplier] of Object.entries(multipliers)) {
-    if (flags[key as HealthFlagKey] && multiplier < lowestMultiplier) {
-      lowestMultiplier = multiplier;
+    if (flags[key as HealthFlagKey] && multiplier < lowest) lowest = multiplier;
+  }
+  if (lowest === 1 || frequencyUnit === "one_time") {
+    return { frequencyValue, frequencyUnit };
+  }
+
+  const toDays: Record<Exclude<FrequencyUnit, "one_time">, number> = {
+    days: 1,
+    weeks: 7,
+    months: 30,
+    years: 365,
+  };
+  const targetDays = Math.max(
+    1,
+    Math.round(frequencyValue * toDays[frequencyUnit] * lowest)
+  );
+
+  for (const unit of ["years", "months", "weeks"] as const) {
+    const v = Math.round(targetDays / toDays[unit]);
+    if (v >= 1 && Math.abs(v * toDays[unit] - targetDays) / targetDays <= 0.15) {
+      return { frequencyValue: v, frequencyUnit: unit };
     }
   }
-  return Math.max(1, Math.round(frequencyValue * lowestMultiplier));
+  return { frequencyValue: targetDays, frequencyUnit: "days" };
+}
+
+/**
+ * Base date for a snooze: an overdue task snoozes from today ("remind me in
+ * N days"), a future task from its due date. Snoozing a long-overdue task
+ * used to add days to the stale due date, leaving it still overdue.
+ */
+export function snoozeBaseDate(nextDueDate: string, now: Date = new Date()): Date {
+  const due = new Date(nextDueDate);
+  return due.getTime() < now.getTime() ? new Date(now) : due;
 }
 
 /**

@@ -24,14 +24,21 @@ export const POST = apiHandler(async ({ user, request }) => {
 
   const now = new Date();
 
+  // Snapshot pre-action state for the undo token
+  const previous = {
+    nextDueDate: task.nextDueDate,
+    lastCompletedDate: task.lastCompletedDate,
+    isActive: task.isActive ?? true,
+  };
+
   // Record skip
-  await db.insert(taskCompletions).values({
+  const [completion] = await db.insert(taskCompletions).values({
     taskInstanceId: task.id,
     completedBy: user.id,
     completedAt: now,
     skipped: true,
     isDiy: true,
-  });
+  }).returning({ id: taskCompletions.id });
 
   // Move to next due date (same as completing)
   const nextDue = getNextDueDate(
@@ -48,5 +55,14 @@ export const POST = apiHandler(async ({ user, request }) => {
     })
     .where(eq(taskInstances.id, parsed.data));
 
-  return NextResponse.json({ success: true, nextDueDate: nextDue });
+  return NextResponse.json({
+    success: true,
+    nextDueDate: nextDue,
+    undo: {
+      completionId: completion.id,
+      previousNextDueDate: previous.nextDueDate,
+      previousLastCompletedDate: previous.lastCompletedDate,
+      previousIsActive: previous.isActive,
+    },
+  });
 });
