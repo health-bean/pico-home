@@ -5,6 +5,7 @@ import { homeInvites, homeMembers, users } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { apiHandler, parseBody } from "@/lib/api/handler";
 import { inviteSchema } from "@/lib/api/schemas";
+import { sendEmail } from "@/lib/email/send";
 import { rateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 
 // Send an invite
@@ -69,6 +70,9 @@ export const POST = apiHandler(
       .from(users)
       .where(eq(users.email, email));
 
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://picohome.app";
+    const inviterName = user.name || "Someone";
+
     if (existingUser) {
       // Auto-accept: add them as a member directly
       await db.insert(homeMembers).values({
@@ -78,8 +82,20 @@ export const POST = apiHandler(
         invitedBy: user.id,
       });
 
+      const emailSent = await sendEmail({
+        to: email,
+        subject: `${inviterName} added you to ${home.name} on Pico Home`,
+        text: `Hi,
+
+${inviterName} added you to "${home.name}" on Pico Home — you can now see and check off the home's maintenance tasks together.
+
+Open it here: ${appUrl}/dashboard
+
+— Pico Home`,
+      });
+
       // Return same shape regardless — prevents email enumeration
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true, emailSent });
     }
 
     // Create a pending invite for when they sign up
@@ -89,8 +105,23 @@ export const POST = apiHandler(
       invitedBy: user.id,
     });
 
+    const emailSent = await sendEmail({
+      to: email,
+      subject: `${inviterName} invited you to ${home.name} on Pico Home`,
+      text: `Hi,
+
+${inviterName} invited you to share "${home.name}" on Pico Home — a shared list of your home's maintenance, so nobody has to ask "did you change the filter?".
+
+To join, sign in with Google using this email address:
+${appUrl}
+
+You'll be added automatically.
+
+— Pico Home`,
+    });
+
     // Same response shape — don't reveal if user exists
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, emailSent });
   },
   { rateLimitPreset: "sensitive" }
 );

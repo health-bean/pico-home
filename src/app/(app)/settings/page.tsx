@@ -50,15 +50,6 @@ const HOUSEHOLD_OPTIONS: { key: string; label: string }[] = [
   { key: "prioritizeEnergyEfficiency", label: "Prioritize energy efficiency" },
 ];
 
-const REMINDER_TIME_OPTIONS = [
-  { value: "08:00", label: "8:00 AM" },
-  { value: "09:00", label: "9:00 AM" },
-  { value: "10:00", label: "10:00 AM" },
-  { value: "12:00", label: "12:00 PM" },
-  { value: "17:00", label: "5:00 PM" },
-  { value: "20:00", label: "8:00 PM" },
-];
-
 /* ------------------------------------------------------------------ */
 /*  iOS Toggle Switch                                                  */
 /* ------------------------------------------------------------------ */
@@ -269,15 +260,6 @@ export default function SettingsPage() {
     }
   }, [toast]);
 
-  const reminderTimeLabel =
-    REMINDER_TIME_OPTIONS.find((o) => o.value === prefs?.reminderTime)?.label ??
-    prefs?.reminderTime ??
-    "\u2014";
-
-  const reminderDaysLabel = prefs?.reminderDaysBefore
-    ? [...prefs.reminderDaysBefore].sort((a, b) => a - b).join(", ") + " days"
-    : "\u2014";
-
   const timezoneLabel =
     TIMEZONE_OPTIONS.find((o) => o.value === user?.timezone)?.label ??
     user?.timezone ??
@@ -326,8 +308,40 @@ export default function SettingsPage() {
             />
           }
         />
-        <Row label="Reminder time" value={reminderTimeLabel} chevron />
-        <Row label="Remind me before" value={reminderDaysLabel} chevron />
+        <div className="px-4 py-3.5 border-b border-[var(--color-neutral-100)] last:border-b-0">
+          <span className="text-sm font-semibold text-[var(--color-neutral-900)]">
+            Remind me before
+          </span>
+          <div className="mt-2 flex gap-2">
+            {[1, 3, 7, 14].map((d) => {
+              const current = prefs?.reminderDaysBefore ?? [1, 3, 7];
+              const active = current.includes(d);
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  disabled={saving || !prefs}
+                  onClick={() => {
+                    const next = active
+                      ? current.filter((x) => x !== d)
+                      : [...current, d].sort((a, b) => a - b);
+                    updatePref({ reminderDaysBefore: next });
+                  }}
+                  className={`flex-1 h-9 rounded-lg text-xs font-semibold border-2 transition-all ${
+                    active
+                      ? "border-[var(--color-primary-500)] bg-[var(--color-primary-50)] text-[var(--color-primary-800)]"
+                      : "border-[var(--color-neutral-200)] text-[var(--color-neutral-500)]"
+                  }`}
+                >
+                  {d} day{d > 1 ? "s" : ""}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-1.5 text-[11px] text-[var(--color-neutral-500)]">
+            A heads-up push this many days before a task is due.
+          </p>
+        </div>
       </Section>
 
       {/* ---- Account ---- */}

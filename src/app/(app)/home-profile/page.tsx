@@ -229,7 +229,11 @@ function MembersSection() {
       if (!res.ok) {
         setInviteError(data.error || "Failed to send invite");
       } else {
-        setInviteSuccess("Invite sent!");
+        setInviteSuccess(
+          data.emailSent
+            ? "Invite sent — they'll get an email with instructions."
+            : "Invite recorded, but the email couldn't be sent — ask them to sign in at picohome.app with this address and they'll be added automatically."
+        );
         setInviteEmail("");
         fetchMembers();
       }
