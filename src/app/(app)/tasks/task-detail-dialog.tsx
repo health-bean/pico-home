@@ -16,6 +16,7 @@ import {
   getCategoryLabel,
   categoryBadgeVariant,
   priorityLabels,
+  formatFrequency,
 } from "./task-constants";
 
 interface TaskDetailDialogProps {
@@ -209,7 +210,7 @@ export function TaskDetailDialog({
                 <div>
                   <p className="text-xs text-muted-foreground">Frequency</p>
                   <p className="text-sm font-medium text-foreground">
-                    Every {task.frequencyValue} {task.frequencyUnit}
+                    {formatFrequency(task.frequencyValue, task.frequencyUnit)}
                   </p>
                 </div>
                 <div>

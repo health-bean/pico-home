@@ -7,6 +7,7 @@ import { SkeletonCard, Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui";
 import { CheckCircle2 } from "lucide-react";
+import { formatFrequency } from "../tasks/task-constants";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -515,8 +516,7 @@ export default function DashboardPage() {
                       {task.name}
                     </p>
                     <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">
-                      {dueMeta} &middot; Every {task.frequencyValue}{" "}
-                      {task.frequencyUnit}
+                      {dueMeta} &middot; {formatFrequency(task.frequencyValue, task.frequencyUnit)}
                     </p>
                   </div>
 

@@ -169,3 +169,17 @@ export const filterOptions: { key: FilterKey; label: string }[] = [
   { key: "completed", label: "Completed" },
   { key: "dismissed", label: "Dismissed" },
 ];
+
+/** Human frequency copy: "Monthly", "Every 2 weeks", "Yearly" — never "Every 1 months". */
+export function formatFrequency(value: number, unit: string): string {
+  if (unit === "one_time") return "One-time";
+  if (value === 1) {
+    switch (unit) {
+      case "days": return "Daily";
+      case "weeks": return "Weekly";
+      case "months": return "Monthly";
+      case "years": return "Yearly";
+    }
+  }
+  return `Every ${value} ${unit}`;
+}

@@ -12,6 +12,7 @@ import {
   jsonb,
   uniqueIndex,
   index,
+  unique,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 
@@ -192,7 +193,7 @@ export const homeMembers = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     role: homeMemberRoleEnum("role").notNull().default("member"),
-    invitedBy: uuid("invited_by").references(() => users.id),
+    invitedBy: uuid("invited_by").references(() => users.id, { onDelete: "set null" }),
     joinedAt: timestamp("joined_at", { withTimezone: true })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
@@ -219,7 +220,7 @@ export const homeInvites = pgTable(
     invitedEmail: varchar("invited_email", { length: 255 }).notNull(),
     invitedBy: uuid("invited_by")
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: "cascade" }),
     status: homeInviteStatusEnum("status").notNull().default("pending"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -364,8 +365,7 @@ export const taskCompletions = pgTable(
       .notNull()
       .references(() => taskInstances.id, { onDelete: "cascade" }),
     completedBy: uuid("completed_by")
-      .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: "set null" }),
     completedAt: timestamp("completed_at", { withTimezone: true })
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
@@ -649,3 +649,24 @@ export const homeHealthScoresRelations = relations(
     }),
   }),
 );
+
+// ── Notification send log (idempotent cron sends) ──────────────────────────
+export const notificationLog = pgTable(
+  "notification_log",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    sentOn: date("sent_on").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (t) => [unique("notification_log_user_kind_day_unique").on(t.userId, t.kind, t.sentOn)]
+);
+
+export const notificationLogRelations = relations(notificationLog, ({ one }) => ({
+  user: one(users, { fields: [notificationLog.userId], references: [users.id] }),
+}));

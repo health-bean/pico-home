@@ -17,6 +17,7 @@ const files = [
   "drizzle/0008_backfill_dangerous_copy.sql",
   "drizzle/0009_revoke_postgrest_access.sql",
   "drizzle/0010_storage_policies_use_definer_fn.sql",
+  "drizzle/0011_deletion_and_notification_log.sql",
 ];
 
 for (const file of files) {
