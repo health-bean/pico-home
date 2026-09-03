@@ -956,9 +956,9 @@ export function StepComplete({
         </p>
         <div className="mt-6 flex gap-4 text-center">
           {[
-            { icon: "\u{1F4CB}", label: "Tasks created" },
-            { icon: "\u{1F514}", label: "Reminders set" },
-            { icon: "\u{1F4CA}", label: "Health score" },
+            { icon: "\u{1F4CB}", label: "Plan built" },
+            { icon: "✅", label: "Starter tasks" },
+            { icon: "\u{1F4CA}", label: "Score ready" },
           ].map((item) => (
             <div key={item.label} className="flex flex-col items-center gap-1">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/50 text-base">
