@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { signOut } from "@/lib/auth/actions";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui";
+import { createClient } from "@/lib/supabase/client";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -36,6 +38,16 @@ const TIMEZONE_OPTIONS = [
   { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
   { value: "America/Anchorage", label: "Alaska Time (AKT)" },
   { value: "Pacific/Honolulu", label: "Hawaii Time (HT)" },
+];
+
+const HOUSEHOLD_OPTIONS: { key: string; label: string }[] = [
+  { key: "hasAllergies", label: "Allergies or asthma" },
+  { key: "hasYoungChildren", label: "Young children (under 5)" },
+  { key: "hasPets", label: "Pets" },
+  { key: "hasElderly", label: "Elderly family (65+)" },
+  { key: "hasImmunocompromised", label: "Immune-compromised" },
+  { key: "prioritizeAirQuality", label: "Prioritize air quality" },
+  { key: "prioritizeEnergyEfficiency", label: "Prioritize energy efficiency" },
 ];
 
 const REMINDER_TIME_OPTIONS = [
@@ -151,19 +163,25 @@ function Row({
 /* ------------------------------------------------------------------ */
 
 export default function SettingsPage() {
+  const { toast } = useToast();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [prefs, setPrefs] = useState<NotificationPrefs | null>(null);
+  const [flags, setFlags] = useState<Record<string, boolean> | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
-      const [userRes, prefsRes] = await Promise.all([
+      const [userRes, prefsRes, flagsRes] = await Promise.all([
         fetch("/api/user/profile"),
         fetch("/api/settings"),
+        fetch("/api/household-health"),
       ]);
       if (userRes.ok) setUser(await userRes.json());
       if (prefsRes.ok) setPrefs(await prefsRes.json());
+      if (flagsRes.ok) setFlags(await flagsRes.json());
     } catch {
       // silently fail — page shows loading state
     } finally {
@@ -200,6 +218,56 @@ export default function SettingsPage() {
     },
     [prefs]
   );
+
+  const updateFlag = useCallback(
+    async (key: string, value: boolean) => {
+      if (!flags) return;
+      const previous = flags;
+      const next = { ...flags, [key]: value };
+      setFlags(next);
+      setSaving(true);
+      try {
+        const res = await fetch("/api/household-health", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(next),
+        });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        if (typeof data.tasksAdjusted === "number" && data.tasksAdjusted > 0) {
+          toast(
+            `Saved — ${data.tasksAdjusted} task${data.tasksAdjusted === 1 ? "" : "s"} rescheduled from the next cycle`,
+            "success"
+          );
+        }
+      } catch {
+        setFlags(previous);
+        toast("Couldn't save household settings", "error");
+      } finally {
+        setSaving(false);
+      }
+    },
+    [flags, toast]
+  );
+
+  const deleteAccount = useCallback(async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/user", { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      try {
+        localStorage.clear();
+        await createClient().auth.signOut();
+      } catch {
+        // storage/auth cleanup is best-effort
+      }
+      window.location.href = "/";
+    } catch {
+      setDeleting(false);
+      setConfirmingDelete(false);
+      toast("Couldn't delete your account — try again or contact support", "error");
+    }
+  }, [toast]);
 
   const reminderTimeLabel =
     REMINDER_TIME_OPTIONS.find((o) => o.value === prefs?.reminderTime)?.label ??
@@ -269,6 +337,27 @@ export default function SettingsPage() {
         <Row label="Timezone" value={timezoneLabel} />
       </Section>
 
+      {/* ---- Household ---- */}
+      <Section label="Household">
+        {HOUSEHOLD_OPTIONS.map((opt) => (
+          <Row
+            key={opt.key}
+            label={opt.label}
+            toggle={
+              <Toggle
+                checked={flags?.[opt.key] ?? false}
+                onChange={(v) => updateFlag(opt.key, v)}
+                label={opt.label}
+                disabled={saving || !flags}
+              />
+            }
+          />
+        ))}
+        <p className="px-4 py-2.5 text-[11px] text-[var(--color-neutral-500)]">
+          These tailor how often tasks recur — changes apply from each task&apos;s next cycle.
+        </p>
+      </Section>
+
       {/* ---- About ---- */}
       <Section label="About">
         <Row label="Version" value="0.1.0" />
@@ -289,6 +378,41 @@ export default function SettingsPage() {
           Sign Out
         </button>
       </form>
+
+      {/* ---- Danger Zone ---- */}
+      <Section label="Danger zone">
+        {confirmingDelete ? (
+          <div className="p-4">
+            <p className="text-sm font-semibold text-[var(--color-danger-700)]">
+              Delete your account permanently?
+            </p>
+            <p className="mt-1 text-xs text-[var(--color-neutral-500)]">
+              Homes you share are handed to the other member; homes only you use are
+              deleted with all their tasks and history. This cannot be undone.
+            </p>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={deleteAccount}
+                disabled={deleting}
+                className="flex-1 h-10 rounded-xl bg-[var(--color-danger-600)] text-sm font-bold text-white disabled:opacity-60"
+              >
+                {deleting ? "Deleting…" : "Delete forever"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmingDelete(false)}
+                disabled={deleting}
+                className="flex-1 h-10 rounded-xl border border-[var(--color-neutral-200)] text-sm font-semibold text-[var(--color-neutral-700)]"
+              >
+                Keep my account
+              </button>
+            </div>
+          </div>
+        ) : (
+          <Row label="Delete account" chevron onClick={() => setConfirmingDelete(true)} />
+        )}
+      </Section>
     </div>
   );
 }

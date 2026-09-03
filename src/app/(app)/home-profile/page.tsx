@@ -330,7 +330,9 @@ function MembersSection() {
 /*  Page                                                               */
 /* ------------------------------------------------------------------ */
 
+import { useToast } from "@/components/ui";
 export default function HomeProfilePage() {
+  const { toast } = useToast();
   const [home, setHome] = useState<HomeData | null>(null);
   const [systems, setSystems] = useState<SystemData[]>([]);
   const [applianceList, setApplianceList] = useState<ApplianceData[]>([]);
@@ -404,7 +406,7 @@ export default function HomeProfilePage() {
         }
       }
     } catch {
-      // silently fail
+      toast("Something went wrong — your change may not have saved", "error");
     } finally {
       setLoading(false);
     }
@@ -457,13 +459,14 @@ export default function HomeProfilePage() {
         if (docsRes.ok) setDocs((await docsRes.json()).documents || []);
       }
     } catch {
-      // silently fail
+      toast("Something went wrong — your change may not have saved", "error");
     } finally {
       setUploading(false);
     }
   };
 
   const handleDeleteDoc = async (docId: string) => {
+    if (!window.confirm("Delete this document permanently?")) return;
     setDeletingDocId(docId);
     try {
       const res = await fetch(`/api/documents?id=${docId}`, { method: "DELETE" });
@@ -471,7 +474,7 @@ export default function HomeProfilePage() {
         setDocs((prev) => prev.filter((d) => d.id !== docId));
       }
     } catch {
-      // silently fail
+      toast("Something went wrong — your change may not have saved", "error");
     } finally {
       setDeletingDocId(null);
     }
@@ -497,13 +500,14 @@ export default function HomeProfilePage() {
         fetchAll();
       }
     } catch {
-      // silently fail
+      toast("Something went wrong — your change may not have saved", "error");
     } finally {
       setAddingSystem(false);
     }
   };
 
   const handleDeleteSystem = async (systemId: string) => {
+    if (!window.confirm("Remove this system? Its existing tasks stay until you dismiss them.")) return;
     setDeletingSystemId(systemId);
     try {
       const res = await fetch("/api/systems", {
@@ -515,7 +519,7 @@ export default function HomeProfilePage() {
         setSystems((prev) => prev.filter((s) => s.id !== systemId));
       }
     } catch {
-      // silently fail
+      toast("Something went wrong — your change may not have saved", "error");
     } finally {
       setDeletingSystemId(null);
     }
@@ -541,13 +545,14 @@ export default function HomeProfilePage() {
         fetchAll();
       }
     } catch {
-      // silently fail
+      toast("Something went wrong — your change may not have saved", "error");
     } finally {
       setAddingAppliance(false);
     }
   };
 
   const handleDeleteAppliance = async (applianceId: string) => {
+    if (!window.confirm("Remove this appliance? Its existing tasks stay until you dismiss them.")) return;
     setDeletingApplianceId(applianceId);
     try {
       const res = await fetch("/api/appliances", {
@@ -559,7 +564,7 @@ export default function HomeProfilePage() {
         setApplianceList((prev) => prev.filter((a) => a.id !== applianceId));
       }
     } catch {
-      // silently fail
+      toast("Something went wrong — your change may not have saved", "error");
     } finally {
       setDeletingApplianceId(null);
     }
