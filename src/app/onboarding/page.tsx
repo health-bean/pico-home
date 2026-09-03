@@ -98,7 +98,21 @@ export default function OnboardingPage() {
     try {
       const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null");
       if (draft?.form) {
-        setForm((prev) => ({ ...prev, ...draft.form }));
+        // Merge over fresh defaults so items/flags added after the draft was
+        // saved still exist (a stale draft used to make new cards unclickable)
+        setForm((prev) => ({
+          ...prev,
+          ...draft.form,
+          selectedItems: {
+            ...initialSelectedItems(),
+            ...(draft.form.selectedItems ?? {}),
+          },
+          healthFlags: {
+            ...initialHealthFlags(),
+            ...(draft.form.healthFlags ?? {}),
+          },
+          taskSetups: draft.form.taskSetups ?? {},
+        }));
         if (draft.step && draft.step > 1 && draft.step < 6) {
           setStep(draft.step);
         }

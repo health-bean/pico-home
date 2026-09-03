@@ -639,7 +639,8 @@ export function StepMajorSystems({
   const heatPumpSelected = data.selectedItems["heat-pump"]?.enabled;
 
   const toggleItem = (key: string) => {
-    const current = data.selectedItems[key];
+    // Guard: a draft saved before an item existed won't have its key
+    const current = data.selectedItems[key] ?? { enabled: false, subtypes: [] };
     const willEnable = !current.enabled;
     const updates: Record<string, { enabled: boolean; subtypes: string[] }> = {
       [key]: { ...current, enabled: willEnable },
@@ -658,7 +659,7 @@ export function StepMajorSystems({
   };
 
   const toggleSubtype = (itemKey: string, subtype: string) => {
-    const current = data.selectedItems[itemKey];
+    const current = data.selectedItems[itemKey] ?? { enabled: false, subtypes: [] };
     const subtypes = current.subtypes.includes(subtype)
       ? current.subtypes.filter((v) => v !== subtype)
       : [...current.subtypes, subtype];
