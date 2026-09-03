@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const dialogContentVariants = cva(
-  "relative w-full rounded-xl bg-white p-6 shadow-lg border border-border",
+  "relative w-full rounded-xl bg-white p-6 shadow-lg border border-border max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain",
   {
     variants: {
       size: {

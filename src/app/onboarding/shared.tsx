@@ -270,7 +270,7 @@ export function StepTitle({ title, subtitle }: { title: string; subtitle: string
       <h2 className="text-[22px] font-extrabold text-[var(--color-neutral-900)] tracking-tight mb-1.5">
         {title}
       </h2>
-      <p className="text-sm text-[var(--color-neutral-400)] mb-6 leading-relaxed">
+      <p className="text-sm text-[var(--color-neutral-500)] mb-6 leading-relaxed">
         {subtitle}
       </p>
     </div>
@@ -308,7 +308,7 @@ export function BackButton({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="text-sm font-semibold text-[var(--color-neutral-400)] text-center mt-3 w-full transition-colors hover:text-[var(--color-neutral-600)]"
+      className="text-sm font-semibold text-[var(--color-neutral-500)] text-center mt-3 w-full transition-colors hover:text-[var(--color-neutral-600)]"
     >
       Back
     </button>
@@ -320,7 +320,7 @@ export function SkipLink({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="text-xs font-medium text-[var(--color-neutral-400)] text-center mt-2 w-full"
+      className="text-xs font-medium text-[var(--color-neutral-500)] text-center mt-2 w-full"
     >
       Skip, I&apos;ll set this up later &rarr;
     </button>
@@ -329,7 +329,7 @@ export function SkipLink({ onClick }: { onClick: () => void }) {
 
 export function StepIndicator({ current, total }: { current: number; total: number }) {
   return (
-    <p className="text-center text-xs text-[var(--color-neutral-400)] font-medium mt-3">
+    <p className="text-center text-xs text-[var(--color-neutral-500)] font-medium mt-3">
       Step {current} of {total}
     </p>
   );
@@ -521,7 +521,7 @@ export function StepAboutHome({
 
         {climateZone && (
           <div className="rounded-xl border border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)] px-4 py-3">
-            <span className="text-xs text-[var(--color-neutral-400)]">Climate zone: </span>
+            <span className="text-xs text-[var(--color-neutral-500)]">Climate zone: </span>
             <span className="text-xs font-semibold text-[var(--color-neutral-900)]">{climateZone}</span>
           </div>
         )}
@@ -601,7 +601,7 @@ export function StepMajorSystems({
       <div className="flex flex-col gap-6 mb-4">
         {MAJOR_SYSTEMS.map((group) => (
           <div key={group.label}>
-            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-neutral-400)] mb-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-neutral-500)] mb-2">
               {group.label}
             </p>
             <div className={`grid gap-2 ${
@@ -632,7 +632,7 @@ export function StepMajorSystems({
                       <span className="text-xs font-semibold text-[var(--color-neutral-900)]">
                         {item.label}
                         {isHeatPumpCoolingMirror && (
-                          <span className="block text-[10px] font-normal text-[var(--color-neutral-400)]">Selected above</span>
+                          <span className="block text-[10px] font-normal text-[var(--color-neutral-500)]">Selected above</span>
                         )}
                       </span>
                     </button>
@@ -664,7 +664,7 @@ export function StepMajorSystems({
 
       {/* Summary pill */}
       <div className="rounded-xl border border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)] px-4 py-3 text-center">
-        <span className="text-xs font-medium text-[var(--color-neutral-400)]">
+        <span className="text-xs font-medium text-[var(--color-neutral-500)]">
           {selectedCount} system{selectedCount !== 1 ? "s" : ""} selected
         </span>
       </div>
@@ -731,7 +731,7 @@ export function StepHousehold({
             </div>
             <div className="flex-1 min-w-0">
               <span className="text-sm font-semibold text-[var(--color-neutral-900)] block">{opt.label}</span>
-              <span className="text-xs text-[var(--color-neutral-400)]">{opt.desc}</span>
+              <span className="text-xs text-[var(--color-neutral-500)]">{opt.desc}</span>
             </div>
             <SelectionCheckmark selected={data.healthFlags[opt.key]} />
           </button>

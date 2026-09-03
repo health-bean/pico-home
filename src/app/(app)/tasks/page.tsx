@@ -287,43 +287,46 @@ export default function TasksPage() {
     const isUpcoming = group === "upcoming";
 
     return (
-      <button
+      <div
         key={task.id}
-        onClick={() => setSelectedTask(task)}
-        className={`w-full bg-white rounded-2xl border border-[var(--color-neutral-200)] p-3.5 flex items-center gap-3 text-left transition-all duration-300 ${
+        className={`w-full bg-white rounded-2xl border border-[var(--color-neutral-200)] p-3.5 flex items-center gap-3 transition-all duration-300 ${
           isActioning ? "opacity-30 scale-95" : ""
         } ${isUpcoming ? "opacity-60" : ""} ${!task.isActive ? "opacity-60" : ""}`}
       >
         {/* Priority strip */}
         <div className={`w-1 h-8 rounded-full shrink-0 ${stripColor}`} />
 
-        {/* Checkbox circle */}
+        {/* Checkbox circle — padded hit area, same visual size */}
         <button
-          onClick={(e) => {
-            e.stopPropagation();
+          onClick={() => {
             if (task.isActive) completeTask(task.id);
           }}
           disabled={isActioning || !task.isActive}
-          className="w-[22px] h-[22px] rounded-full border-2 border-[var(--color-neutral-300)] shrink-0 flex items-center justify-center hover:border-neutral-400 transition-colors disabled:opacity-50"
-          title="Complete task"
+          aria-label={`Mark "${task.name}" complete`}
+          className="p-2 -m-2 shrink-0 disabled:opacity-50"
         >
-          {!task.isActive && <Check className="w-3 h-3 text-neutral-400" />}
+          <span className="w-[22px] h-[22px] rounded-full border-2 border-[var(--color-neutral-300)] flex items-center justify-center hover:border-neutral-400 transition-colors">
+            {!task.isActive && <Check className="w-3 h-3 text-neutral-500" />}
+          </span>
         </button>
 
-        {/* Task info */}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-[var(--color-neutral-900)] truncate">
-            {task.name}
-          </p>
-          <p className="text-xs text-[var(--color-neutral-400)] mt-0.5 truncate">
-            {getCategoryLabel(task.category)} &middot; {priLabel} &middot;{" "}
-            <span className={due.color}>{due.text}</span>
-          </p>
-        </div>
-
-        {/* Chevron */}
-        <ChevronRight className="w-4 h-4 text-[var(--color-neutral-300)] shrink-0" />
-      </button>
+        {/* Task info — opens the detail dialog */}
+        <button
+          onClick={() => setSelectedTask(task)}
+          className="flex-1 min-w-0 flex items-center gap-3 text-left"
+        >
+          <span className="flex-1 min-w-0 block">
+            <span className="block text-sm font-semibold text-[var(--color-neutral-900)] truncate">
+              {task.name}
+            </span>
+            <span className="block text-xs text-[var(--color-neutral-500)] mt-0.5 truncate">
+              {getCategoryLabel(task.category)} &middot; {priLabel} &middot;{" "}
+              <span className={due.color}>{due.text}</span>
+            </span>
+          </span>
+          <ChevronRight className="w-4 h-4 text-[var(--color-neutral-300)] shrink-0" />
+        </button>
+      </div>
     );
   }
 
@@ -366,7 +369,7 @@ export default function TasksPage() {
     return (
       <section key={category} className="mb-4">
         <button onClick={() => toggleCategory(category)} className="w-full flex items-center gap-2.5 px-1 py-2">
-          <IconComponent className="w-4 h-4 text-[var(--color-neutral-400)] shrink-0" />
+          <IconComponent className="w-4 h-4 text-[var(--color-neutral-500)] shrink-0" />
           <span className="text-[13px] font-bold text-stone-900 flex-1 text-left">{label}</span>
           {overdueInCat > 0 && (
             <span className="inline-flex items-center justify-center rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-600">
@@ -378,7 +381,7 @@ export default function TasksPage() {
               {dueSoonInCat} due soon
             </span>
           )}
-          <span className="text-[11px] text-[var(--color-neutral-400)]">{visibleTasks.length}</span>
+          <span className="text-[11px] text-[var(--color-neutral-500)]">{visibleTasks.length}</span>
           {isExpanded ? <ChevronDown className="w-4 h-4 text-[var(--color-neutral-300)]" /> : <ChevronRight className="w-4 h-4 text-[var(--color-neutral-300)]" />}
         </button>
         {isExpanded && (
@@ -563,7 +566,7 @@ export default function TasksPage() {
         )}
         {filter === "dismissed" && dismissedTasks.length > 0 && (
           <section className="mb-5">
-            <h2 className="text-xs font-bold uppercase tracking-widest mb-2.5 text-[var(--color-neutral-400)]">
+            <h2 className="text-xs font-bold uppercase tracking-widest mb-2.5 text-[var(--color-neutral-500)]">
               Dismissed <span className="ml-1.5 text-[11px] font-normal opacity-60">({dismissedTasks.length})</span>
             </h2>
             <p className="text-xs text-muted-foreground mb-3">Tasks you marked as not relevant. Tap to restore.</p>
@@ -580,7 +583,7 @@ export default function TasksPage() {
                   <div className="w-1 h-8 rounded-full shrink-0 bg-[var(--color-neutral-200)]" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-[var(--color-neutral-900)] truncate">{task.name}</p>
-                    <p className="text-xs text-[var(--color-neutral-400)] mt-0.5">{getCategoryLabel(task.category)}</p>
+                    <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">{getCategoryLabel(task.category)}</p>
                   </div>
                   <span className="text-xs font-medium text-[var(--color-primary-600)] shrink-0">Restore</span>
                 </button>

@@ -74,3 +74,6 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ success: true, homesUpdated });
 }
+
+// Vercel Cron invokes cron paths with HTTP GET; keep POST for manual runs.
+export const GET = POST;

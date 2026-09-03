@@ -87,3 +87,6 @@ export async function POST(request: Request) {
     notificationsSent: totalSent,
   });
 }
+
+// Vercel Cron invokes cron paths with HTTP GET; keep POST for manual runs.
+export const GET = POST;

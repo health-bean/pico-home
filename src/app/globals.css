@@ -19,8 +19,11 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
   --color-ring: var(--ring);
-  --color-primary: var(--color-primary-500);
-  --color-primary-hover: var(--color-primary-600);
+  /* Primary action color: 700 is the lightest amber that passes WCAG AA
+     (4.66:1) with white text — 500 was 2.15:1. Amber-500 stays the brand
+     accent for decorative surfaces via the full scale below. */
+  --color-primary: var(--color-primary-700);
+  --color-primary-hover: var(--color-primary-800);
   --color-primary-light: var(--color-primary-50);
   --color-success: var(--color-success-500);
   --color-warning: var(--color-warning-500);

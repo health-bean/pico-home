@@ -63,6 +63,9 @@ export interface TaskTemplate {
   applicableHomeTypes: HomeType[];
   applicableSystems: SystemType[];
   applicableApplianceCategories: ApplianceCategory[];
+  /** Optional per-system subtype constraint, e.g. { water_source: ["well"] }.
+   *  Only enforced when the home declared a real subtype for that system. */
+  applicableSystemSubtypes?: Partial<Record<SystemType, string[]>>;
   seasonalMonths: number[];
   healthCategories: HealthCategory[];
   tips: string | null;
@@ -168,9 +171,32 @@ const safetyTemplates: TaskTemplate[] = [
     applicableApplianceCategories: [],
     seasonalMonths: [],
     healthCategories: ["clean_air"],
-    tips: "CO detectors should be on every level and near sleeping areas. CO is heavier than air, so don't mount too high. If you have a gas furnace, water heater, or attached garage, CO detectors are essential. Replace CO detectors every 5-7 years.",
+    tips: "CO detectors should be on every level and near sleeping areas. CO mixes evenly with air, so wall or ceiling placement both work — follow the manufacturer's mounting guidance. If you have a gas furnace, water heater, or attached garage, CO detectors are essential.",
     whyItMatters: "Carbon monoxide is colorless and odorless — you cannot detect it without a working alarm. Over 400 Americans die annually from accidental CO poisoning, and 50,000+ visit the ER.",
     healthMultipliers: { hasYoungChildren: 0.5, hasElderly: 0.5 },
+    healthRequired: [],
+  },
+  {
+    id: "safety-replace-co-detectors",
+    name: "Replace CO Detectors",
+    description: "Replace carbon monoxide detectors that have reached end of life — most CO sensors expire after 7-10 years even if the test button still works.",
+    category: "safety",
+    subgroup: "fire_safety",
+    priority: "safety",
+    frequencyValue: 7,
+    frequencyUnit: "years",
+    estimatedMinutes: 20,
+    estimatedCostLow: 2000,
+    estimatedCostHigh: 8000,
+    diyDifficulty: "easy",
+    applicableHomeTypes: ALL_HOMES,
+    applicableSystems: [],
+    applicableApplianceCategories: [],
+    seasonalMonths: [],
+    healthCategories: ["clean_air"],
+    tips: "Check the manufacture date printed on the back — the sensor's life starts then, not when you installed it. Many units chirp differently or display 'END' when expired. Combo smoke/CO units follow the shorter CO lifespan.",
+    whyItMatters: "CO sensors degrade with age and can fail silently while the unit still passes its button test. An expired detector gives false confidence against a gas you cannot see or smell.",
+    healthMultipliers: {},
     healthRequired: [],
   },
   {
@@ -1139,6 +1165,7 @@ const plumbingTemplates: TaskTemplate[] = [
     diyDifficulty: "easy",
     applicableHomeTypes: HOUSES_ONLY,
     applicableSystems: ["water_source"],
+    applicableSystemSubtypes: { water_source: ["well"] },
     applicableApplianceCategories: [],
     seasonalMonths: [4, 5],
     healthCategories: ["clean_water"],
@@ -1162,6 +1189,7 @@ const plumbingTemplates: TaskTemplate[] = [
     diyDifficulty: "professional",
     applicableHomeTypes: HOUSES_ONLY,
     applicableSystems: ["sewage"],
+    applicableSystemSubtypes: { sewage: ["septic"] },
     applicableApplianceCategories: [],
     seasonalMonths: [],
     healthCategories: [],
@@ -1250,7 +1278,7 @@ const electricalTemplates: TaskTemplate[] = [
   {
     id: "electrical-inspect-panel",
     name: "Inspect Electrical Panel",
-    description: "Open the panel cover and visually check for signs of corrosion, scorch marks, melted wire insulation, or unusual odors.",
+    description: "Open the panel door (never remove the inner screwed-on cover — it shields live parts) and visually check for corrosion, scorch marks, melted wire insulation, or unusual odors.",
     category: "power",
     subgroup: "electrical",
     priority: "safety",
@@ -1356,7 +1384,7 @@ const electricalTemplates: TaskTemplate[] = [
     diyDifficulty: "easy",
     applicableHomeTypes: ALL_DETACHED,
     applicableSystems: ["solar"],
-    applicableApplianceCategories: ["solar_panels"],
+    applicableApplianceCategories: [],
     seasonalMonths: [3, 9],
     healthCategories: [],
     tips: "You can do a visual inspection from the ground with binoculars — you don't need to get on the roof for this check. Look for cracked panels, debris accumulation, and any new shading from tree branches that have grown. Also check your inverter display or monitoring app to see if all strings are producing power. A sudden production drop often means a panel or string has a fault.",
@@ -1379,7 +1407,7 @@ const electricalTemplates: TaskTemplate[] = [
     diyDifficulty: "moderate",
     applicableHomeTypes: ALL_DETACHED,
     applicableSystems: ["solar"],
-    applicableApplianceCategories: ["solar_panels"],
+    applicableApplianceCategories: [],
     seasonalMonths: [4, 10],
     healthCategories: [],
     tips: "If you can safely access your roof, use a soft brush and squeegee with plain water — no soap or abrasive cleaners, which can leave residue or scratch the anti-reflective coating. Clean early morning or evening when panels are cool; water on hot panels can cause thermal shock. If your roof pitch or height makes access unsafe, hire a solar cleaning service ($100-300 for most homes). Don't pressure wash.",

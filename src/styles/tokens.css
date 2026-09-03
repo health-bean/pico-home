@@ -1,4 +1,8 @@
-:root {
+/* Color scales live in @theme so Tailwind generates utilities for them
+   (bg-primary-50, from-primary-400, text-neutral-500, …) while still
+   emitting the same --color-* CSS variables. Non-color tokens stay in
+   :root below to avoid colliding with Tailwind's own namespaces. */
+@theme {
   /* ── Brand Colors (Amber/Honey) ── */
   --color-primary-50: #fffbeb;
   --color-primary-100: #fef3c7;
@@ -45,7 +49,9 @@
   --color-info-500: #0ea5e9;
   --color-info-600: #0284c7;
   --color-info-700: #0369a1;
+}
 
+:root {
   /* ── Spacing (4px base) ── */
   --space-0: 0px;
   --space-1: 4px;

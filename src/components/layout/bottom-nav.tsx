@@ -40,7 +40,7 @@ export function BottomNav() {
               className={`flex flex-1 flex-col items-center gap-0.5 ${
                 isActive
                   ? "text-[var(--color-primary-600)]"
-                  : "text-[var(--color-neutral-400)]"
+                  : "text-[var(--color-neutral-500)]"
               }`}
             >
               {isActive ? (

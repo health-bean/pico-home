@@ -45,11 +45,17 @@ export const POST = apiHandler(async ({ user, request }) => {
   const existingTaskNames = new Set(existingTasks.map(t => t.name));
 
   // Find templates that apply with the new system
+  const systemSubtypes: Partial<Record<SystemType, string[]>> = {};
+  for (const s of existingSystems) {
+    const key = s.systemType as SystemType;
+    (systemSubtypes[key] ??= []).push(s.subtype ?? "standard");
+  }
   const applicableTemplates = getApplicableTemplates(
     {
       type: (home.type || "single_family") as HomeType,
       systems: systemTypes,
       appliances: existingAppls.map(a => a.category as ApplianceCategory),
+      systemSubtypes,
     },
     {}
   );

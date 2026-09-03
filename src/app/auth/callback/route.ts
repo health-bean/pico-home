@@ -55,7 +55,7 @@ export async function GET(request: Request) {
               .insert(users)
               .values({
                 authId: authUser.id,
-                email: authUser.email,
+                email: authUser.email.toLowerCase(),
                 name: authUser.user_metadata?.full_name ?? authUser.email.split("@")[0],
                 avatarUrl: authUser.user_metadata?.avatar_url ?? null,
               })
