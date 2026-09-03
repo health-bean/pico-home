@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { users, homeInvites, homeMembers } from "@/lib/db/schema";
+import { upsertAppUser } from "@/lib/auth/upsert-user";
 import { eq, and } from "drizzle-orm";
 
 export async function GET(request: Request) {
@@ -44,22 +45,10 @@ export async function GET(request: Request) {
           );
 
         if (pendingInvites.length > 0) {
-          // Ensure user record exists
-          let [appUser] = await db
-            .select()
-            .from(users)
-            .where(eq(users.authId, authUser.id));
-
+          // Ensure user record exists (race-safe; adopts deleted-auth rows)
+          const appUser = await upsertAppUser(authUser);
           if (!appUser) {
-            [appUser] = await db
-              .insert(users)
-              .values({
-                authId: authUser.id,
-                email: authUser.email.toLowerCase(),
-                name: authUser.user_metadata?.full_name ?? authUser.email.split("@")[0],
-                avatarUrl: authUser.user_metadata?.avatar_url ?? null,
-              })
-              .returning();
+            return NextResponse.redirect(`${origin}/?error=auth`);
           }
 
           // Accept all pending invites

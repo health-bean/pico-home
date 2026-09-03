@@ -7,6 +7,7 @@ import { SkeletonCard, Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui";
 import { CheckCircle2 } from "lucide-react";
+import { formatFrequency } from "../tasks/task-constants";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -36,6 +37,7 @@ interface DashboardData {
   userName: string;
   completedThisMonth: number;
   completionsAllTime: number;
+  memberRole: string;
   focus: { id: string; name: string; nextDueDate: string; priority: string }[];
 }
 
@@ -335,8 +337,13 @@ export default function DashboardPage() {
           </button>
           <h3 className="text-[15px] font-bold text-stone-900 mb-2">Welcome to Pico Home!</h3>
           <p className="text-xs text-stone-600 leading-relaxed mb-3">
-            We&apos;ve created a maintenance plan based on your home. Here are a few things you can do:
+            {data.memberRole === "member" ? (
+              <>You&apos;ve been added to <strong>{data.home.name}</strong>. Anything on this list is shared — check something off and everyone sees it.</>
+            ) : (
+              <>We&apos;ve created a maintenance plan based on your home. Here are a few things you can do:</>
+            )}
           </p>
+          {data.memberRole !== "member" && (
           <ul className="space-y-1.5 text-xs text-stone-600">
             <li className="flex items-center gap-2">
               <span className="text-amber-500 font-bold">1.</span>
@@ -357,6 +364,7 @@ export default function DashboardPage() {
               </Link>
             </li>
           </ul>
+          )}
         </div>
       )}
 
@@ -515,8 +523,7 @@ export default function DashboardPage() {
                       {task.name}
                     </p>
                     <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">
-                      {dueMeta} &middot; Every {task.frequencyValue}{" "}
-                      {task.frequencyUnit}
+                      {dueMeta} &middot; {formatFrequency(task.frequencyValue, task.frequencyUnit)}
                     </p>
                   </div>
 

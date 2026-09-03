@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/push/notify",
-      "schedule": "0 9 * * *"
+      "schedule": "0 13 * * *"
     },
     {
       "path": "/api/email/weekly-digest",

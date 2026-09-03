@@ -64,6 +64,14 @@ export const PATCH = apiHandler(async ({ user, request }) => {
     return NextResponse.json({ error: "Home not found" }, { status: 404 });
   }
 
+  // Only the owner can edit the home's identity (name, address, details)
+  if (home.memberRole !== "owner") {
+    return NextResponse.json(
+      { error: "Only the home's owner can edit its details" },
+      { status: 403 }
+    );
+  }
+
   const body = await parseBody(request, updateHomeSchema);
 
   const [updated] = await db

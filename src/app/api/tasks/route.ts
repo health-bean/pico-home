@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getUserHome } from "@/lib/auth/get-user-home";
 import { db } from "@/lib/db";
-import { taskInstances } from "@/lib/db/schema";
-import { eq, asc, sql } from "drizzle-orm";
+import { taskCompletions, taskInstances, users } from "@/lib/db/schema";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { apiHandler, parseBody } from "@/lib/api/handler";
 import { parsePagination } from "@/lib/api/pagination";
 import { createTaskSchema } from "@/lib/api/schemas";
@@ -33,7 +33,30 @@ export const GET = apiHandler(async ({ user, request }) => {
     .from(taskInstances)
     .where(eq(taskInstances.homeId, home.id));
 
-  return NextResponse.json({ tasks, homeId: home.id, total: count, limit, offset });
+  // Attribution: most recent real (non-skipped) completer per task
+  const completerRows = await db
+    .select({
+      taskInstanceId: taskCompletions.taskInstanceId,
+      name: users.name,
+      completedAt: taskCompletions.completedAt,
+    })
+    .from(taskCompletions)
+    .innerJoin(users, eq(taskCompletions.completedBy, users.id))
+    .innerJoin(taskInstances, eq(taskCompletions.taskInstanceId, taskInstances.id))
+    .where(and(eq(taskInstances.homeId, home.id), eq(taskCompletions.skipped, false)))
+    .orderBy(desc(taskCompletions.completedAt));
+  const lastCompletedByTask = new Map<string, string | null>();
+  for (const row of completerRows) {
+    if (!lastCompletedByTask.has(row.taskInstanceId)) {
+      lastCompletedByTask.set(row.taskInstanceId, row.name);
+    }
+  }
+  const tasksWithAttribution = tasks.map((t) => ({
+    ...t,
+    lastCompletedBy: lastCompletedByTask.get(t.id) ?? null,
+  }));
+
+  return NextResponse.json({ tasks: tasksWithAttribution, homeId: home.id, total: count, limit, offset });
 });
 
 export const POST = apiHandler(async ({ user, request }) => {
