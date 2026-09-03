@@ -11,6 +11,7 @@ DROP POLICY IF EXISTS "Home members can view documents flreew_0" ON storage.obje
 DROP POLICY IF EXISTS "Home members can upload documents flreew_0" ON storage.objects;
 DROP POLICY IF EXISTS "Home members can upload documents flreew_1" ON storage.objects;
 
+DROP POLICY IF EXISTS "documents_select_home_members" ON storage.objects;
 CREATE POLICY "documents_select_home_members" ON storage.objects
   FOR SELECT TO authenticated
   USING (
@@ -18,6 +19,7 @@ CREATE POLICY "documents_select_home_members" ON storage.objects
     AND public.user_has_home_access(((storage.foldername(name))[1])::uuid)
   );
 
+DROP POLICY IF EXISTS "documents_insert_home_members" ON storage.objects;
 CREATE POLICY "documents_insert_home_members" ON storage.objects
   FOR INSERT TO authenticated
   WITH CHECK (
@@ -25,6 +27,7 @@ CREATE POLICY "documents_insert_home_members" ON storage.objects
     AND public.user_has_home_access(((storage.foldername(name))[1])::uuid)
   );
 
+DROP POLICY IF EXISTS "documents_delete_home_members" ON storage.objects;
 CREATE POLICY "documents_delete_home_members" ON storage.objects
   FOR DELETE TO authenticated
   USING (
