@@ -21,8 +21,20 @@ interface ApiHandlerOptions {
 const ALLOWED_ORIGINS = new Set([
   process.env.NEXT_PUBLIC_APP_URL || "https://picohome.app",
   "https://picohome.app",
-  // Capacitor native apps send null origin
+  // Capacitor native shells (iOS / Android WebView origins)
+  "capacitor://localhost",
+  "https://localhost",
 ]);
+
+/** The origin the request itself was served from — makes same-origin POSTs
+ *  work on localhost and preview deployments without per-env config. */
+function requestOrigin(request: Request): string {
+  try {
+    return new URL(request.url).origin;
+  } catch {
+    return "";
+  }
+}
 
 /**
  * Check CSRF protection for state-changing requests.
@@ -44,13 +56,16 @@ export function checkCsrf(request: Request): boolean {
     if (!referer) return true; // No origin info = same-origin or native app
     try {
       const refererOrigin = new URL(referer).origin;
-      return ALLOWED_ORIGINS.has(refererOrigin);
+      return (
+        ALLOWED_ORIGINS.has(refererOrigin) ||
+        refererOrigin === requestOrigin(request)
+      );
     } catch {
       return false;
     }
   }
 
-  return ALLOWED_ORIGINS.has(origin);
+  return ALLOWED_ORIGINS.has(origin) || origin === requestOrigin(request);
 }
 
 /**
