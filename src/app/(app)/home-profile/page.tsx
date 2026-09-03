@@ -208,7 +208,7 @@ function MembersSection() {
       setMembers(data.members || []);
       setInvites(data.invites || []);
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     fetchMembers();
