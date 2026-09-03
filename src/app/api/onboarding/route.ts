@@ -195,7 +195,11 @@ export async function POST(request: Request) {
         );
 
         let lastCompletedDate: Date | null = null;
-        if (setup.state === "done") {
+        if (
+          setup.state === "done" &&
+          setup.doneYear !== undefined &&
+          setup.doneMonth !== undefined
+        ) {
           lastCompletedDate = new Date(
             setup.doneYear,
             setup.doneMonth - 1,

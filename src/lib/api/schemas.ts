@@ -104,12 +104,18 @@ export const onboardingSystemSchema = z.object({
   subtype: z.string().max(100),
 });
 
-export const onboardingTaskSetupSchema = z.object({
-  templateId: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/, "Invalid template ID format"),
-  state: z.enum(["track", "done", "skip"]),
-  doneMonth: z.number().int().min(1).max(12),
-  doneYear: z.number().int().min(2000).max(new Date().getFullYear() + 1),
-});
+export const onboardingTaskSetupSchema = z
+  .object({
+    templateId: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/, "Invalid template ID format"),
+    state: z.enum(["track", "done", "skip"]),
+    // Only meaningful (and required) when state === "done"
+    doneMonth: z.number().int().min(1).max(12).optional(),
+    doneYear: z.number().int().min(2000).max(new Date().getFullYear() + 1).optional(),
+  })
+  .refine(
+    (s) => s.state !== "done" || (s.doneMonth !== undefined && s.doneYear !== undefined),
+    { message: "doneMonth and doneYear are required when state is 'done'" }
+  );
 
 export const householdHealthSchema = z.object({
   hasAllergies: z.boolean().default(false),

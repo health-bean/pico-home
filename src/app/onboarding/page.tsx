@@ -205,7 +205,7 @@ export default function OnboardingPage() {
 
   // Submit onboarding data, then show completion screen
   const handleSubmitAndComplete = useCallback(async () => {
-    const { systems, appliances, householdHealth } = buildApiPayload();
+    const { systems, appliances, taskSetups, householdHealth } = buildApiPayload();
 
     try {
       const res = await fetch("/api/onboarding", {
@@ -223,6 +223,7 @@ export default function OnboardingPage() {
           },
           systems,
           appliances,
+          taskSetups,
           householdHealth: householdHealth || undefined,
         }),
       });
@@ -234,7 +235,7 @@ export default function OnboardingPage() {
         throw new Error(`${errBody?.error || "Failed to save"}${details ? `\n${details}` : ""}`);
       }
       clearDraft();
-      goTo(5, "forward");
+      goTo(6, "forward");
     } catch (err) {
       console.error("Failed to save onboarding data", err);
       alert(`Something went wrong saving your home. Please try again.\n\n${err instanceof Error ? err.message : err}`);
