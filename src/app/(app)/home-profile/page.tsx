@@ -208,7 +208,7 @@ function MembersSection() {
       setMembers(data.members || []);
       setInvites(data.invites || []);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     fetchMembers();
@@ -410,7 +410,7 @@ export default function HomeProfilePage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     fetchAll();
