@@ -2311,7 +2311,8 @@ const outdoorsTemplates: TaskTemplate[] = [
     healthCategories: ["mold_prevention", "injury_prevention"],
     tips: "Composite and PVC decks never need sealing \u2014 just the cleaning. When you do seal, apply on a cloudy day to avoid lap marks. If you use a pressure washer: lowest setting, wide fan tip, keep it moving along the grain, and stay a foot or more back \u2014 too close gouges the wood.",
     whyItMatters: "Unsealed wood decks absorb water, leading to rot, warping, and structural failure. A deck replacement costs $5,000-20,000+. Sealing whenever the water test says it's time preserves both safety and value.",
-    healthMultipliers: { hasImmunocompromised: 0.5, hasAllergies: 0.5 },
+    // Yearly for everyone — the water test already decides when sealing is due
+    healthMultipliers: {},
     healthRequired: [],
   },
   {

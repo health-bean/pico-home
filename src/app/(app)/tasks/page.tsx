@@ -343,10 +343,10 @@ export default function TasksPage() {
     const priLabel = priorityLabels[task.priority] || task.priority;
     const stripColor =
       group === "overdue"
-        ? "bg-[#ef4444]"
+        ? "bg-[var(--color-danger-500)]"
         : group === "due_soon"
-          ? "bg-[#f59e0b]"
-          : "bg-[#e7e5e4]";
+          ? "bg-[var(--color-primary-500)]"
+          : "bg-[var(--color-neutral-200)]";
     const isActioning = actionLoading === task.id;
 
     return (
@@ -621,7 +621,7 @@ export default function TasksPage() {
                 onClick={() => setFilter(opt.key)}
                 className={`shrink-0 rounded-full px-3.5 py-1.5 text-[13px] transition-colors ${
                   isActive
-                    ? "bg-[#1c1917] text-white font-semibold"
+                    ? "bg-[var(--color-neutral-900)] text-white font-semibold"
                     : "bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)] font-medium"
                 }`}
               >

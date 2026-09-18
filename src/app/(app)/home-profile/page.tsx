@@ -108,29 +108,41 @@ const SYSTEM_LABELS: Record<string, { emoji: string; label: string }> = {
   security: { emoji: "\u{1F512}", label: "Security" },
 };
 
-const APPLIANCE_GROUP_LABELS: Record<string, string> = {
-  refrigerator: "Kitchen",
-  dishwasher: "Kitchen",
-  oven_range: "Kitchen",
-  microwave: "Kitchen",
-  garbage_disposal: "Kitchen",
-  washing_machine: "Laundry",
-  dryer: "Laundry",
-  water_heater: "Water & Heating",
-  furnace: "Water & Heating",
-  ac_unit: "Water & Heating",
-  water_softener: "Water & Heating",
-  water_filter: "Water & Heating",
-  humidifier: "Air Quality",
-  dehumidifier: "Air Quality",
-  air_purifier: "Air Quality",
-  garage_door: "Other",
-  pool_pump: "Other",
-  hot_tub: "Other",
-  sump_pump: "Other",
-  generator: "Other",
-  other: "Other",
-};
+// Every appliance type, in the order and wording people expect. Drives both
+// the "Add appliance" picker and which group an appliance is listed under.
+const APPLIANCE_OPTIONS: { value: string; label: string; group: string }[] = [
+  { value: "refrigerator", label: "Refrigerator", group: "Kitchen" },
+  { value: "dishwasher", label: "Dishwasher", group: "Kitchen" },
+  { value: "oven_range", label: "Oven & Range", group: "Kitchen" },
+  { value: "microwave", label: "Microwave", group: "Kitchen" },
+  { value: "garbage_disposal", label: "Garbage Disposal", group: "Kitchen" },
+  { value: "washing_machine", label: "Washing Machine", group: "Laundry" },
+  { value: "dryer", label: "Clothes Dryer", group: "Laundry" },
+  { value: "furnace", label: "Furnace", group: "Heating & Cooling" },
+  { value: "ac_unit", label: "Central AC", group: "Heating & Cooling" },
+  { value: "heat_pump", label: "Heat Pump", group: "Heating & Cooling" },
+  { value: "boiler", label: "Boiler", group: "Heating & Cooling" },
+  { value: "mini_split", label: "Mini-Split", group: "Heating & Cooling" },
+  { value: "evap_cooler", label: "Evaporative (Swamp) Cooler", group: "Heating & Cooling" },
+  { value: "fireplace", label: "Fireplace / Wood Stove", group: "Heating & Cooling" },
+  { value: "water_heater", label: "Water Heater", group: "Water" },
+  { value: "water_softener", label: "Water Softener", group: "Water" },
+  { value: "water_filter", label: "Whole-House Water Filter", group: "Water" },
+  { value: "sump_pump", label: "Sump Pump", group: "Water" },
+  { value: "air_purifier", label: "Portable Air Purifier", group: "Air Quality" },
+  { value: "dehumidifier", label: "Portable Dehumidifier", group: "Air Quality" },
+  { value: "humidifier", label: "Humidifier", group: "Air Quality" },
+  { value: "garage_door", label: "Garage Door Opener", group: "Outdoor & Other" },
+  { value: "pool_pump", label: "Pool Pump", group: "Outdoor & Other" },
+  { value: "hot_tub", label: "Hot Tub / Spa", group: "Outdoor & Other" },
+  { value: "generator", label: "Generator", group: "Outdoor & Other" },
+  { value: "solar_panels", label: "Solar Panels", group: "Outdoor & Other" },
+  { value: "other", label: "Something else", group: "Outdoor & Other" },
+];
+const APPLIANCE_GROUPS = [...new Set(APPLIANCE_OPTIONS.map((o) => o.group))];
+const applianceGroupOf = (category: string | null) =>
+  APPLIANCE_OPTIONS.find((o) => o.value === category)?.group ?? "Outdoor & Other";
+
 
 const AVATAR_GRADIENTS = [
   "from-amber-400 to-orange-500",
@@ -620,7 +632,7 @@ export default function HomeProfilePage() {
 
   // Group appliances by area
   const appliancesByGroup = applianceList.reduce<Record<string, ApplianceData[]>>((acc, a) => {
-    const group = APPLIANCE_GROUP_LABELS[a.category ?? "other"] ?? "Other";
+    const group = applianceGroupOf(a.category);
     (acc[group] ??= []).push(a);
     return acc;
   }, {});
@@ -883,7 +895,7 @@ export default function HomeProfilePage() {
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-[var(--color-neutral-200)] overflow-hidden">
-            {Object.entries(appliancesByGroup).map(([group, items]) => (
+            {APPLIANCE_GROUPS.filter((g) => appliancesByGroup[g]).map((group) => [group, appliancesByGroup[group]] as const).map(([group, items]) => (
               <div key={group}>
                 <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--color-neutral-500)] px-4 pt-3 pb-1">
                   {group}
@@ -945,10 +957,14 @@ export default function HomeProfilePage() {
                 className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
               >
                 <option value="">Select a category...</option>
-                {Object.entries(APPLIANCE_GROUP_LABELS).map(([key, group]) => (
-                  <option key={key} value={key}>
-                    {key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())} ({group})
-                  </option>
+                {APPLIANCE_GROUPS.map((group) => (
+                  <optgroup key={group} label={group}>
+                    {APPLIANCE_OPTIONS.filter((o) => o.group === group).map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>

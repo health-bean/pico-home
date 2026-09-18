@@ -42,6 +42,15 @@ describe("no power washing as the recommended method", () => {
     expect(byId("exterior-clean-deck").name).toBe("Clean Deck (Seal If Needed)");
     expect(text("exterior-clean-deck")).toMatch(/composite/i);
   });
+
+  it("deck cleaning stays yearly for every household — twice a year is more than anyone does", () => {
+    const d = byId("exterior-clean-deck");
+    const allFlags = { hasAllergies: true, hasImmunocompromised: true, moldSensitive: true, prioritizeAirQuality: true };
+    expect(adjustFrequencyForHealth(d.frequencyValue, d.frequencyUnit, d.healthMultipliers, allFlags)).toEqual({
+      frequencyValue: 1,
+      frequencyUnit: "years",
+    });
+  });
 });
 
 describe("gutters and ice dams", () => {

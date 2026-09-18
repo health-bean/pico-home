@@ -164,10 +164,10 @@ export default function AddHomePage() {
   const homeName = form.name.trim() || "your new home";
 
   return (
-    <div className="flex min-h-dvh flex-col bg-[#fafaf9]">
+    <div className="flex min-h-dvh flex-col bg-[var(--color-neutral-50)]">
       {/* Progress bar for steps 1-2 (hidden on completion) */}
       {step < 3 && (
-        <div className="sticky top-0 z-10 bg-[#fafaf9]/80 px-5 pb-3 pt-4 backdrop-blur-sm">
+        <div className="sticky top-0 z-10 bg-[var(--color-neutral-50)]/80 px-5 pb-3 pt-4 backdrop-blur-sm">
           <ProgressBar currentStep={step} totalSteps={TOTAL_STEPS} />
         </div>
       )}

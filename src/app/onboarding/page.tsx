@@ -29,15 +29,15 @@ const TOTAL_STEPS = 5; // Welcome + 4 wizard steps (About, Systems, Household, Q
 
 function StepWelcome({ onNext }: { onNext: () => void }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center -mx-5 -my-6 px-8 bg-gradient-to-b from-[#fffbeb] via-[#fef3c7] to-[#fde68a]">
+    <div className="flex flex-1 flex-col items-center justify-center -mx-5 -my-6 px-8 bg-gradient-to-b from-[var(--color-primary-50)] via-[var(--color-primary-100)] to-[var(--color-primary-200)]">
       <div className="flex flex-col items-center text-center max-w-xs">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/60 backdrop-blur-sm shadow-sm mb-5">
           <span className="text-3xl">{"\u{1F3E0}"}</span>
         </div>
-        <h1 className="text-[26px] font-extrabold text-[#451a03] tracking-tight leading-tight">
+        <h1 className="text-[26px] font-extrabold text-[var(--color-primary-950)] tracking-tight leading-tight">
           Let&apos;s set up your home
         </h1>
-        <p className="mt-2 text-sm text-[#92400e] leading-relaxed">
+        <p className="mt-2 text-sm text-[var(--color-primary-800)] leading-relaxed">
           A few quick questions and we&apos;ll build a personalized maintenance plan.
         </p>
         <div className="mt-6 flex gap-4 text-center">
@@ -50,18 +50,18 @@ function StepWelcome({ onNext }: { onNext: () => void }) {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/50 text-base">
                 {item.icon}
               </div>
-              <span className="text-[10px] font-bold text-[#78350f]">{item.label}</span>
+              <span className="text-[10px] font-bold text-[var(--color-primary-900)]">{item.label}</span>
             </div>
           ))}
         </div>
         <button
           type="button"
           onClick={onNext}
-          className="w-full h-[48px] bg-[#451a03] text-white rounded-xl font-bold text-[14px] mt-8 transition-all hover:bg-[#78350f] active:scale-[0.98]"
+          className="w-full h-[48px] bg-[var(--color-primary-950)] text-white rounded-xl font-bold text-[14px] mt-8 transition-all hover:bg-[var(--color-primary-900)] active:scale-[0.98]"
         >
           Get Started
         </button>
-        <p className="mt-3 text-[11px] text-[#92400e]">Takes about 2 minutes</p>
+        <p className="mt-3 text-[11px] text-[var(--color-primary-800)]">Takes about 2 minutes</p>
       </div>
     </div>
   );
@@ -278,10 +278,10 @@ export default function OnboardingPage() {
   const wizardStep = step - 1; // 0 for welcome, 1-4 for wizard
 
   return (
-    <div className="flex min-h-dvh flex-col bg-[#fafaf9]">
+    <div className="flex min-h-dvh flex-col bg-[var(--color-neutral-50)]">
       {/* Progress bar for steps 2+ */}
       {step > 1 && step < 6 && (
-        <div className="sticky top-0 z-10 bg-[#fafaf9]/80 px-5 pb-3 pt-4 backdrop-blur-sm">
+        <div className="sticky top-0 z-10 bg-[var(--color-neutral-50)]/80 px-5 pb-3 pt-4 backdrop-blur-sm">
           <ProgressBar currentStep={wizardStep} totalSteps={TOTAL_STEPS - 1} />
         </div>
       )}
