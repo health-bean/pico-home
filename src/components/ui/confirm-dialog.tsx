@@ -45,7 +45,7 @@ export function useConfirm() {
     >
       <div className="mt-2 flex justify-end gap-2">
         {/* Cancel takes focus so Enter never destroys anything by accident */}
-        <Button variant="outline" autoFocus onClick={() => settle(false)}>
+        <Button variant="outline" data-autofocus onClick={() => settle(false)}>
           {options?.cancelLabel ?? "Cancel"}
         </Button>
         <Button variant="danger" onClick={() => settle(true)}>

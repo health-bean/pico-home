@@ -566,6 +566,7 @@ export function StepAboutHome({
                 key={ht.value}
                 type="button"
                 onClick={() => onChange({ type: ht.value })}
+                aria-pressed={data.type === ht.value}
                 className={`flex items-center gap-2.5 rounded-xl border-2 px-3 py-2.5 text-left transition-all ${
                   data.type === ht.value
                     ? "border-[var(--color-primary-500)] bg-[var(--color-primary-50)]"
@@ -717,6 +718,7 @@ export function StepMajorSystems({
                       type="button"
                       onClick={() => !isHeatPumpCoolingMirror && toggleItem(item.key)}
                       disabled={isHeatPumpCoolingMirror}
+                      aria-pressed={!!active}
                       className={`flex items-center gap-2.5 rounded-xl border-2 px-3 py-2.5 text-left transition-all ${
                         isHeatPumpCoolingMirror
                           ? "border-[var(--color-neutral-200)] bg-[var(--color-neutral-100)] opacity-60 cursor-default"
@@ -741,10 +743,11 @@ export function StepMajorSystems({
                             type="button"
                             className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-colors ${
                               selection.subtypes.includes(st.value)
-                                ? "bg-[var(--color-primary-500)] text-white"
-                                : "bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)] hover:bg-[var(--color-neutral-200)]"
+                                ? "bg-[var(--color-primary-700)] text-white"
+                                : "bg-[var(--color-neutral-100)] text-[var(--color-neutral-600)] hover:bg-[var(--color-neutral-200)]"
                             }`}
                             onClick={() => toggleSubtype(item.key, st.value)}
+                            aria-pressed={selection.subtypes.includes(st.value)}
                           >
                             {st.label}
                           </button>
@@ -817,6 +820,7 @@ export function StepHousehold({
             key={opt.key}
             type="button"
             onClick={() => toggleFlag(opt.key)}
+            aria-pressed={!!data.healthFlags[opt.key]}
             className={`flex items-center gap-3 p-3.5 bg-white rounded-2xl border-2 cursor-pointer transition-all w-full text-left ${
               data.healthFlags[opt.key]
                 ? "border-[var(--color-primary-500)] bg-[var(--color-primary-50)]"
@@ -910,6 +914,7 @@ export function StepQuickCheck({
                   <button
                     type="button"
                     onClick={() => setState(t.id, "done")}
+                    aria-pressed={state === "done"}
                     className={quickCheckChipClass(state === "done")}
                   >
                     Done recently
@@ -917,6 +922,7 @@ export function StepQuickCheck({
                   <button
                     type="button"
                     onClick={() => setState(t.id, "track")}
+                    aria-pressed={state === "track"}
                     className={quickCheckChipClass(state === "track")}
                   >
                     Put it on my list

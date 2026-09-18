@@ -407,7 +407,7 @@ export default function SettingsPage() {
       <form action={signOut}>
         <button
           type="submit"
-          className="w-full py-3.5 bg-red-50 rounded-2xl text-[15px] font-bold text-red-600 text-center mt-4"
+          className="w-full py-3.5 bg-red-50 rounded-2xl text-[15px] font-bold text-[var(--color-danger-700)] text-center mt-4"
         >
           Sign Out
         </button>

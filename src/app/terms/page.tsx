@@ -6,7 +6,7 @@ export default function TermsOfServicePage() {
       <div className="mx-auto max-w-2xl px-6 py-12">
         <Link
           href="/"
-          className="text-sm font-semibold text-amber-600 hover:text-amber-700 transition-colors"
+          className="text-sm font-semibold text-[var(--color-primary-700)] hover:text-[var(--color-primary-900)] transition-colors"
         >
           &larr; Back
         </Link>
@@ -195,7 +195,7 @@ export default function TermsOfServicePage() {
             <p className="mt-2">
               <a
                 href="mailto:support@healthbean.io"
-                className="text-amber-600 hover:text-amber-700 underline"
+                className="text-[var(--color-primary-700)] hover:text-[var(--color-primary-900)] underline"
               >
                 support@healthbean.io
               </a>

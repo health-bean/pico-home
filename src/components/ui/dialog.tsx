@@ -27,26 +27,58 @@ interface DialogProps extends VariantProps<typeof dialogContentVariants> {
   className?: string;
 }
 
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 function Dialog({ open, onClose, children, title, description, size, className }: DialogProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      // Keep Tab cycling inside the dialog instead of the page behind it
+      if (e.key !== "Tab" || !contentRef.current) return;
+      const focusable = Array.from(contentRef.current.querySelectorAll<HTMLElement>(FOCUSABLE));
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const inside = contentRef.current.contains(document.activeElement);
+      if (e.shiftKey && (document.activeElement === first || !inside)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (document.activeElement === last || !inside)) {
+        e.preventDefault();
+        first.focus();
+      }
     },
     [onClose]
   );
 
   useEffect(() => {
-    if (open) {
-      document.addEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "hidden";
-    }
+    if (!open) return;
+    document.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "";
     };
   }, [open, handleKeyDown]);
+
+  // Move focus in on open — to a [data-autofocus] child if there is one — and
+  // back to whatever opened the dialog on close. (Children use data-autofocus,
+  // not autoFocus, which would move focus before the opener is recorded.)
+  useEffect(() => {
+    if (!open) return;
+    const opener = document.activeElement as HTMLElement | null;
+    const content = contentRef.current;
+    const target = content?.querySelector<HTMLElement>("[data-autofocus]") ?? content;
+    target?.focus();
+    return () => opener?.focus?.();
+  }, [open]);
 
   if (!open) return null;
 
@@ -62,7 +94,11 @@ function Dialog({ open, onClose, children, title, description, size, className }
       aria-labelledby={title ? "dialog-title" : undefined}
       aria-describedby={description ? "dialog-desc" : undefined}
     >
-      <div className={cn(dialogContentVariants({ size }), className)}>
+      <div
+        ref={contentRef}
+        tabIndex={-1}
+        className={cn(dialogContentVariants({ size }), "focus:outline-none", className)}
+      >
         {title && (
           <h2 id="dialog-title" className="text-lg font-semibold text-foreground mb-1">
             {title}

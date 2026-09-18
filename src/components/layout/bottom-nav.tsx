@@ -39,7 +39,7 @@ export function BottomNav() {
               href={item.href}
               className={`flex flex-1 flex-col items-center gap-0.5 ${
                 isActive
-                  ? "text-[var(--color-primary-600)]"
+                  ? "text-[var(--color-primary-700)]"
                   : "text-[var(--color-neutral-500)]"
               }`}
             >
@@ -52,7 +52,7 @@ export function BottomNav() {
                   <Icon className="h-5 w-5" />
                 </div>
               )}
-              <span className="text-[10px] font-semibold">{item.label}</span>
+              <span className="text-[11px] font-semibold">{item.label}</span>
             </Link>
           );
         })}

@@ -53,9 +53,9 @@ function getGreeting(): string {
 }
 
 function scoreColorClass(score: number): string {
-  if (score > 80) return "text-green-600";
-  if (score >= 60) return "text-amber-500";
-  return "text-red-500";
+  if (score > 80) return "text-[var(--color-success-700)]";
+  if (score >= 60) return "text-[var(--color-primary-700)]";
+  return "text-[var(--color-danger-700)]";
 }
 
 function urgencyInfo(task: DashboardTask): {
@@ -84,7 +84,7 @@ function urgencyInfo(task: DashboardTask): {
       label: "Today",
       stripColor: "bg-amber-400",
       badgeBg: "bg-amber-50",
-      badgeText: "text-amber-600",
+      badgeText: "text-[var(--color-primary-700)]",
     };
   }
   if (diffDays <= 7) {
@@ -328,7 +328,7 @@ export default function DashboardPage() {
         <div className="rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-5 relative">
           <button
             onClick={dismissWelcome}
-            className="absolute top-3 right-3 text-amber-400 hover:text-amber-600"
+            className="absolute top-3 right-3 text-[var(--color-primary-700)] hover:text-[var(--color-primary-900)]"
             aria-label="Dismiss"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -346,19 +346,19 @@ export default function DashboardPage() {
           {data.memberRole !== "member" && (
           <ul className="space-y-1.5 text-xs text-stone-600">
             <li className="flex items-center gap-2">
-              <span className="text-amber-500 font-bold">1.</span>
+              <span className="text-[var(--color-primary-700)] font-bold">1.</span>
               <Link href="/tasks" className="underline underline-offset-2 hover:text-stone-900">
                 Mark tasks you&apos;ve already done with the date you last did them
               </Link>
             </li>
             <li className="flex items-center gap-2">
-              <span className="text-amber-500 font-bold">2.</span>
+              <span className="text-[var(--color-primary-700)] font-bold">2.</span>
               <Link href="/home-profile" className="underline underline-offset-2 hover:text-stone-900">
                 Add any systems or appliances we missed from your home profile
               </Link>
             </li>
             <li className="flex items-center gap-2">
-              <span className="text-amber-500 font-bold">3.</span>
+              <span className="text-[var(--color-primary-700)] font-bold">3.</span>
               <Link href="/settings" className="underline underline-offset-2 hover:text-stone-900">
                 Set up notifications so you never miss a task
               </Link>
@@ -464,7 +464,7 @@ export default function DashboardPage() {
             <h2 className="text-[15px] font-bold text-stone-900">
               Needs Attention
             </h2>
-            <span className="inline-flex items-center justify-center rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-bold text-red-600">
+            <span className="inline-flex items-center justify-center rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-bold text-[var(--color-danger-700)]">
               {needsAttention.length}
             </span>
           </div>
@@ -491,8 +491,9 @@ export default function DashboardPage() {
                     type="button"
                     onClick={() => completeTask(task.id)}
                     disabled={isCompleting}
-                    aria-label="Mark complete"
-                    className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+                    aria-label={`Mark "${task.name}" complete`}
+                    // Visible circle stays 22px; the ::before extends the tap target to ~44px
+                    className={`relative before:absolute before:-inset-[11px] before:content-[''] flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
                       isCompleting
                         ? "border-neutral-200 bg-neutral-100 animate-pulse"
                         : isOverdue || isToday
@@ -573,7 +574,7 @@ export default function DashboardPage() {
 
           {/* Remaining */}
           <div className="flex flex-1 flex-col items-center gap-1">
-            <span className="text-2xl font-extrabold text-amber-500">
+            <span className="text-2xl font-extrabold text-[var(--color-primary-700)]">
               {remainingCount}
             </span>
             <span className="text-[11px] font-semibold uppercase text-[var(--color-neutral-500)]">
@@ -586,7 +587,7 @@ export default function DashboardPage() {
       {/* ---- View All Tasks Link ---- */}
       <Link
         href="/tasks"
-        className="block text-center text-sm font-semibold text-amber-600 hover:text-amber-700 transition-colors"
+        className="block text-center text-sm font-semibold text-[var(--color-primary-700)] hover:text-[var(--color-primary-900)] transition-colors"
       >
         View all tasks
       </Link>

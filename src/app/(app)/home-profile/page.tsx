@@ -261,7 +261,7 @@ function MembersSection() {
         <h2 className="text-[15px] font-bold">Members</h2>
         <button
           onClick={() => setShowInvite(true)}
-          className="text-[13px] font-semibold text-[var(--color-primary-600)]"
+          className="text-[13px] font-semibold text-[var(--color-primary-700)]"
         >
           Invite &rarr;
         </button>
@@ -291,7 +291,7 @@ function MembersSection() {
                   <p className="text-xs text-[var(--color-neutral-500)]">{m.role === "owner" ? "Owner" : "Member"}</p>
                 </div>
                 {entry.i === 0 && (
-                  <span className="bg-[var(--color-primary-50)] text-[var(--color-primary-600)] rounded-full px-2.5 py-0.5 text-[11px] font-bold">You</span>
+                  <span className="bg-[var(--color-primary-50)] text-[var(--color-primary-700)] rounded-full px-2.5 py-0.5 text-[11px] font-bold">You</span>
                 )}
               </div>
             );
@@ -300,13 +300,13 @@ function MembersSection() {
             return (
               <div
                 key={inv.id}
-                className={`flex items-center gap-3 px-4 py-3 opacity-50 ${isLast ? "" : "border-b border-[var(--color-neutral-100)]"}`}
+                className={`flex items-center gap-3 px-4 py-3 ${isLast ? "" : "border-b border-[var(--color-neutral-100)]"}`}
               >
                 <div className="w-9 h-9 rounded-full bg-[var(--color-neutral-200)] flex items-center justify-center flex-shrink-0">
                   <span className="text-[var(--color-neutral-500)] font-bold text-sm">{inv.invitedEmail.charAt(0).toUpperCase()}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">{inv.invitedEmail}</p>
+                  <p className="text-sm font-semibold truncate text-[var(--color-neutral-600)]">{inv.invitedEmail}</p>
                   <p className="text-xs text-[var(--color-neutral-500)]">Pending invite</p>
                 </div>
                 <Badge variant="warning" size="sm">Pending</Badge>
@@ -779,7 +779,7 @@ export default function HomeProfilePage() {
           {availableSystemTypes.length > 0 && (
             <button
               onClick={() => setAddSystemOpen(true)}
-              className="text-[13px] font-semibold text-[var(--color-primary-600)] flex items-center gap-1"
+              className="text-[13px] font-semibold text-[var(--color-primary-700)] flex items-center gap-1"
             >
               <Plus className="w-3.5 h-3.5" />
               Add &rarr;
@@ -808,8 +808,9 @@ export default function HomeProfilePage() {
                   <button
                     onClick={() => handleDeleteSystem(s.id)}
                     disabled={isDeleting}
-                    className="p-0.5 text-neutral-300 hover:text-red-500 transition-colors ml-1"
+                    className="relative before:absolute before:-inset-3 before:content-[''] p-0.5 text-[var(--color-neutral-500)] hover:text-[var(--color-danger-700)] transition-colors ml-1"
                     title="Remove system"
+                    aria-label={`Remove ${info.label}`}
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -866,7 +867,7 @@ export default function HomeProfilePage() {
           <h2 className="text-[15px] font-bold">Appliances</h2>
           <button
             onClick={() => setAddApplianceOpen(true)}
-            className="text-[13px] font-semibold text-[var(--color-primary-600)] flex items-center gap-1"
+            className="text-[13px] font-semibold text-[var(--color-primary-700)] flex items-center gap-1"
           >
             <Plus className="w-3.5 h-3.5" />
             Add &rarr;
@@ -910,8 +911,9 @@ export default function HomeProfilePage() {
                         <button
                           onClick={() => handleDeleteAppliance(a.id)}
                           disabled={isDeleting}
-                          className="p-1.5 text-neutral-500 hover:text-red-500 transition-colors"
+                          className="p-1.5 text-[var(--color-neutral-500)] hover:text-[var(--color-danger-700)] transition-colors"
                           title="Remove appliance"
+                          aria-label={`Remove ${a.name}`}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -992,7 +994,7 @@ export default function HomeProfilePage() {
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {c.rating && (
-                      <span className="flex items-center gap-0.5 text-xs font-bold text-amber-500">
+                      <span className="flex items-center gap-0.5 text-xs font-bold text-[var(--color-primary-700)]">
                         <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                         {c.rating}
                       </span>
@@ -1016,7 +1018,7 @@ export default function HomeProfilePage() {
           <h2 className="text-[15px] font-bold">Documents</h2>
           <button
             onClick={() => setUploadOpen(true)}
-            className="text-[13px] font-semibold text-[var(--color-primary-600)] flex items-center gap-1"
+            className="text-[13px] font-semibold text-[var(--color-primary-700)] flex items-center gap-1"
           >
             <Upload className="w-3.5 h-3.5" />
             Upload &rarr;
@@ -1065,8 +1067,9 @@ export default function HomeProfilePage() {
                   <button
                     onClick={() => handleDeleteDoc(d.id)}
                     disabled={isDeleting}
-                    className="p-1.5 text-neutral-500 hover:text-red-500 transition-colors"
+                    className="p-1.5 text-[var(--color-neutral-500)] hover:text-[var(--color-danger-700)] transition-colors"
                     title="Delete document"
+                    aria-label={`Delete ${d.name}`}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

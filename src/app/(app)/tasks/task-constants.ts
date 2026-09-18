@@ -68,15 +68,15 @@ export function relativeDueLabel(
     };
   }
   if (diff === 0) {
-    return { text: "Due today", color: "text-amber-600" };
+    return { text: "Due today", color: "text-[var(--color-primary-700)]" };
   }
   if (diff === 1) {
-    return { text: "Due tomorrow", color: "text-amber-600" };
+    return { text: "Due tomorrow", color: "text-[var(--color-primary-700)]" };
   }
   if (diff <= 7) {
     return {
       text: `Due in ${diff} days`,
-      color: "text-amber-600",
+      color: "text-[var(--color-primary-700)]",
     };
   }
   if (diff <= 14) {

@@ -348,14 +348,13 @@ export default function TasksPage() {
           ? "bg-[#f59e0b]"
           : "bg-[#e7e5e4]";
     const isActioning = actionLoading === task.id;
-    const isUpcoming = group === "upcoming";
 
     return (
       <div
         key={task.id}
         className={`w-full bg-white rounded-2xl border border-[var(--color-neutral-200)] p-3.5 flex items-center gap-3 transition-all duration-300 ${
           isActioning ? "opacity-30 scale-95" : ""
-        } ${isUpcoming ? "opacity-60" : ""} ${!task.isActive ? "opacity-60" : ""}`}
+        }`}
       >
         {/* Priority strip */}
         <div className={`w-1 h-8 rounded-full shrink-0 ${stripColor}`} />
@@ -380,7 +379,7 @@ export default function TasksPage() {
           className="flex-1 min-w-0 flex items-center gap-3 text-left"
         >
           <span className="flex-1 min-w-0 block">
-            <span className="block text-sm font-semibold text-[var(--color-neutral-900)] truncate">
+            <span className={`block text-sm font-semibold truncate ${task.isActive ? "text-[var(--color-neutral-900)]" : "text-[var(--color-neutral-600)]"}`}>
               {task.name}
             </span>
             <span className="block text-xs text-[var(--color-neutral-500)] mt-0.5 truncate">
@@ -418,16 +417,21 @@ export default function TasksPage() {
 
     return (
       <section key={category} className="mb-4">
-        <button onClick={() => toggleCategory(category)} className="w-full flex items-center gap-2.5 px-1 py-2">
+        <button
+          onClick={() => toggleCategory(category)}
+          aria-expanded={isExpanded}
+          aria-controls={`category-${category}`}
+          className="w-full flex items-center gap-2.5 px-1 py-2"
+        >
           <IconComponent className="w-4 h-4 text-[var(--color-neutral-500)] shrink-0" />
           <span className="text-[13px] font-bold text-stone-900 flex-1 text-left">{label}</span>
           {overdueInCat > 0 && (
-            <span className="inline-flex items-center justify-center rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-600">
+            <span className="inline-flex items-center justify-center rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-[var(--color-danger-700)]">
               {overdueInCat} overdue
             </span>
           )}
           {overdueInCat === 0 && dueSoonInCat > 0 && (
-            <span className="inline-flex items-center justify-center rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-600">
+            <span className="inline-flex items-center justify-center rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-[var(--color-primary-700)]">
               {dueSoonInCat} due soon
             </span>
           )}
@@ -435,7 +439,7 @@ export default function TasksPage() {
           {isExpanded ? <ChevronDown className="w-4 h-4 text-[var(--color-neutral-300)]" /> : <ChevronRight className="w-4 h-4 text-[var(--color-neutral-300)]" />}
         </button>
         {isExpanded && (
-          <div className="flex flex-col gap-2 mt-1">
+          <div id={`category-${category}`} className="flex flex-col gap-2 mt-1">
             {isFlat ? (
               visibleTasks.map((task) => renderTaskRow(task, getStatusGroup(task, today), false))
             ) : (
@@ -456,7 +460,7 @@ export default function TasksPage() {
                     <div className="flex items-center gap-2 px-1 pt-2">
                       <span className="text-[12px] font-bold text-stone-700">{sgLabel}</span>
                       {sgOverdue > 0 && (
-                        <span className="inline-flex items-center justify-center rounded-full bg-red-50 px-1.5 py-0.5 text-[9px] font-bold text-red-600">
+                        <span className="inline-flex items-center justify-center rounded-full bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-danger-700)]">
                           {sgOverdue} overdue
                         </span>
                       )}
@@ -559,7 +563,8 @@ export default function TasksPage() {
           </h1>
           <button
             onClick={() => setAddOpen(true)}
-            className="h-9 w-9 flex items-center justify-center bg-[#1c1917] rounded-xl transition-colors"
+            aria-label="Add a task"
+            className="h-9 w-9 flex items-center justify-center bg-[var(--color-neutral-900)] rounded-xl transition-colors"
           >
             <Plus className="w-[18px] h-[18px] text-white" />
           </button>
@@ -597,7 +602,8 @@ export default function TasksPage() {
         </h1>
         <button
           onClick={() => setAddOpen(true)}
-          className="h-9 w-9 flex items-center justify-center bg-[#1c1917] rounded-xl transition-colors"
+          aria-label="Add a task"
+          className="h-9 w-9 flex items-center justify-center bg-[var(--color-neutral-900)] rounded-xl transition-colors"
         >
           <Plus className="w-[18px] h-[18px] text-white" />
         </button>
@@ -662,7 +668,7 @@ export default function TasksPage() {
                   key={task.id}
                   onClick={() => restoreTask(task.id)}
                   disabled={actionLoading === task.id}
-                  className={`w-full bg-white rounded-2xl border border-[var(--color-neutral-200)] p-3.5 flex items-center gap-3 text-left opacity-60 hover:opacity-100 transition-all ${
+                  className={`w-full bg-white rounded-2xl border border-[var(--color-neutral-200)] p-3.5 flex items-center gap-3 text-left hover:bg-[var(--color-neutral-50)] transition-all ${
                     actionLoading === task.id ? "opacity-30 scale-95" : ""
                   }`}
                 >
@@ -671,7 +677,7 @@ export default function TasksPage() {
                     <p className="text-sm font-semibold text-[var(--color-neutral-900)] truncate">{task.name}</p>
                     <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">{getCategoryLabel(task.category)}</p>
                   </div>
-                  <span className="text-xs font-medium text-[var(--color-primary-600)] shrink-0">Restore</span>
+                  <span className="text-xs font-medium text-[var(--color-primary-700)] shrink-0">Restore</span>
                 </button>
               ))}
             </div>
