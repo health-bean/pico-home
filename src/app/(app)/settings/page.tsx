@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { signOut } from "@/lib/auth/actions";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/components/ui";
+import { EmptyState, useToast } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 
 /* ------------------------------------------------------------------ */
@@ -159,6 +159,8 @@ export default function SettingsPage() {
   const [prefs, setPrefs] = useState<NotificationPrefs | null>(null);
   const [flags, setFlags] = useState<Record<string, boolean> | null>(null);
   const [loading, setLoading] = useState(true);
+  // Without real prefs the toggles would show defaults as if they were saved
+  const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -170,11 +172,13 @@ export default function SettingsPage() {
         fetch("/api/settings"),
         fetch("/api/household-health"),
       ]);
-      if (userRes.ok) setUser(await userRes.json());
-      if (prefsRes.ok) setPrefs(await prefsRes.json());
-      if (flagsRes.ok) setFlags(await flagsRes.json());
+      if (!userRes.ok || !prefsRes.ok || !flagsRes.ok) throw new Error("Failed to load settings");
+      setUser(await userRes.json());
+      setPrefs(await prefsRes.json());
+      setFlags(await flagsRes.json());
+      setLoadError(false);
     } catch {
-      // silently fail — page shows loading state
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -196,18 +200,16 @@ export default function SettingsPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(update),
         });
-        if (res.ok) {
-          setPrefs(await res.json());
-        } else {
-          setPrefs(prefs);
-        }
+        if (!res.ok) throw new Error("Failed to save");
+        setPrefs(await res.json());
       } catch {
         setPrefs(prefs);
+        toast("Couldn\u2019t save that setting \u2014 try again", "error");
       } finally {
         setSaving(false);
       }
     },
-    [prefs]
+    [prefs, toast]
   );
 
   const updateFlag = useCallback(
@@ -274,6 +276,24 @@ export default function SettingsPage() {
           <Skeleton className="h-32 w-full rounded-2xl" />
           <Skeleton className="h-20 w-full rounded-2xl" />
         </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-8">
+        <EmptyState
+          title="Couldn\u2019t load your settings"
+          description="Check your connection and try again. Nothing was changed."
+          action={{
+            label: "Try again",
+            onClick: () => {
+              setLoading(true);
+              fetchData();
+            },
+          }}
+        />
       </div>
     );
   }

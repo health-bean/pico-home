@@ -7,6 +7,8 @@ import {
   Input,
   Dialog,
   EmptyState,
+  useConfirm,
+  useToast,
 } from "@/components/ui";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -193,6 +195,7 @@ function homeTypeLabel(type: string | null): string {
 /* ------------------------------------------------------------------ */
 
 function MembersSection() {
+  const { toast } = useToast();
   const [members, setMembers] = useState<Member[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [showInvite, setShowInvite] = useState(false);
@@ -202,13 +205,16 @@ function MembersSection() {
   const [inviteSuccess, setInviteSuccess] = useState("");
 
   const fetchMembers = useCallback(async () => {
-    const res = await fetch("/api/home/invite");
-    if (res.ok) {
+    try {
+      const res = await fetch("/api/home/invite");
+      if (!res.ok) throw new Error();
       const data = await res.json();
       setMembers(data.members || []);
       setInvites(data.invites || []);
+    } catch {
+      toast("Couldn't load your household members — refresh to try again", "error");
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     fetchMembers();
@@ -334,9 +340,12 @@ function MembersSection() {
 /*  Page                                                               */
 /* ------------------------------------------------------------------ */
 
-import { useToast } from "@/components/ui";
 export default function HomeProfilePage() {
   const { toast } = useToast();
+  const { confirm, confirmDialog } = useConfirm();
+  // A failed load must not look like "no home yet" — that sends people to
+  // onboarding and a duplicate home
+  const [loadError, setLoadError] = useState(false);
   const [home, setHome] = useState<HomeData | null>(null);
   const [systems, setSystems] = useState<SystemData[]>([]);
   const [applianceList, setApplianceList] = useState<ApplianceData[]>([]);
@@ -388,8 +397,9 @@ export default function HomeProfilePage() {
   const fetchAll = useCallback(async () => {
     try {
       const profileRes = await fetch("/api/home-profile");
-      if (!profileRes.ok) return;
+      if (!profileRes.ok) throw new Error("Failed to load home");
       const profileData = await profileRes.json();
+      setLoadError(false);
 
       setHome(profileData.home);
       setSystems(profileData.systems || []);
@@ -410,11 +420,11 @@ export default function HomeProfilePage() {
         }
       }
     } catch {
-      toast("Something went wrong — your change may not have saved", "error");
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     fetchAll();
@@ -438,11 +448,12 @@ export default function HomeProfilePage() {
       setEditingHome(false);
       fetchAll();
     } catch {
-      // stay in edit mode
+      // Stay in edit mode so nothing typed is lost
+      toast("Couldn't save your home details — check them and try again", "error");
     } finally {
       setSavingHome(false);
     }
-  }, [editHomeName, editYearBuilt, editSqft, editZip, editState, fetchAll]);
+  }, [editHomeName, editYearBuilt, editSqft, editZip, editState, fetchAll, toast]);
 
   const handleUpload = async () => {
     if (!uploadFile || !uploadName.trim() || !home) return;
@@ -461,24 +472,33 @@ export default function HomeProfilePage() {
         setUploadType("other");
         const docsRes = await fetch(`/api/documents?homeId=${home.id}`);
         if (docsRes.ok) setDocs((await docsRes.json()).documents || []);
+      } else {
+        toast("Couldn't upload that document — try again", "error");
       }
     } catch {
-      toast("Something went wrong — your change may not have saved", "error");
+      toast("Couldn't upload that document — check your connection", "error");
     } finally {
       setUploading(false);
     }
   };
 
   const handleDeleteDoc = async (docId: string) => {
-    if (!window.confirm("Delete this document permanently?")) return;
+    const ok = await confirm({
+      title: "Delete this document?",
+      description: "It's removed for everyone in your household. This can't be undone.",
+      confirmLabel: "Delete document",
+    });
+    if (!ok) return;
     setDeletingDocId(docId);
     try {
       const res = await fetch(`/api/documents?id=${docId}`, { method: "DELETE" });
       if (res.ok) {
         setDocs((prev) => prev.filter((d) => d.id !== docId));
+      } else {
+        toast("Couldn't delete that document — try again", "error");
       }
     } catch {
-      toast("Something went wrong — your change may not have saved", "error");
+      toast("Couldn't delete that document — check your connection", "error");
     } finally {
       setDeletingDocId(null);
     }
@@ -502,16 +522,23 @@ export default function HomeProfilePage() {
         setNewSystemType("");
         setNewSystemSubtype("");
         fetchAll();
+      } else {
+        toast("Couldn't add that system — try again", "error");
       }
     } catch {
-      toast("Something went wrong — your change may not have saved", "error");
+      toast("Couldn't add that system — check your connection", "error");
     } finally {
       setAddingSystem(false);
     }
   };
 
   const handleDeleteSystem = async (systemId: string) => {
-    if (!window.confirm("Remove this system? Its existing tasks stay until you dismiss them.")) return;
+    const ok = await confirm({
+      title: "Remove this system?",
+      description: "Its tasks stay on your list — remove them from Tasks if you no longer need them.",
+      confirmLabel: "Remove system",
+    });
+    if (!ok) return;
     setDeletingSystemId(systemId);
     try {
       const res = await fetch("/api/systems", {
@@ -521,9 +548,11 @@ export default function HomeProfilePage() {
       });
       if (res.ok) {
         setSystems((prev) => prev.filter((s) => s.id !== systemId));
+      } else {
+        toast("Couldn't remove that system — try again", "error");
       }
     } catch {
-      toast("Something went wrong — your change may not have saved", "error");
+      toast("Couldn't remove that system — check your connection", "error");
     } finally {
       setDeletingSystemId(null);
     }
@@ -547,16 +576,23 @@ export default function HomeProfilePage() {
         setNewApplianceName("");
         setNewApplianceCategory("");
         fetchAll();
+      } else {
+        toast("Couldn't add that appliance — try again", "error");
       }
     } catch {
-      toast("Something went wrong — your change may not have saved", "error");
+      toast("Couldn't add that appliance — check your connection", "error");
     } finally {
       setAddingAppliance(false);
     }
   };
 
   const handleDeleteAppliance = async (applianceId: string) => {
-    if (!window.confirm("Remove this appliance? Its existing tasks stay until you dismiss them.")) return;
+    const ok = await confirm({
+      title: "Remove this appliance?",
+      description: "Its tasks stay on your list — use \u201cDon\u2019t have one\u201d in Tasks to remove them too.",
+      confirmLabel: "Remove appliance",
+    });
+    if (!ok) return;
     setDeletingApplianceId(applianceId);
     try {
       const res = await fetch("/api/appliances", {
@@ -566,9 +602,11 @@ export default function HomeProfilePage() {
       });
       if (res.ok) {
         setApplianceList((prev) => prev.filter((a) => a.id !== applianceId));
+      } else {
+        toast("Couldn't remove that appliance — try again", "error");
       }
     } catch {
-      toast("Something went wrong — your change may not have saved", "error");
+      toast("Couldn't remove that appliance — check your connection", "error");
     } finally {
       setDeletingApplianceId(null);
     }
@@ -593,6 +631,24 @@ export default function HomeProfilePage() {
         <Skeleton className="h-20 w-full rounded-2xl" />
         <Skeleton className="h-32 w-full rounded-2xl" />
         <Skeleton className="h-32 w-full rounded-2xl" />
+      </div>
+    );
+  }
+
+  if (loadError && !home) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-8">
+        <EmptyState
+          title="Couldn\u2019t load your home"
+          description="Check your connection and try again. Nothing was changed."
+          action={{
+            label: "Try again",
+            onClick: () => {
+              setLoading(true);
+              fetchAll();
+            },
+          }}
+        />
       </div>
     );
   }
@@ -1074,6 +1130,7 @@ export default function HomeProfilePage() {
           </div>
         </Dialog>
       </section>
+      {confirmDialog}
     </div>
   );
 }

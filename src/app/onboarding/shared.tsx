@@ -863,6 +863,7 @@ export function StepQuickCheck({
   onSkip,
   currentStep,
   totalSteps,
+  saving = false,
 }: {
   data: FormData;
   onChange: (d: Partial<FormData>) => void;
@@ -871,6 +872,7 @@ export function StepQuickCheck({
   onSkip: () => void;
   currentStep: number;
   totalSteps: number;
+  saving?: boolean;
 }) {
   const candidates = starterCandidates(data);
 
@@ -926,7 +928,7 @@ export function StepQuickCheck({
         </div>
       )}
 
-      <ContinueButton onClick={onNext} />
+      <ContinueButton onClick={onNext} loading={saving} />
       <BackButton onClick={onBack} />
       <SkipLink onClick={onSkip} />
       <StepIndicator current={currentStep} total={totalSteps} />

@@ -77,6 +77,10 @@ export default function OnboardingPage() {
   const DRAFT_KEY = "pico_onboarding_draft";
 
   const [step, setStep] = useState(1);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+  // Ref, not state: blocks a double tap before React re-renders
+  const savingRef = useRef(false);
   const [animating, setAnimating] = useState(false);
   const [direction, setDirection] = useState<"forward" | "backward">("forward");
   const [draftLoaded, setDraftLoaded] = useState(false);
@@ -219,6 +223,10 @@ export default function OnboardingPage() {
 
   // Submit onboarding data, then show completion screen
   const handleSubmitAndComplete = useCallback(async () => {
+    if (savingRef.current) return; // a second submit would create a second home
+    savingRef.current = true;
+    setSaving(true);
+    setSaveError(false);
     const { systems, appliances, applianceFeatures, taskSetups, householdHealth } = buildApiPayload();
 
     try {
@@ -253,7 +261,10 @@ export default function OnboardingPage() {
       goTo(6, "forward");
     } catch (err) {
       console.error("Failed to save onboarding data", err);
-      alert(`Something went wrong saving your home. Please try again.\n\n${err instanceof Error ? err.message : err}`);
+      setSaveError(true);
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
   }, [buildApiPayload, form, goTo, clearDraft]);
 
@@ -276,6 +287,12 @@ export default function OnboardingPage() {
       )}
 
       <div className={`flex flex-1 flex-col max-w-lg mx-auto w-full px-5 py-6 transition-all duration-200 ease-out ${translateClass}`}>
+        {saveError && (step === 3 || step === 5) && (
+          <div role="alert" className="mb-4 rounded-xl bg-[var(--color-danger-50)] px-4 py-3 text-sm text-[var(--color-danger-700)]">
+            <p className="font-semibold">We couldn&apos;t save your home.</p>
+            <p className="mt-0.5">Your answers are kept — check your connection and try again.</p>
+          </div>
+        )}
         {step === 1 && <StepWelcome onNext={next} />}
         {step === 2 && (
           <StepAboutHome
@@ -316,6 +333,7 @@ export default function OnboardingPage() {
             onNext={() => { handleSubmitAndComplete(); }}
             onBack={back}
             onSkip={() => { handleSubmitAndComplete(); }}
+            saving={saving}
             currentStep={wizardStep}
             totalSteps={TOTAL_STEPS}
           />

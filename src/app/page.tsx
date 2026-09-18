@@ -1,13 +1,17 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 function HomeContent() {
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
+  // Client-side failures (network, provider error) — same banner as the
+  // server-side ?error=auth redirect
+  const [signInFailed, setSignInFailed] = useState(false);
   const handleGoogleSignIn = async () => {
+    setSignInFailed(false);
     try {
       const supabase = createClient();
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
@@ -18,11 +22,11 @@ function HomeContent() {
       });
       if (oauthError) {
         console.error("Google sign-in error:", oauthError);
-        alert("Sign in failed. Please try again.");
+        setSignInFailed(true);
       }
     } catch (err) {
       console.error("Google sign-in exception:", err);
-      alert("Sign in failed. Please try again.");
+      setSignInFailed(true);
     }
   };
 
@@ -73,8 +77,8 @@ function HomeContent() {
             This app is in private beta. Contact us for access.
           </div>
         )}
-        {error === "auth" && (
-          <div className="mb-2 rounded-xl bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-700">
+        {(error === "auth" || signInFailed) && (
+          <div role="alert" className="mb-2 rounded-xl bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-700">
             Sign in failed. Please try again.
           </div>
         )}
