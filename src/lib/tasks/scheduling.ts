@@ -122,7 +122,10 @@ export function getApplicableTemplates(home: {
   systemSubtypes?: Partial<Record<SystemType, string[]>>;
   /** Features the user declared (onboarding). Undefined = unknown → fail open. */
   applianceFeatures?: ApplianceFeature[];
+  /** IECC climate zone saved on the home, e.g. "5A". Unknown → fail open. */
+  climateZone?: string | null;
 }, healthFlags?: HealthFlags): TaskTemplate[] {
+  const zone = parseInt(home.climateZone ?? "", 10);
   return TASK_TEMPLATES.filter((template) => {
     // Check home type applicability
     if (
@@ -171,6 +174,11 @@ export function getApplicableTemplates(home: {
       home.applianceFeatures &&
       !home.applianceFeatures.includes(template.requiresApplianceFeature)
     ) {
+      return false;
+    }
+
+    // Cold-weather tasks (ice dams) only where winters are cold enough
+    if (template.minClimateZone && !Number.isNaN(zone) && zone < template.minClimateZone) {
       return false;
     }
 
@@ -296,4 +304,45 @@ export function calculateHomeHealthScore(
   const overall = totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 100;
 
   return { overall, criticalTasks, preventiveCare, homeEfficiency };
+}
+
+/**
+ * New frequency for a task when household options change, or null to leave it.
+ * Only tasks still at the frequency the OLD options produced are re-timed, so
+ * a frequency the user edited by hand is never overwritten.
+ */
+export function retimeForHealthChange(
+  template: Pick<TaskTemplate, "frequencyValue" | "frequencyUnit" | "healthMultipliers">,
+  current: { frequencyValue: number; frequencyUnit: FrequencyUnit },
+  oldFlags: HealthFlags,
+  newFlags: HealthFlags
+): { frequencyValue: number; frequencyUnit: FrequencyUnit } | null {
+  const before = adjustFrequencyForHealth(
+    template.frequencyValue, template.frequencyUnit, template.healthMultipliers, oldFlags
+  );
+  if (before.frequencyValue !== current.frequencyValue || before.frequencyUnit !== current.frequencyUnit) {
+    return null; // user-edited
+  }
+  const after = adjustFrequencyForHealth(
+    template.frequencyValue, template.frequencyUnit, template.healthMultipliers, newFlags
+  );
+  if (after.frequencyValue === current.frequencyValue && after.frequencyUnit === current.frequencyUnit) {
+    return null;
+  }
+  return after;
+}
+
+/**
+ * Option-gated templates (e.g. mold inspection) a home should gain after its
+ * household options change. Skips names the home already has — including
+ * dismissed tasks, which are never revived.
+ */
+export function healthTasksToAdd(
+  home: Parameters<typeof getApplicableTemplates>[0],
+  existingNames: Set<string>,
+  newFlags: HealthFlags
+): TaskTemplate[] {
+  return getApplicableTemplates(home, newFlags).filter(
+    (t) => t.healthRequired.length > 0 && !existingNames.has(t.name)
+  );
 }

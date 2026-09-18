@@ -65,6 +65,7 @@ export const applianceCategoryEnum = pgEnum("appliance_category", [
   "mini_split",
   "evap_cooler",
   "solar_panels",
+  "air_purifier",
   "other",
 ]);
 
@@ -458,6 +459,7 @@ export const householdHealthFlags = pgTable("household_health_flags", {
   hasImmunocompromised: boolean("has_immunocompromised").default(false),
   prioritizeAirQuality: boolean("prioritize_air_quality").default(false),
   prioritizeEnergyEfficiency: boolean("prioritize_energy_efficiency").default(false),
+  moldSensitive: boolean("mold_sensitive").default(false),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),

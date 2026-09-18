@@ -48,6 +48,7 @@ const HOUSEHOLD_OPTIONS: { key: string; label: string }[] = [
   { key: "hasImmunocompromised", label: "Immune-compromised" },
   { key: "prioritizeAirQuality", label: "Prioritize air quality" },
   { key: "prioritizeEnergyEfficiency", label: "Prioritize energy efficiency" },
+  { key: "moldSensitive", label: "Mold sensitivity" },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -227,12 +228,12 @@ export default function SettingsPage() {
         });
         if (!res.ok) throw new Error();
         const data = await res.json();
-        if (typeof data.tasksAdjusted === "number" && data.tasksAdjusted > 0) {
-          toast(
-            `Saved — ${data.tasksAdjusted} task${data.tasksAdjusted === 1 ? "" : "s"} rescheduled from the next cycle`,
-            "success"
-          );
-        }
+        const plural = (n: number) => `${n} task${n === 1 ? "" : "s"}`;
+        const changes = [
+          data.tasksAdded > 0 && `${plural(data.tasksAdded)} added to your list`,
+          data.tasksAdjusted > 0 && `${plural(data.tasksAdjusted)} rescheduled from the next cycle`,
+        ].filter(Boolean);
+        if (changes.length > 0) toast(`Saved — ${changes.join(", ")}`, "success");
       } catch {
         setFlags(previous);
         toast("Couldn't save household settings", "error");

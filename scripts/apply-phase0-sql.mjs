@@ -19,6 +19,8 @@ const files = [
   "drizzle/0010_storage_policies_use_definer_fn.sql",
   "drizzle/0011_deletion_and_notification_log.sql",
   "drizzle/0012_appliance_subgroups.sql",
+  "drizzle/0013_air_purifier_and_mold_flag.sql",
+  "drizzle/0014_tester_feedback_content.sql",
 ];
 
 for (const file of files) {

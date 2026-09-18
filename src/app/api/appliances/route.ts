@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { appliances, homeSystems, taskInstances } from "@/lib/db/schema";
+import { appliances, taskInstances } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { apiHandler, parseBody } from "@/lib/api/handler";
 import { getUserHome } from "@/lib/auth/get-user-home";
-import { getApplicableTemplates } from "@/lib/tasks/scheduling";
+import { adjustFrequencyForHealth, getApplicableTemplates } from "@/lib/tasks/scheduling";
+import { loadHomeForMatching } from "@/lib/tasks/home-matching";
 import { getInitialDueDate } from "@/lib/tasks/initial-due";
-import type { HomeType, SystemType, ApplianceCategory, FrequencyUnit } from "@/lib/tasks/templates";
+import type { ApplianceCategory, FrequencyUnit } from "@/lib/tasks/templates";
 
 const addApplianceSchema = z.object({
   homeId: z.string().uuid(),
@@ -33,49 +34,36 @@ export const POST = apiHandler(async ({ user, request }) => {
     category: body.category as ApplianceCategory,
   }).returning();
 
-  // Get existing data for template matching
-  const existingSystems = await db.select().from(homeSystems).where(eq(homeSystems.homeId, home.id));
-  const existingAppls = await db.select().from(appliances).where(eq(appliances.homeId, home.id));
+  // Match against the whole home (systems, climate, household options)
+  const { matching, healthFlags } = await loadHomeForMatching(home);
   const existingTasks = await db.select({ name: taskInstances.name }).from(taskInstances).where(eq(taskInstances.homeId, home.id));
   const existingTaskNames = new Set(existingTasks.map(t => t.name));
 
-  const systemSubtypes: Partial<Record<SystemType, string[]>> = {};
-  for (const s of existingSystems) {
-    const key = s.systemType as SystemType;
-    (systemSubtypes[key] ??= []).push(s.subtype ?? "standard");
-  }
-  const applicableTemplates = getApplicableTemplates(
-    {
-      type: (home.type || "single_family") as HomeType,
-      systems: existingSystems.map(s => s.systemType as SystemType),
-      appliances: existingAppls.map(a => a.category as ApplianceCategory),
-      systemSubtypes,
-    },
-    {}
-  );
-
-  const newTasks = applicableTemplates
+  const newTasks = getApplicableTemplates(matching, healthFlags)
     .filter(t => !existingTaskNames.has(t.name))
     .filter(t => t.applicableApplianceCategories.includes(body.category as ApplianceCategory))
-    .map(t => ({
-      homeId: home.id,
-      name: t.name,
-      description: t.description,
-      category: t.category,
-      priority: t.priority,
-      frequencyUnit: t.frequencyUnit,
-      frequencyValue: t.frequencyValue,
-      // Same staggered/seasonal first due date as onboarding — never today + frequency
-      nextDueDate: getInitialDueDate(t, t.frequencyValue, t.frequencyUnit as FrequencyUnit).toISOString().split("T")[0],
-      lastCompletedDate: null,
-      isActive: true,
-      isCustom: false,
-      notificationDaysBefore: 3,
-      tips: t.tips,
-      whyItMatters: t.whyItMatters,
-      subgroup: t.subgroup,
-      applianceId: appliance.id,
-    }));
+    .map(t => {
+      const freq = adjustFrequencyForHealth(t.frequencyValue, t.frequencyUnit, t.healthMultipliers, healthFlags);
+      return {
+        homeId: home.id,
+        name: t.name,
+        description: t.description,
+        category: t.category,
+        priority: t.priority,
+        frequencyUnit: freq.frequencyUnit,
+        frequencyValue: freq.frequencyValue,
+        // Same staggered/seasonal first due date as onboarding — never today + frequency
+        nextDueDate: getInitialDueDate(t, freq.frequencyValue, freq.frequencyUnit as FrequencyUnit).toISOString().split("T")[0],
+        lastCompletedDate: null,
+        isActive: true,
+        isCustom: false,
+        notificationDaysBefore: 3,
+        tips: t.tips,
+        whyItMatters: t.whyItMatters,
+        subgroup: t.subgroup,
+        applianceId: appliance.id,
+      };
+    });
 
   if (newTasks.length > 0) {
     await db.insert(taskInstances).values(newTasks);

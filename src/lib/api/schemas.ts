@@ -31,7 +31,7 @@ const applianceCategoryValues = [
   "water_softener", "water_filter", "humidifier", "dehumidifier",
   "garage_door", "pool_pump", "hot_tub", "sump_pump", "generator",
   "heat_pump", "boiler", "fireplace", "mini_split", "evap_cooler", "solar_panels",
-  "other",
+  "air_purifier", "other",
 ] as const;
 
 // ─── API Schemas ────────────────────────────────────────────────────────────
@@ -132,6 +132,7 @@ export const householdHealthSchema = z.object({
   hasImmunocompromised: z.boolean().default(false),
   prioritizeAirQuality: z.boolean().default(false),
   prioritizeEnergyEfficiency: z.boolean().default(false),
+  moldSensitive: z.boolean().default(false),
 });
 
 export type HouseholdHealthInput = z.infer<typeof householdHealthSchema>;

@@ -123,6 +123,7 @@ const APPLIANCE_GROUP_LABELS: Record<string, string> = {
   water_filter: "Water & Heating",
   humidifier: "Air Quality",
   dehumidifier: "Air Quality",
+  air_purifier: "Air Quality",
   garage_door: "Other",
   pool_pump: "Other",
   hot_tub: "Other",

@@ -19,7 +19,7 @@ export type ApplianceCategory =
   | "humidifier" | "dehumidifier" | "garage_door" | "pool_pump"
   | "hot_tub" | "sump_pump" | "generator" | "heat_pump"
   | "boiler" | "fireplace" | "mini_split" | "evap_cooler"
-  | "solar_panels" | "other";
+  | "solar_panels" | "air_purifier" | "other";
 
 /** Optional appliance features asked about in onboarding. */
 export const APPLIANCE_FEATURES = ["fridge_dispenser"] as const;
@@ -49,7 +49,8 @@ export type HealthFlagKey =
   | "hasElderly"
   | "hasImmunocompromised"
   | "prioritizeAirQuality"
-  | "prioritizeEnergyEfficiency";
+  | "prioritizeEnergyEfficiency"
+  | "moldSensitive";
 
 export interface TaskTemplate {
   id: string;
@@ -73,6 +74,9 @@ export interface TaskTemplate {
   /** Optional feature the appliance must have, e.g. "fridge_dispenser" for
    *  the fridge water filter. Only enforced when the caller knows features. */
   requiresApplianceFeature?: ApplianceFeature;
+  /** Cold-weather tasks: only homes at this IECC climate zone number or
+   *  colder (e.g. 4 → zones 4–8). Unknown zone → included. */
+  minClimateZone?: number;
   seasonalMonths: number[];
   healthCategories: HealthCategory[];
   tips: string | null;
@@ -333,7 +337,7 @@ const airQualityTemplates: TaskTemplate[] = [
     name: "Test Radon Levels",
     description: "Place a radon test kit in the lowest livable level of your home for the specified period (short-term: 2-7 days, long-term: 90+ days).",
     category: "air_quality",
-    subgroup: "air_quality",
+    subgroup: "radon",
     priority: "safety",
     frequencyValue: 2,
     frequencyUnit: "years",
@@ -356,7 +360,7 @@ const airQualityTemplates: TaskTemplate[] = [
     name: "Inspect for Mold Growth",
     description: "Check bathrooms, basements, attics, and areas around windows for visible mold or musty odors. Pay attention to corners, under sinks, and behind appliances.",
     category: "air_quality",
-    subgroup: "air_quality",
+    subgroup: "mold_moisture",
     priority: "safety",
     frequencyValue: 3,
     frequencyUnit: "months",
@@ -372,14 +376,14 @@ const airQualityTemplates: TaskTemplate[] = [
     tips: "Use a flashlight to check dark corners. Small mold patches (under 10 sq ft) can be cleaned with detergent and water. Larger areas or mold behind walls require professional remediation.",
     whyItMatters: "Mold exposure can cause severe respiratory issues and allergic reactions, especially dangerous for immunocompromised individuals.",
     healthMultipliers: {},
-    healthRequired: ["hasImmunocompromised"],
+    healthRequired: ["hasImmunocompromised", "moldSensitive"],
   },
   {
     id: "health-check-humidity",
     name: "Check Indoor Humidity Levels",
     description: "Monitor indoor humidity to prevent mold growth and maintain comfortable air quality. Ideal range is 30-50%.",
     category: "air_quality",
-    subgroup: "air_quality",
+    subgroup: "mold_moisture",
     priority: "efficiency",
     frequencyValue: 1,
     frequencyUnit: "months",
@@ -395,7 +399,76 @@ const airQualityTemplates: TaskTemplate[] = [
     tips: "Use a hygrometer to check humidity. If consistently above 50%, consider a dehumidifier.",
     whyItMatters: "High humidity promotes mold growth, dust mites, and can worsen allergies and asthma.",
     healthMultipliers: {},
-    healthRequired: ["prioritizeAirQuality"],
+    healthRequired: ["prioritizeAirQuality", "moldSensitive"],
+  },
+  {
+    id: "air-purifier-clean-prefilter",
+    name: "Clean Air Purifier Pre-Filters",
+    description: "Vacuum or rinse the washable pre-filter on each air purifier — the outer mesh layer that catches hair and dust. Let rinsed filters dry completely before putting them back.",
+    category: "air_quality",
+    subgroup: "air_purifier",
+    priority: "efficiency",
+    frequencyValue: 1,
+    frequencyUnit: "months",
+    estimatedMinutes: 10,
+    estimatedCostLow: 0,
+    estimatedCostHigh: 0,
+    diyDifficulty: "easy",
+    applicableHomeTypes: ALL_HOMES,
+    applicableSystems: [],
+    applicableApplianceCategories: ["air_purifier"],
+    seasonalMonths: [],
+    healthCategories: ["clean_air"],
+    tips: "A handheld vacuum or brush attachment works for most pre-filters. Only rinse ones your manual calls washable, and never put a damp filter back — it can grow mold.",
+    whyItMatters: "A clogged pre-filter chokes airflow, so the purifier cleans less air and the main filter wears out sooner.",
+    healthMultipliers: {},
+    healthRequired: [],
+  },
+  {
+    id: "air-purifier-replace-filter",
+    name: "Replace Air Purifier Filters",
+    description: "Replace the main HEPA and/or carbon filter on each air purifier.",
+    category: "air_quality",
+    subgroup: "air_purifier",
+    priority: "efficiency",
+    frequencyValue: 6,
+    frequencyUnit: "months",
+    estimatedMinutes: 10,
+    estimatedCostLow: 2000,
+    estimatedCostHigh: 8000,
+    diyDifficulty: "easy",
+    applicableHomeTypes: ALL_HOMES,
+    applicableSystems: [],
+    applicableApplianceCategories: ["air_purifier"],
+    seasonalMonths: [],
+    healthCategories: ["clean_air"],
+    tips: "Check your manual or the unit's filter light — most HEPA filters last 6–12 months, carbon filters less. You can change how often this repeats to match your model.",
+    whyItMatters: "A spent filter stops capturing particles and odors, so the purifier just moves air around.",
+    healthMultipliers: {},
+    healthRequired: [],
+  },
+  {
+    id: "dehumidifier-clean-filter",
+    name: "Clean Dehumidifier Filters",
+    description: "Remove and wash the air filter on each portable dehumidifier, and wipe out the water bucket while you're there so it doesn't grow mold.",
+    category: "air_quality",
+    subgroup: "dehumidifier",
+    priority: "efficiency",
+    frequencyValue: 2,
+    frequencyUnit: "months",
+    estimatedMinutes: 10,
+    estimatedCostLow: 0,
+    estimatedCostHigh: 0,
+    diyDifficulty: "easy",
+    applicableHomeTypes: ALL_HOMES,
+    applicableSystems: [],
+    applicableApplianceCategories: ["dehumidifier"],
+    seasonalMonths: [],
+    healthCategories: ["clean_air", "mold_prevention"],
+    tips: "Rinse the filter in warm water and let it dry fully. Wipe the bucket with mild soap; a little white vinegar helps with slime or musty smells.",
+    whyItMatters: "A dusty filter makes the dehumidifier work harder and pull less moisture, and standing water in a dirty bucket is a mold source of its own.",
+    healthMultipliers: {},
+    healthRequired: [],
   },
 ];
 
@@ -443,12 +516,12 @@ const hvacTemplates: TaskTemplate[] = [
     diyDifficulty: "professional",
     applicableHomeTypes: ALL_HOMES,
     applicableSystems: ["hvac"],
-    applicableApplianceCategories: ["furnace", "ac_unit"],
+    applicableApplianceCategories: ["furnace", "ac_unit", "heat_pump", "evap_cooler"],
     seasonalMonths: [],
     healthCategories: ["clean_air"],
     tips: "Get quotes from at least 3 companies. Beware of $99 whole-house deals — reputable companies charge $300-600. Ask if they use negative pressure equipment. Check NADCA certification.",
     whyItMatters: "Dirty ducts circulate dust, allergens, and potentially mold throughout your home. If anyone in your household has allergies or asthma, this is especially important.",
-    healthMultipliers: { hasAllergies: 0.5, prioritizeAirQuality: 0.5 },
+    healthMultipliers: { hasAllergies: 0.5, prioritizeAirQuality: 0.5, moldSensitive: 0.5 },
     healthRequired: [],
   },
   {
@@ -466,7 +539,7 @@ const hvacTemplates: TaskTemplate[] = [
     diyDifficulty: "moderate",
     applicableHomeTypes: ALL_DETACHED,
     applicableSystems: ["hvac"],
-    applicableApplianceCategories: ["furnace", "ac_unit"],
+    applicableApplianceCategories: ["furnace", "ac_unit", "heat_pump", "evap_cooler"],
     seasonalMonths: [],
     healthCategories: ["clean_air"],
     tips: "Turn the system on and feel for air escaping at joints. Look for duct tape (ironically, it fails on ducts) — metal tape or mastic sealant is what should be used. Seal any leaks you find with foil-backed tape.",
@@ -708,14 +781,14 @@ const hvacTemplates: TaskTemplate[] = [
   },
   // ── Heat Pump ──
   {
-    id: "heat-pump-seasonal-tuneup",
-    name: "Heat Pump Professional Tune-Up",
-    description: "Schedule a professional HVAC technician to inspect and tune up your heat pump twice a year — once before heating season and once before cooling season.",
+    id: "heat-pump-professional-cleaning",
+    name: "Professional Heat Pump Cleaning",
+    description: "Have a professional clean the whole system: the indoor unit (coil, blower and drain pan) and the outdoor coil. Heat pumps run year-round, so dust and grime build up faster than on a furnace or AC.",
     category: "heating_cooling",
     subgroup: "heat_pump",
     priority: "prevent_damage",
-    frequencyValue: 6,
-    frequencyUnit: "months",
+    frequencyValue: 1,
+    frequencyUnit: "years",
     estimatedMinutes: 90,
     estimatedCostLow: 8000,
     estimatedCostHigh: 15000,
@@ -723,10 +796,10 @@ const hvacTemplates: TaskTemplate[] = [
     applicableHomeTypes: ALL_HOMES,
     applicableSystems: ["hvac"],
     applicableApplianceCategories: ["heat_pump"],
-    seasonalMonths: [3, 9],
+    seasonalMonths: [3],
     healthCategories: ["clean_air"],
-    tips: "Ask the technician to check refrigerant charge, test the reversing valve (what switches you between heating and cooling), and verify the defrost cycle is working properly. The defrost cycle prevents ice buildup on the outdoor unit in winter — if it fails, your unit can freeze solid.",
-    whyItMatters: "Heat pumps work year-round doing double duty as both heater and air conditioner, so they accumulate twice the wear of a furnace or AC alone. Twice-yearly tune-ups catch refrigerant leaks and compressor issues early — repairs cost $200-600 versus $2,000-5,000 for a failed compressor.",
+    tips: "While they're there, it's worth asking them to look over the refrigerant level and the defrost cycle \u2014 both are cheap to check during a cleaning visit. Otherwise, call for service only if something seems off: weak heating or cooling, ice that won't clear from the outdoor unit, or strange noises.",
+    whyItMatters: "A dirty coil and blower cut efficiency and airflow, and a clogged drain pan can grow mold and leak.",
     healthMultipliers: {},
     healthRequired: [],
   },
@@ -968,7 +1041,7 @@ const plumbingTemplates: TaskTemplate[] = [
     healthCategories: [],
     tips: "Use enzyme-based treatments (Bio-Clean, Green Gobbler), not chemical drain cleaners like Drano — those corrode pipes. Pour it before bed so it can sit overnight. Also pull out pop-up stoppers and remove hair/soap buildup.",
     whyItMatters: "Preventive treatment is much cheaper than emergency drain clearing ($200-500 per visit). Recurring clogs can also indicate deeper sewer line issues.",
-    healthMultipliers: {},
+    healthMultipliers: { moldSensitive: 0.34 },
     healthRequired: [],
   },
   {
@@ -1430,13 +1503,13 @@ const electricalTemplates: TaskTemplate[] = [
 
 const roofGutterTemplates: TaskTemplate[] = [
   {
-    id: "roof-clean-gutters",
-    name: "Clean Gutters and Downspouts",
-    description: "Remove leaves, debris, and sediment from all gutters. Flush downspouts with a hose to ensure they're clear. Check for proper drainage.",
+    id: "roof-check-gutters",
+    name: "Check Gutters (Clean If Needed)",
+    description: "During a heavy rain, watch your gutters and downspouts: look for water spilling over the edge, running behind the gutter, or downspouts that barely flow. If you see any of that \u2014 or it's spring or fall and leaves have come down \u2014 clean them: scoop out debris and flush the downspouts with a hose.",
     category: "exterior_structure",
     subgroup: "roof_gutters",
     priority: "prevent_damage",
-    frequencyValue: 6,
+    frequencyValue: 3,
     frequencyUnit: "months",
     estimatedMinutes: 120,
     estimatedCostLow: 0,
@@ -1449,7 +1522,8 @@ const roofGutterTemplates: TaskTemplate[] = [
     healthCategories: ["mold_prevention", "pest_free"],
     tips: "Use a gutter scoop and garden hose. Check that downspouts discharge at least 4-6 feet from the foundation. Consider gutter guards if you have many trees — they reduce but don't eliminate cleaning. Professional cleaning runs $150-250 for most homes.",
     whyItMatters: "Clogged gutters cause water to overflow against the foundation, leading to basement flooding, foundation damage, and fascia rot. Ice dams in winter can damage roofing and cause interior leaks.",
-    healthMultipliers: { hasAllergies: 0.75 },
+    // No allergy speed-up: a 3-monthly check is already frequent enough
+    healthMultipliers: {},
     healthRequired: [],
   },
   {
@@ -1544,14 +1618,38 @@ const roofGutterTemplates: TaskTemplate[] = [
     healthMultipliers: { hasImmunocompromised: 0.5, hasAllergies: 0.5 },
     healthRequired: [],
   },
+  {
+    id: "roof-check-ice-dams",
+    name: "Check for Ice Dams",
+    description: "After a snowfall or a cold snap, look along the roof edges, gutters and fascia boards from the ground. Watch for large icicles or sheets of ice building up at the roof's edge.",
+    category: "exterior_structure",
+    subgroup: "roof_gutters",
+    priority: "prevent_damage",
+    frequencyValue: 1,
+    frequencyUnit: "years",
+    estimatedMinutes: 10,
+    estimatedCostLow: 0,
+    estimatedCostHigh: 0,
+    diyDifficulty: "easy",
+    applicableHomeTypes: ALL_DETACHED,
+    applicableSystems: ["roofing"],
+    applicableApplianceCategories: [],
+    seasonalMonths: [1],
+    minClimateZone: 4,
+    healthCategories: ["mold_prevention"],
+    tips: "Check after every heavy snow, not just when this task comes due. Don't knock ice off from a ladder or chip at it on the roof — it damages shingles and is dangerous. A roof rake, used from the ground, to pull snow off the lower few feet helps prevent them.",
+    whyItMatters: "Big icicles and ice sheets are often the visible sign of an ice dam: a ridge of ice that traps melting snow, which backs up under the shingles and leaks into the attic, walls and ceilings. Repeat ice dams usually mean heat is escaping into the attic (insulation or ventilation), which a pro can diagnose.",
+    healthMultipliers: {},
+    healthRequired: [],
+  },
 ];
 
 const exteriorTemplates: TaskTemplate[] = [
   // ── Walls, Windows & Foundation ──
   {
-    id: "exterior-power-wash-siding",
-    name: "Power Wash Siding",
-    description: "Power wash the exterior siding of your home to remove dirt, mildew, and algae buildup.",
+    id: "exterior-wash-siding",
+    name: "Wash Siding",
+    description: "Scrub siding with a soft, flexible brush and a siding wash made for your cladding (vinyl, fiber cement, wood, etc.), then rinse with low pressure at an angle to the siding.",
     category: "exterior_structure",
     subgroup: "walls_windows_foundation",
     priority: "cosmetic",
@@ -1566,8 +1664,8 @@ const exteriorTemplates: TaskTemplate[] = [
     applicableApplianceCategories: [],
     seasonalMonths: [4, 5],
     healthCategories: [],
-    tips: "Use 1,500-2,000 PSI for vinyl siding, lower for wood. Keep the nozzle 12+ inches from the surface. Never aim up under siding — water will get behind it. Rent a power washer for $50-100/day, or hire a pro for $200-400.",
-    whyItMatters: "Beyond curb appeal, mildew and algae growth can degrade siding over time. Clean siding also makes it easier to spot damage that needs repair.",
+    tips: "Never point water straight at the siding or up under the laps \u2014 it forces water behind the siding, where it causes rot and mold. Scrub bottom to top and rinse top to bottom so the cleaner doesn't streak. If you use a pressure washer anyway: check your siding maker's guidance first (some void the warranty), use the lowest setting and the widest spray tip, stand well back, spray downward at an angle, and never aim at seams, windows, vents or up under the laps.",
+    whyItMatters: "Dirt, mildew and algae hold moisture against siding and break down its finish. Gentle cleaning removes them without pushing water into the wall.",
     healthMultipliers: {},
     healthRequired: [],
   },
@@ -2194,9 +2292,9 @@ const applianceTemplates: TaskTemplate[] = [
 const outdoorsTemplates: TaskTemplate[] = [
   // ── Yard & Structures ──
   {
-    id: "exterior-seal-deck",
-    name: "Clean and Seal Deck",
-    description: "Clean the deck surface (power wash or scrub with deck cleaner), let dry completely, then apply sealant or stain.",
+    id: "exterior-clean-deck",
+    name: "Clean Deck (Seal If Needed)",
+    description: "Scrub the deck with a deck cleaner and a stiff brush and rinse with a garden hose. Then do the water test: if water beads up, you're done this year. If it soaks in, let the deck dry 24\u201348 hours and apply sealant or stain.",
     category: "outdoors_stuff",
     subgroup: "yard_structures",
     priority: "prevent_damage",
@@ -2211,8 +2309,8 @@ const outdoorsTemplates: TaskTemplate[] = [
     applicableApplianceCategories: [],
     seasonalMonths: [5, 6],
     healthCategories: ["mold_prevention", "injury_prevention"],
-    tips: "Test if your deck needs sealing: sprinkle water on it. If it beads up, the seal is still good. If it soaks in, it's time. Let the deck dry 24-48 hours after washing before applying sealer. Apply on a cloudy day to avoid lap marks.",
-    whyItMatters: "Unsealed wood decks absorb water, leading to rot, warping, and structural failure. A deck replacement costs $5,000-20,000+. Annual sealing preserves both safety and value.",
+    tips: "Composite and PVC decks never need sealing \u2014 just the cleaning. When you do seal, apply on a cloudy day to avoid lap marks. If you use a pressure washer: lowest setting, wide fan tip, keep it moving along the grain, and stay a foot or more back \u2014 too close gouges the wood.",
+    whyItMatters: "Unsealed wood decks absorb water, leading to rot, warping, and structural failure. A deck replacement costs $5,000-20,000+. Sealing whenever the water test says it's time preserves both safety and value.",
     healthMultipliers: { hasImmunocompromised: 0.5, hasAllergies: 0.5 },
     healthRequired: [],
   },
@@ -2263,9 +2361,9 @@ const outdoorsTemplates: TaskTemplate[] = [
     healthRequired: [],
   },
   {
-    id: "exterior-power-wash-hardscape",
-    name: "Power Wash Driveway and Walkways",
-    description: "Power wash concrete or paver driveway, walkways, and patio surfaces.",
+    id: "exterior-wash-hardscape",
+    name: "Wash Driveway and Walkways",
+    description: "Scrub concrete or paver driveways, walkways, and patios with a stiff push broom and a concrete or paver cleaner, then rinse with a garden hose.",
     category: "outdoors_stuff",
     subgroup: "yard_structures",
     priority: "cosmetic",
@@ -2280,7 +2378,7 @@ const outdoorsTemplates: TaskTemplate[] = [
     applicableApplianceCategories: [],
     seasonalMonths: [4, 5],
     healthCategories: ["injury_prevention"],
-    tips: "Use 3,000+ PSI for concrete. A surface cleaner attachment ($30-60) makes driveways much faster and more uniform than a wand. Pre-treat oil stains with degreaser. For pavers, re-sand joints after washing.",
+    tips: "Pre-treat oil stains with a degreaser and let it sit before scrubbing. For pavers, top up the sand in the joints after washing.",
     whyItMatters: "Mold, mildew, and algae on walkways create a slip hazard. Organic growth can also work into concrete cracks and accelerate deterioration.",
     healthMultipliers: {},
     healthRequired: [],

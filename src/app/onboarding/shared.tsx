@@ -237,6 +237,8 @@ export const MAJOR_SYSTEMS: HomeItemGroup[] = [
       { key: "garage-door", label: "Garage Door Opener", icon: "\u{1F6AA}", type: "appliance", mappedAppliance: "garage_door" as ApplianceCategory },
       { key: "sump-pump", label: "Sump Pump", icon: "\u{1F573}\uFE0F", type: "appliance", mappedAppliance: "sump_pump" as ApplianceCategory },
       { key: "water-softener", label: "Water Softener", icon: "\u{1F9C2}", type: "appliance", mappedAppliance: "water_softener" as ApplianceCategory },
+      { key: "air-purifier", label: "Portable Air Purifier(s)", icon: "\u{1F32C}\uFE0F", type: "appliance", mappedAppliance: "air_purifier" as ApplianceCategory },
+      { key: "dehumidifier", label: "Portable Dehumidifier(s)", icon: "\u{1F4A7}", type: "appliance", mappedAppliance: "dehumidifier" as ApplianceCategory },
     ],
   },
 ];
@@ -249,6 +251,7 @@ export const HEALTH_OPTIONS: { key: string; label: string; icon: string; desc: s
   { key: "hasImmunocompromised", label: "Immune-compromised", icon: "\u{1F6E1}\uFE0F", desc: "Extra mold & water quality checks" },
   { key: "prioritizeAirQuality", label: "Better indoor air quality", icon: "\u{1F331}", desc: "Humidity, ventilation, radon" },
   { key: "prioritizeEnergyEfficiency", label: "Energy efficiency", icon: "\u26A1", desc: "Weatherstripping, insulation, audits" },
+  { key: "moldSensitive", label: "Mold sensitivity", icon: "\u{1F4A7}", desc: "Extra checks for moisture, mold and drains" },
 ];
 
 // ---------------------------------------------------------------------------

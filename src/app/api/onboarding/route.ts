@@ -144,6 +144,7 @@ export async function POST(request: Request) {
         appliances: body.appliances as ApplianceCategory[],
         systemSubtypes,
         applianceFeatures: body.applianceFeatures,
+        climateZone: body.home.climateZone,
       },
       healthFlags
     );

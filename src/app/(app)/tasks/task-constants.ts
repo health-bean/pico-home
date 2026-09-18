@@ -158,10 +158,16 @@ export const SUBGROUP_LABELS: Record<string, string> = {
   dryer: "Dryer",
   oven_range: "Oven & Range",
   garbage_disposal: "Garbage Disposal",
+  // Air Quality & Health
+  air_purifier: "Air Purifiers",
+  dehumidifier: "Dehumidifiers",
+  mold_moisture: "Mold & Moisture",
+  radon: "Radon",
 };
 
-// Categories that show tasks in flat list (no sub-group headers)
-export const FLAT_CATEGORIES = new Set(["air_quality"]);
+// Categories that show tasks in flat list (no sub-group headers). Empty now
+// that every category groups; kept so a future small category can opt out.
+export const FLAT_CATEGORIES = new Set<string>();
 
 export const priorityLabels: Record<string, string> = {
   safety: "Critical",
