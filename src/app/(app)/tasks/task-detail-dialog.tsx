@@ -285,10 +285,10 @@ export function TaskDetailDialog({
               {/* Backdate option */}
               {task.isActive && (
                 <div>
-                  <label className="text-xs text-muted-foreground">
+                  <label htmlFor="backdate-date" className="text-xs text-muted-foreground">
                     When did you last do this? (optional)
                   </label>
-                  <input
+                  <input id="backdate-date"
                     type="date"
                     value={completionDate}
                     max={new Date().toISOString().split("T")[0]}

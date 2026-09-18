@@ -448,9 +448,9 @@ export function SelectionCheckmark({ selected }: { selected: boolean }) {
   );
 }
 
-export function FormLabel({ children }: { children: React.ReactNode }) {
+export function FormLabel({ children, htmlFor, id }: { children: React.ReactNode; htmlFor?: string; id?: string }) {
   return (
-    <label className="text-sm font-medium text-[var(--color-neutral-700)] mb-1.5 block">
+    <label htmlFor={htmlFor} id={id} className="text-sm font-medium text-[var(--color-neutral-700)] mb-1.5 block">
       {children}
     </label>
   );
@@ -471,16 +471,18 @@ export function FormInput({
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   maxLength?: number;
 }) {
+  const fieldId = React.useId();
   return (
     <div>
-      <FormLabel>{label}</FormLabel>
+      <FormLabel htmlFor={fieldId}>{label}</FormLabel>
       <input
+        id={fieldId}
         type={type}
         placeholder={placeholder}
         value={value}
         onChange={onChange}
         maxLength={maxLength}
-        className="h-10 w-full rounded-xl border border-[var(--color-neutral-200)] bg-white px-4 text-sm font-medium focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-100)] outline-none transition-all"
+        className="h-10 w-full rounded-xl border border-[var(--color-neutral-200)] bg-white px-4 text-sm font-medium focus:border-[var(--color-primary-700)] focus:ring-2 focus:ring-[var(--color-primary-700)]/30 outline-none transition-all"
       />
     </div>
   );
@@ -499,13 +501,15 @@ export function FormSelect({
   value: string;
   onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
 }) {
+  const fieldId = React.useId();
   return (
     <div>
-      <FormLabel>{label}</FormLabel>
+      <FormLabel htmlFor={fieldId}>{label}</FormLabel>
       <select
+        id={fieldId}
         value={value}
         onChange={onChange}
-        className="h-10 w-full rounded-xl border border-[var(--color-neutral-200)] bg-white px-4 text-sm font-medium focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-100)] outline-none transition-all appearance-none"
+        className="h-10 w-full rounded-xl border border-[var(--color-neutral-200)] bg-white px-4 text-sm font-medium focus:border-[var(--color-primary-700)] focus:ring-2 focus:ring-[var(--color-primary-700)]/30 outline-none transition-all appearance-none"
       >
         {placeholder && (
           <option value="" disabled>
@@ -562,8 +566,8 @@ export function StepAboutHome({
 
         {/* Property Type -- compact 2-column grid */}
         <div>
-          <FormLabel>Property Type</FormLabel>
-          <div className="grid grid-cols-2 gap-2">
+          <FormLabel id="property-type-label">Property Type</FormLabel>
+          <div role="group" aria-labelledby="property-type-label" className="grid grid-cols-2 gap-2">
             {HOME_TYPES.map((ht) => (
               <button
                 key={ht.value}
@@ -996,7 +1000,7 @@ export function StepComplete({
           ))}
         </div>
         <p className="mt-5 text-xs text-[var(--color-primary-800)]">
-          You can add appliances, contractors, and more from your home profile anytime.
+          You can add appliances, systems, and documents from your home profile anytime.
         </p>
         <button
           type="button"

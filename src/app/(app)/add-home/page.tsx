@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui";
 import type { FormData } from "@/app/onboarding/shared";
 import {
   CLIMATE_ZONES,
@@ -23,6 +24,7 @@ const TOTAL_STEPS = 2; // About + Systems (completion screen hides the bar)
 
 export default function AddHomePage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [, startTransition] = useTransition();
   const [step, setStep] = useState(1);
   const [animating, setAnimating] = useState(false);
@@ -147,13 +149,12 @@ export default function AddHomePage() {
         });
 
         if (!res.ok) throw new Error("Failed to save");
+        goTo(3, "forward");
       } catch {
-        console.error("Failed to save new property");
+        toast("Couldn\u2019t add that property \u2014 check your connection and try again", "error");
       }
-
-      goTo(3, "forward");
     });
-  }, [buildApiPayload, form, goTo, startTransition]);
+  }, [buildApiPayload, form, goTo, startTransition, toast]);
 
   const translateClass = animating
     ? direction === "forward"

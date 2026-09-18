@@ -216,6 +216,8 @@ function MembersSection() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState("");
   const [inviteSuccess, setInviteSuccess] = useState("");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
 
   const fetchMembers = useCallback(async () => {
     try {
@@ -224,6 +226,8 @@ function MembersSection() {
       const data = await res.json();
       setMembers(data.members || []);
       setInvites(data.invites || []);
+      setCurrentUserId(data.currentUserId ?? null);
+      setIsOwner(Boolean(data.isOwner));
     } catch {
       toast("Couldn't load your household members — refresh to try again", "error");
     }
@@ -272,12 +276,15 @@ function MembersSection() {
     <section>
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-[15px] font-bold">Members</h2>
-        <button
-          onClick={() => setShowInvite(true)}
-          className="text-[13px] font-semibold text-[var(--color-primary-700)]"
-        >
-          Invite &rarr;
-        </button>
+        {/* Only the owner can invite — the API rejects anyone else */}
+        {isOwner && (
+          <button
+            onClick={() => setShowInvite(true)}
+            className="text-[13px] font-semibold text-[var(--color-primary-700)]"
+          >
+            Invite &rarr;
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-2xl border border-[var(--color-neutral-200)] overflow-hidden">
@@ -303,7 +310,7 @@ function MembersSection() {
                   <p className="text-sm font-semibold truncate">{m.name || m.email}</p>
                   <p className="text-xs text-[var(--color-neutral-500)]">{m.role === "owner" ? "Owner" : "Member"}</p>
                 </div>
-                {entry.i === 0 && (
+                {m.id === currentUserId && (
                   <span className="bg-[var(--color-primary-50)] text-[var(--color-primary-700)] rounded-full px-2.5 py-0.5 text-[11px] font-bold">You</span>
                 )}
               </div>
@@ -837,8 +844,8 @@ export default function HomeProfilePage() {
         <Dialog open={addSystemOpen} onClose={() => setAddSystemOpen(false)} title="Add System" size="sm">
           <div className="space-y-4 mt-2">
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-foreground">System Type</label>
-              <select
+              <label htmlFor="add-system-type" className="text-sm font-medium text-foreground">System Type</label>
+              <select id="add-system-type"
                 value={newSystemType}
                 onChange={(e) => setNewSystemType(e.target.value)}
                 className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
@@ -950,8 +957,8 @@ export default function HomeProfilePage() {
               required
             />
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-foreground">Category</label>
-              <select
+              <label htmlFor="add-appliance-category" className="text-sm font-medium text-foreground">Category</label>
+              <select id="add-appliance-category"
                 value={newApplianceCategory}
                 onChange={(e) => setNewApplianceCategory(e.target.value)}
                 className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
@@ -1107,8 +1114,8 @@ export default function HomeProfilePage() {
               required
             />
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-foreground">Type</label>
-              <select
+              <label htmlFor="upload-doc-type" className="text-sm font-medium text-foreground">Type</label>
+              <select id="upload-doc-type"
                 value={uploadType}
                 onChange={(e) => setUploadType(e.target.value)}
                 className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
@@ -1121,8 +1128,8 @@ export default function HomeProfilePage() {
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-foreground">File</label>
-              <input
+              <label htmlFor="upload-doc-file" className="text-sm font-medium text-foreground">File</label>
+              <input id="upload-doc-file"
                 type="file"
                 accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx,.csv"
                 onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}

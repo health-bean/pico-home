@@ -146,7 +146,8 @@ export const GET = apiHandler(async ({ user }) => {
     })
     .from(homeMembers)
     .innerJoin(users, eq(homeMembers.userId, users.id))
-    .where(eq(homeMembers.homeId, home.id));
+    .where(eq(homeMembers.homeId, home.id))
+    .orderBy(homeMembers.joinedAt);
 
   let invites: typeof homeInvites.$inferSelect[] = [];
   if (isOwner) {
@@ -161,5 +162,6 @@ export const GET = apiHandler(async ({ user }) => {
       );
   }
 
-  return NextResponse.json({ members, invites });
+  // currentUserId drives the "You" badge; isOwner hides Invite from members
+  return NextResponse.json({ members, invites, currentUserId: user.id, isOwner });
 });

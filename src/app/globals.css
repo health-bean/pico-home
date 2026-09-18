@@ -7,7 +7,7 @@
   --muted: #f5f5f4;
   --muted-foreground: #78716c;
   --border: #e7e5e4;
-  --ring: #f59e0b;
+  --ring: #b45309; /* primary-700: focus rings need ≥3:1 (amber-500 was 2.2:1) */
 }
 
 /* Dark mode disabled — force light mode until properly designed */

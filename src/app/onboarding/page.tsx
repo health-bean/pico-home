@@ -301,7 +301,7 @@ export default function OnboardingPage() {
             onNext={next}
             onBack={back}
             currentStep={wizardStep}
-            totalSteps={TOTAL_STEPS}
+            totalSteps={TOTAL_STEPS - 1}
           />
         )}
         {step === 3 && (
@@ -310,9 +310,9 @@ export default function OnboardingPage() {
             onChange={updateForm}
             onNext={next}
             onBack={back}
-            onSkip={() => { handleSubmitAndComplete(); }}
+            onSkip={next}
             currentStep={wizardStep}
-            totalSteps={TOTAL_STEPS}
+            totalSteps={TOTAL_STEPS - 1}
           />
         )}
         {step === 4 && (
@@ -323,7 +323,7 @@ export default function OnboardingPage() {
             onBack={back}
             onSkip={next}
             currentStep={wizardStep}
-            totalSteps={TOTAL_STEPS}
+            totalSteps={TOTAL_STEPS - 1}
           />
         )}
         {step === 5 && (
@@ -335,7 +335,7 @@ export default function OnboardingPage() {
             onSkip={() => { handleSubmitAndComplete(); }}
             saving={saving}
             currentStep={wizardStep}
-            totalSteps={TOTAL_STEPS}
+            totalSteps={TOTAL_STEPS - 1}
           />
         )}
         {step === 6 && (
