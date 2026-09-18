@@ -73,3 +73,23 @@ describe("solar template reachability", () => {
     expect(ids(result)).toContain("solar-panel-cleaning");
   });
 });
+
+describe("appliance-feature matching (e.g. fridge water/ice dispenser)", () => {
+  const fridgeHome = { ...baseHome, appliances: ["refrigerator" as const] };
+
+  it("skips the fridge water filter when onboarding says the fridge has no dispenser", () => {
+    const result = getApplicableTemplates({ ...fridgeHome, applianceFeatures: [] });
+    expect(ids(result)).not.toContain("appliance-fridge-water-filter");
+    expect(ids(result)).toContain("appliance-fridge-door-seals");
+  });
+
+  it("includes the fridge water filter when the dispenser is declared", () => {
+    const result = getApplicableTemplates({ ...fridgeHome, applianceFeatures: ["fridge_dispenser"] });
+    expect(ids(result)).toContain("appliance-fridge-water-filter");
+  });
+
+  it("fails open when the caller doesn't know features (e.g. adding an appliance later)", () => {
+    const result = getApplicableTemplates(fridgeHome);
+    expect(ids(result)).toContain("appliance-fridge-water-filter");
+  });
+});

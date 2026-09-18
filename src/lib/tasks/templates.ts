@@ -21,6 +21,10 @@ export type ApplianceCategory =
   | "boiler" | "fireplace" | "mini_split" | "evap_cooler"
   | "solar_panels" | "other";
 
+/** Optional appliance features asked about in onboarding. */
+export const APPLIANCE_FEATURES = ["fridge_dispenser"] as const;
+export type ApplianceFeature = (typeof APPLIANCE_FEATURES)[number];
+
 export type SystemType =
   | "hvac" | "plumbing" | "electrical" | "roofing"
   | "foundation" | "water_source" | "sewage" | "irrigation"
@@ -66,6 +70,9 @@ export interface TaskTemplate {
   /** Optional per-system subtype constraint, e.g. { water_source: ["well"] }.
    *  Only enforced when the home declared a real subtype for that system. */
   applicableSystemSubtypes?: Partial<Record<SystemType, string[]>>;
+  /** Optional feature the appliance must have, e.g. "fridge_dispenser" for
+   *  the fridge water filter. Only enforced when the caller knows features. */
+  requiresApplianceFeature?: ApplianceFeature;
   seasonalMonths: number[];
   healthCategories: HealthCategory[];
   tips: string | null;
@@ -2101,6 +2108,7 @@ const applianceTemplates: TaskTemplate[] = [
     applicableHomeTypes: ALL_HOMES,
     applicableSystems: [],
     applicableApplianceCategories: ["refrigerator"],
+    requiresApplianceFeature: "fridge_dispenser",
     seasonalMonths: [],
     healthCategories: ["clean_water"],
     tips: "Note your filter model number — it's usually printed on the existing filter. Aftermarket filters are often half the price of OEM and work fine. Run 2-3 gallons through a new filter before drinking the water.",

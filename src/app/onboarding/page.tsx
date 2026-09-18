@@ -196,7 +196,7 @@ export default function OnboardingPage() {
 
   // Convert unified selectedItems back to separate systems and appliances for the API
   const buildApiPayload = useCallback(() => {
-    const { systems, appliances } = buildHomeSelection(form);
+    const { systems, appliances, applianceFeatures } = buildHomeSelection(form);
 
     // Quick-check answers → taskSetups: "done" schedules the next cycle from
     // now; everything else (default) is tracked and lands due today.
@@ -214,12 +214,12 @@ export default function OnboardingPage() {
 
     const householdHealth = Object.values(form.healthFlags).some(Boolean) ? form.healthFlags : undefined;
 
-    return { systems, appliances, taskSetups, householdHealth };
+    return { systems, appliances, applianceFeatures, taskSetups, householdHealth };
   }, [form]);
 
   // Submit onboarding data, then show completion screen
   const handleSubmitAndComplete = useCallback(async () => {
-    const { systems, appliances, taskSetups, householdHealth } = buildApiPayload();
+    const { systems, appliances, applianceFeatures, taskSetups, householdHealth } = buildApiPayload();
 
     try {
       const res = await fetch("/api/onboarding", {
@@ -237,6 +237,7 @@ export default function OnboardingPage() {
           },
           systems,
           appliances,
+          applianceFeatures,
           taskSetups,
           householdHealth: householdHealth || undefined,
         }),

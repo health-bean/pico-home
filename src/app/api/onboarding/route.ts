@@ -143,6 +143,7 @@ export async function POST(request: Request) {
         systems: body.systems.map((s) => s.key as SystemType),
         appliances: body.appliances as ApplianceCategory[],
         systemSubtypes,
+        applianceFeatures: body.applianceFeatures,
       },
       healthFlags
     );

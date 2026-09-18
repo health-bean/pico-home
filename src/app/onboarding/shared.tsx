@@ -8,9 +8,11 @@ import {
 import type {
   SystemType,
   ApplianceCategory,
+  ApplianceFeature,
   HomeType,
   TaskTemplate,
 } from "@/lib/tasks/templates";
+import { APPLIANCE_FEATURES } from "@/lib/tasks/templates";
 import { getApplicableTemplates } from "@/lib/tasks/scheduling";
 import { selectStarterTemplates } from "@/lib/tasks/initial-due";
 
@@ -226,7 +228,10 @@ export const MAJOR_SYSTEMS: HomeItemGroup[] = [
       { key: "dryer", label: "Clothes Dryer", icon: "\u{1F32A}\uFE0F", type: "appliance", mappedAppliance: "dryer" as ApplianceCategory, defaultChecked: true },
       { key: "washing-machine", label: "Washing Machine", icon: "\u{1F9FA}", type: "appliance", mappedAppliance: "washing_machine" as ApplianceCategory, defaultChecked: true },
       { key: "dishwasher", label: "Dishwasher", icon: "\u{1F37D}\uFE0F", type: "appliance", mappedAppliance: "dishwasher" as ApplianceCategory, defaultChecked: true },
-      { key: "refrigerator", label: "Refrigerator", icon: "\u{1F9CA}", type: "appliance", mappedAppliance: "refrigerator" as ApplianceCategory, defaultChecked: true },
+      { key: "refrigerator", label: "Refrigerator", icon: "\u{1F9CA}", type: "appliance", mappedAppliance: "refrigerator" as ApplianceCategory, defaultChecked: true,
+        // Only dispenser fridges get the water filter task
+        subtypes: [{ value: "fridge_dispenser", label: "Water/ice dispenser" }],
+      },
       { key: "oven-range", label: "Range / Oven", icon: "\u{1F373}", type: "appliance", mappedAppliance: "oven_range" as ApplianceCategory, defaultChecked: true },
       { key: "garbage-disposal", label: "Garbage Disposal", icon: "\u{1F300}", type: "appliance", mappedAppliance: "garbage_disposal" as ApplianceCategory },
       { key: "garage-door", label: "Garage Door Opener", icon: "\u{1F6AA}", type: "appliance", mappedAppliance: "garage_door" as ApplianceCategory },
@@ -265,9 +270,11 @@ export function initialSelectedItems(): Record<string, { enabled: boolean; subty
 export function buildHomeSelection(form: FormData): {
   systems: { key: string; subtype: string }[];
   appliances: string[];
+  applianceFeatures: ApplianceFeature[];
 } {
   const systems: { key: string; subtype: string }[] = [];
   const appliances: string[] = [];
+  const applianceFeatures: ApplianceFeature[] = [];
   const seenAppliances = new Set<string>();
 
   for (const group of MAJOR_SYSTEMS) {
@@ -283,6 +290,13 @@ export function buildHomeSelection(form: FormData): {
         if (!seenAppliances.has(item.mappedAppliance)) {
           seenAppliances.add(item.mappedAppliance);
           appliances.push(item.mappedAppliance);
+        }
+        // Feature chips (fridge dispenser) gate tasks; other chips like
+        // furnace fuel type are informational only
+        for (const st of selection.subtypes) {
+          if ((APPLIANCE_FEATURES as readonly string[]).includes(st)) {
+            applianceFeatures.push(st as ApplianceFeature);
+          }
         }
       }
     }
@@ -300,12 +314,12 @@ export function buildHomeSelection(form: FormData): {
     systems.push({ key: "hvac", subtype: "standard" });
   }
 
-  return { systems, appliances };
+  return { systems, appliances, applianceFeatures };
 }
 
 /** The starter tasks the Quick check step asks about for this home. */
 export function starterCandidates(form: FormData): TaskTemplate[] {
-  const { systems, appliances } = buildHomeSelection(form);
+  const { systems, appliances, applianceFeatures } = buildHomeSelection(form);
   const systemSubtypes: Partial<Record<SystemType, string[]>> = {};
   for (const s of systems) {
     (systemSubtypes[s.key as SystemType] ??= []).push(s.subtype);
@@ -315,6 +329,7 @@ export function starterCandidates(form: FormData): TaskTemplate[] {
     systems: systems.map((s) => s.key as SystemType),
     appliances: appliances as ApplianceCategory[],
     systemSubtypes,
+    applianceFeatures,
   });
   return selectStarterTemplates(applicable);
 }

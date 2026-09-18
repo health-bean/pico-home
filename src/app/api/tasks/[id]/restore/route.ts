@@ -3,7 +3,8 @@ import { db } from "@/lib/db";
 import { taskInstances } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { apiHandler } from "@/lib/api/handler";
+import { apiHandler, parseBodyOrDefault } from "@/lib/api/handler";
+import { restoreTaskSchema } from "@/lib/api/schemas";
 import { authorizeTaskAccess } from "@/lib/api/authorize";
 import { getNextDueDate } from "@/lib/tasks/scheduling";
 import type { FrequencyUnit } from "@/lib/tasks/templates";
@@ -22,18 +23,22 @@ export const POST = apiHandler(async ({ user, request }) => {
     return NextResponse.json({ error: "Task not found" }, { status: 404 });
   }
 
-  // Recalculate next due date from now
-  const nextDue = getNextDueDate(
-    task.frequencyValue,
-    task.frequencyUnit as FrequencyUnit
-  );
+  const body = await parseBodyOrDefault(request, restoreTaskSchema);
+
+  // Dismiss never touches the due date, so Undo keeps it; a later Restore
+  // reschedules from now
+  const nextDueDate = body.keepDueDate
+    ? task.nextDueDate
+    : getNextDueDate(task.frequencyValue, task.frequencyUnit as FrequencyUnit)
+        .toISOString()
+        .split("T")[0];
 
   await db
     .update(taskInstances)
     .set({
       isActive: true,
       dismissedAt: null,
-      nextDueDate: nextDue.toISOString().split("T")[0],
+      nextDueDate,
       updatedAt: new Date(),
     })
     .where(eq(taskInstances.id, parsed.data));

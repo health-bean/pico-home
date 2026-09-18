@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Check, SkipForward, Clock } from "lucide-react";
+import { Check, SkipForward, Clock, CircleSlash } from "lucide-react";
 import {
   Button,
   Badge,
@@ -352,46 +352,56 @@ export function TaskDetailDialog({
                 </div>
               )}
 
-              {/* Dismiss option — only for system-generated tasks; safety
-                  tasks require an explicit confirm */}
-              {task.isActive && !task.isCustom && (
-                confirmingDismiss ? (
-                  <div className="rounded-xl border border-[var(--color-danger-500)]/30 bg-[var(--color-danger-50)] p-3 text-center">
-                    <p className="text-xs font-semibold text-[var(--color-danger-700)]">
-                      This is a safety task. Dismiss it anyway?
-                    </p>
-                    <div className="mt-2 flex justify-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        onClick={() => {
+              {/* Remove from plan — separated from the cycle actions above.
+                  Undo lives in the toast; safety tasks still confirm first. */}
+              {task.isActive && (
+                <div className="border-t border-border pt-2">
+                  {confirmingDismiss ? (
+                    <div className="rounded-xl border border-[var(--color-danger-500)]/30 bg-[var(--color-danger-50)] p-3 text-center">
+                      <p className="text-xs font-semibold text-[var(--color-danger-700)]">
+                        This is a safety task. Remove it from your plan anyway?
+                      </p>
+                      <div className="mt-2 flex justify-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          onClick={() => {
+                            onDismiss(task.id);
+                            onClose();
+                          }}
+                        >
+                          Remove it
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setConfirmingDismiss(false)}>
+                          Keep it
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (task.priority === "safety") {
+                          setConfirmingDismiss(true);
+                        } else {
                           onDismiss(task.id);
                           onClose();
-                        }}
-                      >
-                        Dismiss
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => setConfirmingDismiss(false)}>
-                        Keep it
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (task.priority === "safety") {
-                        setConfirmingDismiss(true);
-                      } else {
-                        onDismiss(task.id);
-                        onClose();
-                      }
-                    }}
-                    className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors pt-1"
-                  >
-                    Not relevant — I don&apos;t have this
-                  </button>
-                )
+                        }
+                      }}
+                      className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <CircleSlash className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-sm font-semibold">
+                          {task.isCustom ? "Remove this task" : "I don\u2019t have this"}
+                        </span>
+                        <span className="block text-xs text-muted-foreground">
+                          Takes it off your plan. You can undo, or restore it later.
+                        </span>
+                      </span>
+                    </button>
+                  )}
+                </div>
               )}
             </>
           )}

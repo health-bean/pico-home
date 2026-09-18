@@ -17,6 +17,7 @@ import {
   Fence,
 } from "lucide-react";
 import {
+  Button,
   EmptyState,
   SkeletonCard,
   useToast,
@@ -69,6 +70,8 @@ export default function TasksPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  // Appliance group awaiting confirm because it contains a safety task
+  const [confirmingGroup, setConfirmingGroup] = useState<string | null>(null);
 
   const toggleCategory = useCallback((category: string) => {
     setExpandedCategories((prev) => {
@@ -200,25 +203,56 @@ export default function TasksPage() {
     [fetchTasks, toast]
   );
 
-  const dismissTask = useCallback(
-    async (id: string) => {
-      setActionLoading(id);
+  // Undo for a dismiss: put the tasks back untouched (dismiss never moved
+  // their due dates)
+  const undoDismiss = useCallback(
+    async (ids: string[]) => {
       try {
-        const res = await fetch(`/api/tasks/${id}/dismiss`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
-        });
-        if (!res.ok) throw new Error("Failed to dismiss task");
-        toast("Task dismissed — it won't appear again", "success");
-        await fetchTasks();
+        const results = await Promise.all(
+          ids.map((id) =>
+            fetch(`/api/tasks/${id}/restore`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ keepDueDate: true }),
+            })
+          )
+        );
+        if (results.some((r) => !r.ok)) throw new Error("Failed to undo");
+        toast("Back on your list", "info");
       } catch {
-        toast("Failed to dismiss task", "error");
+        toast("Couldn't undo — restore it from the Dismissed filter", "error");
       } finally {
-        setActionLoading(null);
+        await fetchTasks();
       }
     },
     [fetchTasks, toast]
+  );
+
+  // Dismiss one task, or every task for an appliance the user doesn't have
+  const dismissTasks = useCallback(
+    async (ids: string[], successMessage: string) => {
+      setActionLoading(ids[0]);
+      try {
+        const results = await Promise.all(
+          ids.map((id) =>
+            fetch(`/api/tasks/${id}/dismiss`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({}),
+            })
+          )
+        );
+        const done = ids.filter((_, i) => results[i].ok);
+        if (done.length < ids.length) throw new Error("Failed to dismiss");
+        toast(successMessage, "success", { label: "Undo", onClick: () => undoDismiss(done) });
+      } catch {
+        toast("Couldn't remove that — try again", "error");
+      } finally {
+        await fetchTasks();
+        setActionLoading(null);
+      }
+    },
+    [fetchTasks, toast, undoDismiss]
   );
 
   const restoreTask = useCallback(
@@ -407,18 +441,55 @@ export default function TasksPage() {
             ) : (
               subgroups.map(({ key: sg, tasks: sgTasks }) => {
                 const sgOverdue = sgTasks.filter((t) => daysBetween(t.nextDueDate, today) < 0).length;
+                const sgLabel = SUBGROUP_LABELS[sg] ?? "Other";
+                // Appliance groups can be removed wholesale ("I don't own a dryer")
+                const canRemoveGroup = category === "appliances" && sg !== "other";
+                const removeGroup = () => {
+                  setConfirmingGroup(null);
+                  dismissTasks(
+                    sgTasks.map((t) => t.id),
+                    `Removed ${sgTasks.length === 1 ? "the" : `all ${sgTasks.length}`} ${sgLabel} task${sgTasks.length === 1 ? "" : "s"}`
+                  );
+                };
                 return (
                   <div key={sg} className="flex flex-col gap-2">
                     <div className="flex items-center gap-2 px-1 pt-2">
-                      <span className="text-[12px] font-bold text-stone-700">
-                        {SUBGROUP_LABELS[sg] ?? "Other"}
-                      </span>
+                      <span className="text-[12px] font-bold text-stone-700">{sgLabel}</span>
                       {sgOverdue > 0 && (
                         <span className="inline-flex items-center justify-center rounded-full bg-red-50 px-1.5 py-0.5 text-[9px] font-bold text-red-600">
                           {sgOverdue} overdue
                         </span>
                       )}
+                      {canRemoveGroup && confirmingGroup !== sg && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            sgTasks.some((t) => t.priority === "safety")
+                              ? setConfirmingGroup(sg)
+                              : removeGroup()
+                          }
+                          aria-label={`Don't have one: remove all ${sgLabel} tasks`}
+                          className="ml-auto -my-2 py-2 px-1 text-[12px] font-semibold text-[var(--color-neutral-500)] hover:text-[var(--color-neutral-900)] transition-colors"
+                        >
+                          Don&apos;t have one
+                        </button>
+                      )}
                     </div>
+                    {confirmingGroup === sg && (
+                      <div className="rounded-xl border border-[var(--color-danger-500)]/30 bg-[var(--color-danger-50)] p-3 text-center">
+                        <p className="text-xs font-semibold text-[var(--color-danger-700)]">
+                          This includes a safety task. Remove all {sgLabel} tasks anyway?
+                        </p>
+                        <div className="mt-2 flex justify-center gap-2">
+                          <Button size="sm" variant="danger" onClick={removeGroup}>
+                            Remove them
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => setConfirmingGroup(null)}>
+                            Keep them
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                     {sgTasks.map((task) => renderTaskRow(task, getStatusGroup(task, today), false))}
                   </div>
                 );
@@ -622,7 +693,7 @@ export default function TasksPage() {
         onComplete={completeTask}
         onSkip={skipTask}
         onSnooze={snoozeTask}
-        onDismiss={dismissTask}
+        onDismiss={(id) => dismissTasks([id], "Removed from your plan")}
         actionLoading={actionLoading}
       />
 

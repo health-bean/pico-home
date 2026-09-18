@@ -4,6 +4,7 @@ import type {
   HomeType,
   SystemType,
   ApplianceCategory,
+  ApplianceFeature,
   HealthFlagKey,
 } from "./templates";
 import { TASK_TEMPLATES } from "./templates";
@@ -119,6 +120,8 @@ export function getApplicableTemplates(home: {
   appliances: ApplianceCategory[];
   /** Declared subtypes per system, e.g. { water_source: ["municipal"] }. "standard" means unknown. */
   systemSubtypes?: Partial<Record<SystemType, string[]>>;
+  /** Features the user declared (onboarding). Undefined = unknown → fail open. */
+  applianceFeatures?: ApplianceFeature[];
 }, healthFlags?: HealthFlags): TaskTemplate[] {
   return TASK_TEMPLATES.filter((template) => {
     // Check home type applicability
@@ -159,6 +162,16 @@ export function getApplicableTemplates(home: {
         (a) => home.appliances.includes(a)
       );
       if (!hasMatchingAppliance) return false;
+    }
+
+    // Feature-gated templates (fridge water filter needs a dispenser) are
+    // dropped only when the caller says which features the home has.
+    if (
+      template.requiresApplianceFeature &&
+      home.applianceFeatures &&
+      !home.applianceFeatures.includes(template.requiresApplianceFeature)
+    ) {
+      return false;
     }
 
     // Health-required filter

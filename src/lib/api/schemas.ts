@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { APPLIANCE_FEATURES } from "@/lib/tasks/templates";
 
 // ─── Shared enums (match DB enums exactly) ─────────────────────────────────
 
@@ -60,6 +61,12 @@ export const snoozeTaskSchema = z.object({
 
 /** Undo token returned by complete/skip and passed back verbatim.
  *  Restores own-home task state only (same trust level as PATCH edit). */
+/** keepDueDate: Undo after a dismiss puts the task back untouched; a later
+ *  Restore from the Dismissed list reschedules from today. */
+export const restoreTaskSchema = z.object({
+  keepDueDate: z.boolean().default(false),
+});
+
 export const undoTaskSchema = z.object({
   completionId: z.string().uuid(),
   previousNextDueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -133,6 +140,8 @@ export const onboardingSchema = z.object({
   home: onboardingHomeSchema,
   systems: z.array(onboardingSystemSchema).max(50),
   appliances: z.array(z.enum(applianceCategoryValues)).max(50),
+  // Optional so older clients (cached onboarding page) still validate; absent = unknown
+  applianceFeatures: z.array(z.enum(APPLIANCE_FEATURES)).max(10).optional(),
   taskSetups: z.array(onboardingTaskSetupSchema).max(500),
   householdHealth: householdHealthSchema.optional(),
 });
