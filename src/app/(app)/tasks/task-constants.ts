@@ -151,10 +151,17 @@ export const SUBGROUP_LABELS: Record<string, string> = {
   yard_structures: "Yard & Structures",
   irrigation: "Irrigation",
   pool_hot_tub: "Pool & Hot Tub",
+  // Appliances group per appliance, so all fridge tasks sit together
+  refrigerator: "Refrigerator",
+  dishwasher: "Dishwasher",
+  washing_machine: "Washing Machine",
+  dryer: "Dryer",
+  oven_range: "Oven & Range",
+  garbage_disposal: "Garbage Disposal",
 };
 
 // Categories that show tasks in flat list (no sub-group headers)
-export const FLAT_CATEGORIES = new Set(["appliances", "air_quality"]);
+export const FLAT_CATEGORIES = new Set(["air_quality"]);
 
 export const priorityLabels: Record<string, string> = {
   safety: "Critical",

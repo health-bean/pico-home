@@ -1,0 +1,126 @@
+-- Appliance tasks group per appliance: subgroup was the generic 'appliances'
+-- for every appliance task, so fridge tasks were split across the list. Tasks
+-- snapshot template copy at creation, so existing rows are re-keyed by name.
+-- Also fills subgroups the Property-page "Add appliance" route used to drop
+-- (those rows rendered under a raw "other" header). Idempotent — safe to re-run.
+
+UPDATE task_instances AS ti
+SET subgroup = m.subgroup
+FROM (VALUES
+  ('Clean Dishwasher Filter', 'dishwasher'),
+  ('Run Dishwasher Cleaning Cycle', 'dishwasher'),
+  ('Clean Garbage Disposal', 'garbage_disposal'),
+  ('Clean Washing Machine', 'washing_machine'),
+  ('Replace or Clean Range Hood Filter', 'oven_range'),
+  ('Clean Refrigerator Condenser Coils', 'refrigerator'),
+  ('Replace Refrigerator Water Filter', 'refrigerator'),
+  ('Inspect Washing Machine Door Seal', 'washing_machine'),
+  ('Deep Clean Dryer Lint Trap Area', 'dryer'),
+  ('Check Refrigerator Door Seals', 'refrigerator')
+) AS m(name, subgroup)
+WHERE ti.name = m.name
+  AND ti.is_custom = false
+  AND ti.category = 'appliances'
+  AND ti.subgroup IS DISTINCT FROM m.subgroup;
+
+UPDATE task_instances AS ti
+SET subgroup = m.subgroup
+FROM (VALUES
+  ('Test Smoke Detectors', 'fire_safety'),
+  ('Replace Smoke Detector Batteries', 'fire_safety'),
+  ('Replace Smoke Detectors', 'fire_safety'),
+  ('Test Carbon Monoxide Detectors', 'fire_safety'),
+  ('Replace CO Detectors', 'fire_safety'),
+  ('Check Fire Extinguishers', 'fire_safety'),
+  ('Replace Fire Extinguishers', 'fire_safety'),
+  ('Clean Dryer Vent Duct', 'fire_safety'),
+  ('Check Outlet Covers & Safety Locks', 'child_safety'),
+  ('Check Grab Bars and Handrails', 'accessibility'),
+  ('Test Radon Levels', 'air_quality'),
+  ('Inspect for Mold Growth', 'air_quality'),
+  ('Check Indoor Humidity Levels', 'air_quality'),
+  ('Replace HVAC Air Filter', 'air_filters_ducts'),
+  ('Professional Duct Cleaning', 'air_filters_ducts'),
+  ('Inspect Ductwork for Leaks', 'air_filters_ducts'),
+  ('Professional Heating Tune-Up', 'heating_system'),
+  ('Replace Thermostat Batteries', 'heating_system'),
+  ('Boiler Annual Professional Service', 'heating_system'),
+  ('Bleed Radiators', 'heating_system'),
+  ('Check Boiler Pressure', 'heating_system'),
+  ('Professional Cooling Tune-Up', 'cooling_system'),
+  ('Clean Outdoor Condenser Unit', 'cooling_system'),
+  ('Clear Condensate Drain Line', 'cooling_system'),
+  ('Evaporative Cooler Spring Startup', 'cooling_system'),
+  ('Evaporative Cooler Fall Winterization', 'cooling_system'),
+  ('Heat Pump Professional Tune-Up', 'heat_pump'),
+  ('Heat Pump Filter Replacement', 'heat_pump'),
+  ('Clear Heat Pump Outdoor Unit', 'heat_pump'),
+  ('Annual Chimney Sweep', 'fireplace'),
+  ('Inspect Fireplace Damper and Seals', 'fireplace'),
+  ('Clean Mini-Split Filters', 'mini_split'),
+  ('Mini-Split Professional Deep Clean', 'mini_split'),
+  ('Flush Water Heater', 'water_heater'),
+  ('Test Water Heater Pressure Relief Valve', 'water_heater'),
+  ('Verify Water Heater Temp Below 120°F', 'water_heater'),
+  ('Preventive Drain Treatment', 'pipes_drains'),
+  ('Check Water Pressure', 'pipes_drains'),
+  ('Insulate Exposed Pipes', 'pipes_drains'),
+  ('Check Toilets for Leaks', 'pipes_drains'),
+  ('Clean Faucet Aerators', 'pipes_drains'),
+  ('Inspect Washing Machine Hoses', 'pipes_drains'),
+  ('Add Salt to Water Softener', 'water_treatment'),
+  ('Clean Water Softener Brine Tank', 'water_treatment'),
+  ('Replace Whole-House Water Filter', 'water_treatment'),
+  ('Test Well Water Quality', 'well_septic'),
+  ('Pump Septic Tank', 'well_septic'),
+  ('Test Sump Pump', 'well_septic'),
+  ('Test GFCI Outlets', 'electrical'),
+  ('Test Arc-Fault Breakers', 'electrical'),
+  ('Inspect Electrical Panel', 'electrical'),
+  ('Replace Surge Protectors', 'electrical'),
+  ('Test Generator', 'generator'),
+  ('Annual Generator Service', 'generator'),
+  ('Solar Panel Visual Inspection', 'solar'),
+  ('Solar Panel Cleaning', 'solar'),
+  ('Clean Gutters and Downspouts', 'roof_gutters'),
+  ('Inspect Roof', 'roof_gutters'),
+  ('Check Flashing Around Penetrations', 'roof_gutters'),
+  ('Trim Branches Overhanging Roof', 'roof_gutters'),
+  ('Inspect Attic for Leaks and Moisture', 'roof_gutters'),
+  ('Power Wash Siding', 'walls_windows_foundation'),
+  ('Check Grading Around Foundation', 'walls_windows_foundation'),
+  ('Inspect Foundation for Cracks', 'walls_windows_foundation'),
+  ('Touch Up Exterior Paint', 'walls_windows_foundation'),
+  ('Seal Asphalt Driveway', 'walls_windows_foundation'),
+  ('Inspect and Re-Caulk Windows and Doors', 'walls_windows_foundation'),
+  ('Inspect Weatherstripping', 'walls_windows_foundation'),
+  ('Lubricate Door Hinges and Locks', 'walls_windows_foundation'),
+  ('Clean Window Weep Holes', 'walls_windows_foundation'),
+  ('Inspect and Repair Window Screens', 'walls_windows_foundation'),
+  ('Schedule Energy Audit', 'walls_windows_foundation'),
+  ('Lubricate Garage Door Tracks and Hardware', 'garage'),
+  ('Test Garage Door Auto-Reverse Safety', 'garage'),
+  ('Replace Garage Door Weather Seal', 'garage'),
+  ('Termite Inspection', 'pest_control'),
+  ('Seal Entry Points Walkthrough', 'pest_control'),
+  ('Mosquito Prevention — Standing Water Check', 'pest_control'),
+  ('Clean and Seal Deck', 'yard_structures'),
+  ('Inspect Fence Posts and Panels', 'yard_structures'),
+  ('Check Outdoor Lighting', 'yard_structures'),
+  ('Power Wash Driveway and Walkways', 'yard_structures'),
+  ('Spring Irrigation System Startup', 'irrigation'),
+  ('Winterize Irrigation System', 'irrigation'),
+  ('Test Pool Chemical Balance', 'pool_hot_tub'),
+  ('Clean Pool Filter', 'pool_hot_tub'),
+  ('Open Pool for Season', 'pool_hot_tub'),
+  ('Close Pool for Season', 'pool_hot_tub'),
+  ('Test Hot Tub Water Chemistry', 'pool_hot_tub'),
+  ('Clean Hot Tub Filter', 'pool_hot_tub'),
+  ('Drain and Refill Hot Tub', 'pool_hot_tub'),
+  ('Clean and Condition Hot Tub Cover', 'pool_hot_tub'),
+  ('Clean Hot Tub Jets', 'pool_hot_tub'),
+  ('Test Water Quality', 'pipes_drains')
+) AS m(name, subgroup)
+WHERE ti.name = m.name
+  AND ti.is_custom = false
+  AND ti.subgroup IS NULL;

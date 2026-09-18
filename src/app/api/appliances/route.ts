@@ -5,7 +5,8 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { apiHandler, parseBody } from "@/lib/api/handler";
 import { getUserHome } from "@/lib/auth/get-user-home";
-import { getApplicableTemplates, getNextDueDate } from "@/lib/tasks/scheduling";
+import { getApplicableTemplates } from "@/lib/tasks/scheduling";
+import { getInitialDueDate } from "@/lib/tasks/initial-due";
 import type { HomeType, SystemType, ApplianceCategory, FrequencyUnit } from "@/lib/tasks/templates";
 
 const addApplianceSchema = z.object({
@@ -64,11 +65,16 @@ export const POST = apiHandler(async ({ user, request }) => {
       priority: t.priority,
       frequencyUnit: t.frequencyUnit,
       frequencyValue: t.frequencyValue,
-      nextDueDate: getNextDueDate(t.frequencyValue, t.frequencyUnit as FrequencyUnit).toISOString().split("T")[0],
+      // Same staggered/seasonal first due date as onboarding — never today + frequency
+      nextDueDate: getInitialDueDate(t, t.frequencyValue, t.frequencyUnit as FrequencyUnit).toISOString().split("T")[0],
       lastCompletedDate: null,
       isActive: true,
       isCustom: false,
       notificationDaysBefore: 3,
+      tips: t.tips,
+      whyItMatters: t.whyItMatters,
+      subgroup: t.subgroup,
+      applianceId: appliance.id,
     }));
 
   if (newTasks.length > 0) {

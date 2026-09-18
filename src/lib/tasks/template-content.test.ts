@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { TASK_TEMPLATES } from "./templates";
 import { adjustFrequencyForHealth } from "./scheduling";
 import type { HealthFlagKey, FrequencyUnit } from "./templates";
+import { FLAT_CATEGORIES, SUBGROUP_LABELS } from "@/app/(app)/tasks/task-constants";
 
 const UNIT_DAYS: Record<FrequencyUnit, number> = {
   days: 1,
@@ -75,5 +76,18 @@ describe("template structural invariants", () => {
   it("has globally unique template names (names are the de-facto dedup key)", () => {
     const names = TASK_TEMPLATES.map((t) => t.name);
     expect(new Set(names).size).toBe(names.length);
+  });
+
+  it("groups each appliance task under its own appliance (subgroup = the one appliance it serves)", () => {
+    for (const t of TASK_TEMPLATES.filter((t) => t.category === "appliances")) {
+      expect(t.applicableApplianceCategories, t.name).toHaveLength(1);
+      expect(t.subgroup, t.name).toBe(t.applicableApplianceCategories[0]);
+    }
+  });
+
+  it("every grouped template's subgroup has a display label (no raw keys or 'other' headers)", () => {
+    for (const t of TASK_TEMPLATES.filter((t) => !FLAT_CATEGORIES.has(t.category))) {
+      expect(SUBGROUP_LABELS[t.subgroup], `${t.name} → ${t.subgroup}`).toBeDefined();
+    }
   });
 });

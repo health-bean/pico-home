@@ -37,6 +37,7 @@ import {
 } from "./task-constants";
 import { TaskDetailDialog } from "./task-detail-dialog";
 import { AddTaskDialog } from "./add-task-dialog";
+import { groupBySubgroup } from "@/lib/tasks/grouping";
 
 // ---------------------------------------------------------------------------
 // Category icons (kept here because they reference React/Lucide components)
@@ -302,7 +303,8 @@ export default function TasksPage() {
   // Render helpers
   // -------------------------------------------------------------------------
 
-  function renderTaskRow(task: Task, group: StatusGroup | "completed") {
+  // showCategory is off inside a category section, where the header already says it
+  function renderTaskRow(task: Task, group: StatusGroup | "completed", showCategory = true) {
     const due = relativeDueLabel(task.nextDueDate, today);
     const priLabel = priorityLabels[task.priority] || task.priority;
     const stripColor =
@@ -348,7 +350,8 @@ export default function TasksPage() {
               {task.name}
             </span>
             <span className="block text-xs text-[var(--color-neutral-500)] mt-0.5 truncate">
-              {getCategoryLabel(task.category)} &middot; {priLabel} &middot;{" "}
+              {showCategory && <>{getCategoryLabel(task.category)} &middot; </>}
+              {priLabel} &middot;{" "}
               <span className={due.color}>{due.text}</span>
             </span>
           </span>
@@ -374,25 +377,10 @@ export default function TasksPage() {
 
     if (visibleTasks.length === 0) return null;
 
-    // Group tasks by subgroup for non-flat categories
+    // Non-flat categories group by subgroup (one group per appliance for
+    // Appliances); the group with the soonest task leads.
     const isFlat = FLAT_CATEGORIES.has(category);
-    const subgroupMap: Record<string, Task[]> = {};
-    if (!isFlat) {
-      for (const task of visibleTasks) {
-        const sg = task.subgroup || "other";
-        if (!subgroupMap[sg]) subgroupMap[sg] = [];
-        subgroupMap[sg].push(task);
-      }
-    }
-
-    // Sort sub-groups: those with overdue tasks first, then alphabetical
-    const sortedSubgroups = Object.keys(subgroupMap).sort((a, b) => {
-      const aOverdue = subgroupMap[a].some((t) => daysBetween(t.nextDueDate, today) < 0);
-      const bOverdue = subgroupMap[b].some((t) => daysBetween(t.nextDueDate, today) < 0);
-      if (aOverdue && !bOverdue) return -1;
-      if (!aOverdue && bOverdue) return 1;
-      return (SUBGROUP_LABELS[a] || a).localeCompare(SUBGROUP_LABELS[b] || b);
-    });
+    const subgroups = isFlat ? [] : groupBySubgroup(visibleTasks);
 
     return (
       <section key={category} className="mb-4">
@@ -415,16 +403,15 @@ export default function TasksPage() {
         {isExpanded && (
           <div className="flex flex-col gap-2 mt-1">
             {isFlat ? (
-              visibleTasks.map((task) => renderTaskRow(task, getStatusGroup(task, today)))
+              visibleTasks.map((task) => renderTaskRow(task, getStatusGroup(task, today), false))
             ) : (
-              sortedSubgroups.map((sg) => {
-                const sgTasks = subgroupMap[sg];
+              subgroups.map(({ key: sg, tasks: sgTasks }) => {
                 const sgOverdue = sgTasks.filter((t) => daysBetween(t.nextDueDate, today) < 0).length;
                 return (
-                  <div key={sg}>
-                    <div className="flex items-center gap-2 px-1 pt-2 pb-1">
+                  <div key={sg} className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2 px-1 pt-2">
                       <span className="text-[12px] font-bold text-stone-700">
-                        {SUBGROUP_LABELS[sg] || sg}
+                        {SUBGROUP_LABELS[sg] ?? "Other"}
                       </span>
                       {sgOverdue > 0 && (
                         <span className="inline-flex items-center justify-center rounded-full bg-red-50 px-1.5 py-0.5 text-[9px] font-bold text-red-600">
@@ -432,7 +419,7 @@ export default function TasksPage() {
                         </span>
                       )}
                     </div>
-                    {sgTasks.map((task) => renderTaskRow(task, getStatusGroup(task, today)))}
+                    {sgTasks.map((task) => renderTaskRow(task, getStatusGroup(task, today), false))}
                   </div>
                 );
               })
