@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { tasksToRetire, withoutOne } from "./retire";
+import { revivedDueDate, tasksToRetire, withoutOne } from "./retire";
 
 const base = {
   type: "single_family" as const,
@@ -50,5 +50,25 @@ describe("tasksToRetire", () => {
       task("Clean Hot Tub Jets", { isActive: false }),
     ]);
     expect(ids).toEqual([]);
+  });
+});
+
+describe("revivedDueDate", () => {
+  const now = new Date(2026, 9, 12); // Oct 12
+  const tpl = { id: "hot-tub-filter", seasonalMonths: [] as number[] };
+
+  it("keeps a due date that is still ahead", () => {
+    expect(revivedDueDate("2026-11-30", tpl, 1, "months", now)).toBe("2026-11-30");
+  });
+
+  it("reschedules a stale date like a newly added task — after the quiet start", () => {
+    const due = revivedDueDate("2026-03-01", tpl, 1, "months", now);
+    const days = Math.round((Date.parse(due) - Date.parse("2026-10-12")) / 86_400_000);
+    expect(days).toBeGreaterThanOrEqual(14);
+    expect(days).toBeLessThan(30);
+  });
+
+  it("treats today as stale-free (still due today is kept)", () => {
+    expect(revivedDueDate("2026-10-12", tpl, 1, "months", now)).toBe("2026-10-12");
   });
 });

@@ -8,7 +8,7 @@ import { getUserHome } from "@/lib/auth/get-user-home";
 import { adjustFrequencyForHealth, getApplicableTemplates } from "@/lib/tasks/scheduling";
 import { loadHomeForMatching } from "@/lib/tasks/home-matching";
 import { getInitialDueDate } from "@/lib/tasks/initial-due";
-import { tasksToRetire, withoutOne } from "@/lib/tasks/retire";
+import { revivedDueDate, tasksToRetire, withoutOne } from "@/lib/tasks/retire";
 import type { ApplianceCategory, FrequencyUnit } from "@/lib/tasks/templates";
 
 const addApplianceSchema = z.object({
@@ -38,7 +38,15 @@ export const POST = apiHandler(async ({ user, request }) => {
   // Match against the whole home (systems, climate, household options)
   const { matching, healthFlags } = await loadHomeForMatching(home);
   const existingTasks = await db
-    .select({ id: taskInstances.id, name: taskInstances.name, isActive: taskInstances.isActive, dismissedAt: taskInstances.dismissedAt })
+    .select({
+      id: taskInstances.id,
+      name: taskInstances.name,
+      isActive: taskInstances.isActive,
+      dismissedAt: taskInstances.dismissedAt,
+      nextDueDate: taskInstances.nextDueDate,
+      frequencyValue: taskInstances.frequencyValue,
+      frequencyUnit: taskInstances.frequencyUnit,
+    })
     .from(taskInstances)
     .where(eq(taskInstances.homeId, home.id));
   const existingTaskNames = new Set(existingTasks.map(t => t.name));
@@ -73,23 +81,31 @@ export const POST = apiHandler(async ({ user, request }) => {
     await db.insert(taskInstances).values(newTasks);
   }
 
-  // Re-adding something brings back the tasks its removal dismissed
-  const relevantNames = new Set(
+  // Re-adding something brings back the tasks its removal dismissed. A due
+  // date that went stale while removed is rescheduled like a new task.
+  const relevant = new Map(
     getApplicableTemplates(matching, healthFlags)
       .filter(t => t.applicableApplianceCategories.includes(body.category as ApplianceCategory))
-      .map(t => t.name)
+      .map(t => [t.name, t])
   );
-  const reviveIds = existingTasks
-    .filter(t => !t.isActive && t.dismissedAt && relevantNames.has(t.name))
-    .map(t => t.id);
-  if (reviveIds.length > 0) {
-    await db
-      .update(taskInstances)
-      .set({ isActive: true, dismissedAt: null, updatedAt: new Date() })
-      .where(inArray(taskInstances.id, reviveIds));
+  const revive = existingTasks.filter(t => !t.isActive && t.dismissedAt && relevant.has(t.name));
+  if (revive.length > 0) {
+    await db.transaction(async (tx) => {
+      for (const t of revive) {
+        await tx
+          .update(taskInstances)
+          .set({
+            isActive: true,
+            dismissedAt: null,
+            nextDueDate: revivedDueDate(t.nextDueDate, relevant.get(t.name)!, t.frequencyValue, t.frequencyUnit as FrequencyUnit),
+            updatedAt: new Date(),
+          })
+          .where(eq(taskInstances.id, t.id));
+      }
+    });
   }
 
-  return NextResponse.json({ success: true, applianceId: appliance.id, tasksCreated: newTasks.length, tasksRestored: reviveIds.length });
+  return NextResponse.json({ success: true, applianceId: appliance.id, tasksCreated: newTasks.length, tasksRestored: revive.length });
 });
 
 export const DELETE = apiHandler(async ({ user, request }) => {

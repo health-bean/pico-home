@@ -1,4 +1,6 @@
 import { getApplicableTemplates, type HealthFlags } from "./scheduling";
+import { getInitialDueDate } from "./initial-due";
+import type { FrequencyUnit, TaskTemplate } from "./templates";
 
 type HomeMatching = Parameters<typeof getApplicableTemplates>[0];
 
@@ -29,4 +31,23 @@ export function tasksToRetire(
   return tasks
     .filter((t) => t.isActive && !t.isCustom && dropped.has(t.name))
     .map((t) => t.id);
+}
+
+const localIso = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+/**
+ * Due date for a task revived by re-adding its system/appliance. A date
+ * still ahead is kept; a stale one (removed long ago) is rescheduled like a
+ * newly added task, so re-adding never dumps a pile of overdue work.
+ */
+export function revivedDueDate(
+  currentDue: string,
+  template: Pick<TaskTemplate, "id" | "seasonalMonths">,
+  frequencyValue: number,
+  frequencyUnit: FrequencyUnit,
+  now: Date = new Date()
+): string {
+  if (currentDue >= localIso(now)) return currentDue;
+  return localIso(getInitialDueDate(template, frequencyValue, frequencyUnit, now));
 }
