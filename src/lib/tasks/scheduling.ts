@@ -209,7 +209,7 @@ export function getSeasonalTasks(
 /**
  * Convert frequency value + unit to an approximate number of days.
  */
-function frequencyToDays(value: number, unit: string): number {
+export function frequencyToDays(value: number, unit: string): number {
   switch (unit) {
     case "days": return value;
     case "weeks": return value * 7;

@@ -106,6 +106,17 @@ export default function TasksPage() {
     fetchTasks();
   }, [fetchTasks]);
 
+  // Deep link from the dashboard: /tasks?task=<id> opens that task once loaded,
+  // then drops the param so closing the dialog doesn't reopen it.
+  useEffect(() => {
+    if (loading) return;
+    const id = new URLSearchParams(window.location.search).get("task");
+    if (!id) return;
+    const match = tasks.find((t) => t.id === id);
+    if (match) setSelectedTask(match);
+    router.replace("/tasks", { scroll: false });
+  }, [loading, tasks, router]);
+
   // -------------------------------------------------------------------------
   // Actions (stay here because they need fetchTasks)
   // -------------------------------------------------------------------------

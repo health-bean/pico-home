@@ -8,6 +8,11 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui";
 import { CheckCircle2 } from "lucide-react";
 import { formatFrequency } from "../tasks/task-constants";
+import {
+  dashboardUrgency,
+  selectDashboardTasks,
+  type UrgencyLevel,
+} from "@/lib/tasks/dashboard-list";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -58,49 +63,39 @@ function scoreColorClass(score: number): string {
   return "text-[var(--color-danger-700)]";
 }
 
-function urgencyInfo(task: DashboardTask): {
-  label: string;
-  stripColor: string;
-  badgeBg: string;
-  badgeText: string;
-} {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const due = new Date(task.nextDueDate + "T00:00:00");
-  const diffDays = Math.round(
-    (due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-  );
+// Strip/badge styles per urgency level. Overdue colour scales with lateness
+// relative to the task's cycle, not just "past the date".
+const URGENCY_STYLES: Record<
+  UrgencyLevel,
+  { strip: string; badge: string; checkbox: string }
+> = {
+  late: {
+    strip: "bg-[var(--color-danger-500)]",
+    badge: "bg-[var(--color-danger-50)] text-[var(--color-danger-700)]",
+    checkbox: "border-[var(--color-danger-500)] hover:bg-[var(--color-danger-50)]",
+  },
+  slipping: {
+    strip: "bg-[var(--color-warning-500)]",
+    badge: "bg-[var(--color-warning-50)] text-[var(--color-warning-700)]",
+    checkbox: "border-[var(--color-warning-500)] hover:bg-[var(--color-warning-50)]",
+  },
+  today: {
+    strip: "bg-amber-400",
+    badge: "bg-amber-50 text-[var(--color-primary-700)]",
+    checkbox: "border-amber-400 hover:border-amber-500 hover:bg-amber-50",
+  },
+  upcoming: {
+    strip: "bg-neutral-300",
+    badge: "bg-neutral-100 text-neutral-600",
+    checkbox: "border-neutral-300 hover:border-amber-400 hover:bg-amber-50/50",
+  },
+};
 
-  if (diffDays < 0) {
-    return {
-      label: "Overdue",
-      stripColor: "bg-red-500",
-      badgeBg: "bg-red-50",
-      badgeText: "text-red-600",
-    };
-  }
-  if (diffDays <= 1) {
-    return {
-      label: "Today",
-      stripColor: "bg-amber-400",
-      badgeBg: "bg-amber-50",
-      badgeText: "text-[var(--color-primary-700)]",
-    };
-  }
-  if (diffDays <= 7) {
-    return {
-      label: "Soon",
-      stripColor: "bg-amber-400",
-      badgeBg: "bg-neutral-100",
-      badgeText: "text-neutral-600",
-    };
-  }
-  return {
-    label: "Soon",
-    stripColor: "bg-neutral-300",
-    badgeBg: "bg-neutral-100",
-    badgeText: "text-neutral-600",
-  };
+function localToday(): string {
+  const now = new Date();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${mm}-${dd}`;
 }
 
 function relativeDueDate(dateStr: string): string {
@@ -299,8 +294,11 @@ export default function DashboardPage() {
 
   const { score, overdue, upcoming } = data;
 
-  // Combine all tasks that need attention (overdue first, then upcoming)
+  // Everything due within the week, but only the top few are shown —
+  // overdue first, safety first within each group.
+  const today = localToday();
   const needsAttention = [...overdue, ...upcoming];
+  const { shown, moreCount } = selectDashboardTasks(needsAttention, today);
 
   // Stats for "This Month" card
   const completedCount = data.completedThisMonth;
@@ -464,17 +462,16 @@ export default function DashboardPage() {
             <h2 className="text-[15px] font-bold text-stone-900">
               Needs Attention
             </h2>
-            <span className="inline-flex items-center justify-center rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-bold text-[var(--color-danger-700)]">
+            <span className="inline-flex items-center justify-center rounded-full bg-[var(--color-danger-50)] px-2 py-0.5 text-[11px] font-bold text-[var(--color-danger-700)]">
               {needsAttention.length}
             </span>
           </div>
           <div className="space-y-3">
-            {needsAttention.map((task) => {
+            {shown.map((task) => {
               const isCompleting = completingIds.has(task.id);
-              const urgency = urgencyInfo(task);
+              const urgency = dashboardUrgency(task, today);
+              const styles = URGENCY_STYLES[urgency.level];
               const dueMeta = relativeDueDate(task.nextDueDate);
-              const isOverdue = urgency.label === "Overdue";
-              const isToday = urgency.label === "Today";
 
               return (
                 <div
@@ -482,9 +479,7 @@ export default function DashboardPage() {
                   className="flex items-center gap-3 rounded-2xl border border-[var(--color-neutral-200)] bg-white p-3.5"
                 >
                   {/* Urgency color strip */}
-                  <div
-                    className={`h-8 w-1 shrink-0 rounded-full ${urgency.stripColor}`}
-                  />
+                  <div className={`h-8 w-1 shrink-0 rounded-full ${styles.strip}`} />
 
                   {/* Checkbox */}
                   <button
@@ -496,9 +491,7 @@ export default function DashboardPage() {
                     className={`relative before:absolute before:-inset-[11px] before:content-[''] flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
                       isCompleting
                         ? "border-neutral-200 bg-neutral-100 animate-pulse"
-                        : isOverdue || isToday
-                          ? "border-amber-400 bg-transparent hover:border-amber-500 hover:bg-amber-50"
-                          : "border-neutral-300 bg-transparent hover:border-amber-400 hover:bg-amber-50/50"
+                        : `bg-transparent ${styles.checkbox}`
                     }`}
                   >
                     {isCompleting && (
@@ -518,26 +511,37 @@ export default function DashboardPage() {
                     )}
                   </button>
 
-                  {/* Task info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-stone-900 truncate">
-                      {task.name}
-                    </p>
-                    <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">
-                      {dueMeta} &middot; {formatFrequency(task.frequencyValue, task.frequencyUnit)}
-                    </p>
-                  </div>
-
-                  {/* Urgency badge */}
-                  <span
-                    className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${urgency.badgeBg} ${urgency.badgeText}`}
+                  {/* Task info + badge — opens the task's details */}
+                  <Link
+                    href={`/tasks?task=${task.id}`}
+                    className="flex flex-1 min-w-0 items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    {urgency.label}
-                  </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-stone-900 truncate">
+                        {task.name}
+                      </p>
+                      <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">
+                        {dueMeta} &middot; {formatFrequency(task.frequencyValue, task.frequencyUnit)}
+                      </p>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${styles.badge}`}
+                    >
+                      {urgency.label}
+                    </span>
+                  </Link>
                 </div>
               );
             })}
           </div>
+          {moreCount > 0 && (
+            <Link
+              href="/tasks"
+              className="mt-3 block text-center text-sm font-semibold text-[var(--color-primary-700)] hover:text-[var(--color-primary-900)] transition-colors"
+            >
+              +{moreCount} more
+            </Link>
+          )}
         </section>
       )}
 
