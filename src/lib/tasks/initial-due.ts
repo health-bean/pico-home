@@ -40,8 +40,8 @@ function addDays(base: Date, days: number): Date {
  * - Nothing (except one_time) lands inside the quiet start window.
  * - Seasonal templates land on a deterministic day (1–28) of the nearest
  *   upcoming seasonal month — spread, not all stacked on the 15th. If that
- *   date falls inside the quiet window, it spills to days 14–27 instead of
- *   skipping a whole year.
+ *   date falls inside the quiet window — or we're already in season and its
+ *   day has passed — it spills to days 14–27 instead of skipping a year.
  * - Everything else staggers deterministically (by template id) across one
  *   cycle after the quiet window, capped at a year, so frequency cohorts
  *   don't all land on day 30/90/180/365.
@@ -70,6 +70,8 @@ export function getInitialDueDate(
         new Date(now.getFullYear() + 1, m - 1, day),
       ])
       .filter((d) => d.getTime() >= today.getTime())
+      // Already in season → it belongs to this season, even if its day passed.
+      .concat(template.seasonalMonths.includes(now.getMonth() + 1) ? [today] : [])
       .sort((a, b) => a.getTime() - b.getTime());
     if (candidates.length > 0) {
       return candidates[0] < quietEnd

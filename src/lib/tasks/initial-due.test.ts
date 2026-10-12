@@ -49,6 +49,15 @@ describe("getInitialDueDate — seasonal spread", () => {
     // ...and none of them got pushed a whole year out
     for (const off of offsets) expect(off).toBeLessThan(60);
   });
+
+  it("keeps a single-month season this year even when its day already passed", () => {
+    const now = new Date(2026, 9, 27); // Oct 27 — late in the only seasonal month
+    for (const id of IDS) {
+      const off = daysFrom(now, getInitialDueDate(tpl(id, [10]), 1, "years", now));
+      expect(off).toBeGreaterThanOrEqual(14);
+      expect(off).toBeLessThan(28);
+    }
+  });
 });
 
 describe("getInitialDueDate — quiet first two weeks + deterministic stagger", () => {
