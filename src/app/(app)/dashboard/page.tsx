@@ -302,7 +302,6 @@ export default function DashboardPage() {
 
   // Stats for "This Month" card
   const completedCount = data.completedThisMonth;
-  const remainingCount = upcoming.length + overdue.length;
 
   // Before the first-ever completion, keep welcome framing and never render
   // the score as a failure — it debuts as a baseline, not a verdict.
@@ -458,14 +457,9 @@ export default function DashboardPage() {
       {/* ---- Needs Attention ---- */}
       {needsAttention.length > 0 && (
         <section>
-          <div className="mb-3 flex items-center gap-2">
-            <h2 className="text-[15px] font-bold text-stone-900">
-              Needs Attention
-            </h2>
-            <span className="inline-flex items-center justify-center rounded-full bg-[var(--color-danger-50)] px-2 py-0.5 text-[11px] font-bold text-[var(--color-danger-700)]">
-              {needsAttention.length}
-            </span>
-          </div>
+          <h2 className="mb-3 text-[15px] font-bold text-stone-900">
+            Needs Attention
+          </h2>
           <div className="space-y-3">
             {shown.map((task) => {
               const isCompleting = completingIds.has(task.id);
@@ -560,37 +554,17 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ---- This Month Card ---- */}
-      <div className="rounded-2xl border border-[var(--color-neutral-200)] bg-white p-5">
-        <div className="flex items-center">
-          {/* Completed */}
-          <div className="flex flex-1 flex-col items-center gap-1">
-            <span className="text-2xl font-extrabold text-stone-900">
-              {completedCount}
-            </span>
-            <span className="text-[11px] font-semibold uppercase text-[var(--color-neutral-500)]">
-              Completed
-            </span>
-          </div>
-
-          {/* Divider */}
-          <div className="h-10 w-px bg-neutral-200" />
-
-          {/* Remaining */}
-          <div className="flex flex-1 flex-col items-center gap-1">
-            <span className="text-2xl font-extrabold text-[var(--color-primary-700)]">
-              {remainingCount}
-            </span>
-            <span className="text-[11px] font-semibold uppercase text-[var(--color-neutral-500)]">
-              Remaining
-            </span>
-          </div>
-        </div>
+      {/* ---- This Month — progress only; no "remaining" tally to dread ---- */}
+      <div className="flex items-center justify-between rounded-2xl border border-[var(--color-neutral-200)] bg-white px-5 py-4">
+        <span className="text-[11px] font-semibold uppercase text-[var(--color-neutral-500)]">
+          Done this month
+        </span>
+        <span className="text-2xl font-extrabold text-stone-900">{completedCount}</span>
       </div>
 
       {/* ---- View All Tasks Link ---- */}
       <Link
-        href="/tasks"
+        href="/tasks?filter=all"
         className="block text-center text-sm font-semibold text-[var(--color-primary-700)] hover:text-[var(--color-primary-900)] transition-colors"
       >
         View all tasks

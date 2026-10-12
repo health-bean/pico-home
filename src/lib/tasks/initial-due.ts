@@ -23,16 +23,31 @@ function cycleDays(value: number, unit: FrequencyUnit): number {
 }
 
 /**
+ * New users get a quiet start: only starters are due in the first two weeks,
+ * so day one isn't a wall of tasks (tester feedback: "overwhelmed").
+ */
+export const QUIET_START_DAYS = 14;
+
+function addDays(base: Date, days: number): Date {
+  const d = new Date(base);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+/**
  * First due date for a newly created task with unknown history.
  *
- * - Seasonal templates anchor to the 15th of the nearest upcoming seasonal
- *   month (this year if still ahead, else next year) — "Winterize Irrigation"
- *   lands in fall, not on the signup anniversary.
+ * - Nothing (except one_time) lands inside the quiet start window.
+ * - Seasonal templates land on a deterministic day (1–28) of the nearest
+ *   upcoming seasonal month — spread, not all stacked on the 15th. If that
+ *   date falls inside the quiet window, it spills to days 14–27 instead of
+ *   skipping a whole year.
  * - Everything else staggers deterministically (by template id) across one
- *   cycle window, capped at a year, so frequency cohorts don't all land on
- *   day 30/90/180/365.
+ *   cycle after the quiet window, capped at a year, so frequency cohorts
+ *   don't all land on day 30/90/180/365.
  * - one_time tasks are due today.
  *
+ * Starters bypass this entirely (onboarding seeds them due today).
  * Recurrence after a completion is getNextDueDate's job, not this one's.
  */
 export function getInitialDueDate(
@@ -43,24 +58,29 @@ export function getInitialDueDate(
 ): Date {
   if (frequencyUnit === "one_time") return new Date(now);
 
+  const hash = stableHash(template.id);
+  const quietEnd = addDays(now, QUIET_START_DAYS);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
   if (template.seasonalMonths.length > 0) {
+    const day = 1 + (hash % 28);
     const candidates = template.seasonalMonths
       .flatMap((m) => [
-        new Date(now.getFullYear(), m - 1, 15),
-        new Date(now.getFullYear() + 1, m - 1, 15),
+        new Date(now.getFullYear(), m - 1, day),
+        new Date(now.getFullYear() + 1, m - 1, day),
       ])
-      .filter((d) => d.getTime() >= now.getTime())
+      .filter((d) => d.getTime() >= today.getTime())
       .sort((a, b) => a.getTime() - b.getTime());
-    if (candidates.length > 0) return candidates[0];
+    if (candidates.length > 0) {
+      return candidates[0] < quietEnd
+        ? addDays(quietEnd, hash % QUIET_START_DAYS)
+        : candidates[0];
+    }
   }
 
   const days = Math.min(cycleDays(frequencyValue, frequencyUnit), 365);
-  const minOffset = days <= 7 ? 0 : 3;
-  const span = Math.max(days - minOffset, 1);
-  const offset = minOffset + (stableHash(template.id) % span);
-  const due = new Date(now);
-  due.setDate(due.getDate() + offset);
-  return due;
+  const span = Math.max(days - QUIET_START_DAYS, Math.min(days, QUIET_START_DAYS), 1);
+  return addDays(quietEnd, hash % span);
 }
 
 /** High-value, low-effort tasks that make day one real. Order = priority. */

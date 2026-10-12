@@ -26,7 +26,7 @@ export interface Task {
   updatedAt: string;
 }
 
-export type FilterKey = "all" | "overdue" | "due_soon" | "completed" | "dismissed";
+export type FilterKey = "this_week" | "all" | "overdue" | "due_soon" | "completed" | "dismissed";
 export type StatusGroup = "overdue" | "due_soon" | "upcoming";
 
 // ---------------------------------------------------------------------------
@@ -177,6 +177,7 @@ export const priorityLabels: Record<string, string> = {
 };
 
 export const filterOptions: { key: FilterKey; label: string }[] = [
+  { key: "this_week", label: "This Week" },
   { key: "all", label: "All" },
   { key: "overdue", label: "Overdue" },
   { key: "due_soon", label: "Due Soon" },

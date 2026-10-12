@@ -13,46 +13,59 @@ function tpl(id: string, seasonalMonths: number[] = []) {
   return { id, seasonalMonths };
 }
 
-describe("getInitialDueDate — seasonal anchoring", () => {
-  it("anchors to the 15th of the nearest upcoming seasonal month this year", () => {
-    const due = getInitialDueDate(tpl("x", [10, 11]), 1, "years", new Date(2026, 8, 10));
-    expect(iso(due)).toBe(iso(new Date(2026, 9, 15)));
+const DAY = 86_400_000;
+const daysFrom = (now: Date, due: Date) => Math.round((due.getTime() - now.getTime()) / DAY);
+const IDS = Array.from({ length: 40 }, (_, i) => `template-${i}`);
+
+describe("getInitialDueDate — seasonal spread", () => {
+  it("lands inside the nearest upcoming seasonal month", () => {
+    const now = new Date(2026, 7, 1); // Aug 1
+    for (const id of IDS) {
+      const due = getInitialDueDate(tpl(id, [10, 11]), 1, "years", now);
+      expect(due.getMonth()).toBe(9); // October
+    }
+  });
+
+  it("spreads tasks across the month instead of stacking them on one day", () => {
+    const now = new Date(2026, 7, 1);
+    const days = new Set(
+      IDS.map((id) => getInitialDueDate(tpl(id, [10]), 1, "years", now).getDate())
+    );
+    expect(days.size).toBeGreaterThan(15);
   });
 
   it("rolls to next year when the seasonal window has passed", () => {
     const due = getInitialDueDate(tpl("x", [4, 5]), 1, "years", new Date(2026, 8, 10));
-    expect(iso(due)).toBe(iso(new Date(2027, 3, 15)));
+    expect(due.getFullYear()).toBe(2027);
+    expect([3, 4]).toContain(due.getMonth());
   });
 
-  it("uses the current month if its 15th is still ahead", () => {
-    const due = getInitialDueDate(tpl("x", [9]), 1, "years", new Date(2026, 8, 10));
-    expect(iso(due)).toBe(iso(new Date(2026, 8, 15)));
-  });
-
-  it("skips the current month if its 15th already passed", () => {
-    const due = getInitialDueDate(tpl("x", [9]), 1, "years", new Date(2026, 8, 20));
-    expect(iso(due)).toBe(iso(new Date(2027, 8, 15)));
+  it("never lands in the first two weeks — in-season tasks spill to days 14–27", () => {
+    const now = new Date(2026, 9, 12); // Oct 12, signing up mid-season
+    const offsets = IDS.map((id) =>
+      daysFrom(now, getInitialDueDate(tpl(id, [10, 11]), 1, "years", now))
+    );
+    for (const off of offsets) expect(off).toBeGreaterThanOrEqual(14);
+    // ...and none of them got pushed a whole year out
+    for (const off of offsets) expect(off).toBeLessThan(60);
   });
 });
 
-describe("getInitialDueDate — deterministic stagger", () => {
+describe("getInitialDueDate — quiet first two weeks + deterministic stagger", () => {
   const now = new Date(2026, 8, 10);
+  const offsetDays = (due: Date) => daysFrom(now, due);
 
-  function offsetDays(due: Date): number {
-    return Math.round((due.getTime() - now.getTime()) / 86_400_000);
-  }
-
-  it("staggers monthly tasks across 3..30 days", () => {
-    for (const id of ["a", "b", "c", "d", "e"]) {
+  it("staggers monthly tasks across days 14..29", () => {
+    for (const id of IDS) {
       const off = offsetDays(getInitialDueDate(tpl(id), 1, "months", now));
-      expect(off).toBeGreaterThanOrEqual(3);
+      expect(off).toBeGreaterThanOrEqual(14);
       expect(off).toBeLessThan(30);
     }
   });
 
-  it("staggers annual tasks across 3..365 days", () => {
+  it("staggers annual tasks across 14..365 days", () => {
     const off = offsetDays(getInitialDueDate(tpl("annual-task"), 1, "years", now));
-    expect(off).toBeGreaterThanOrEqual(3);
+    expect(off).toBeGreaterThanOrEqual(14);
     expect(off).toBeLessThan(365);
   });
 
@@ -61,13 +74,18 @@ describe("getInitialDueDate — deterministic stagger", () => {
     expect(off).toBeLessThan(365);
   });
 
-  it("staggers weekly tasks across 0..6 days", () => {
-    const off = offsetDays(getInitialDueDate(tpl("weekly-task"), 1, "weeks", now));
-    expect(off).toBeGreaterThanOrEqual(0);
-    expect(off).toBeLessThan(7);
+  it("starts weekly and fortnightly tasks after the quiet period, within one cycle", () => {
+    for (const id of IDS) {
+      const w = offsetDays(getInitialDueDate(tpl(id), 1, "weeks", now));
+      expect(w).toBeGreaterThanOrEqual(14);
+      expect(w).toBeLessThan(21);
+      const f = offsetDays(getInitialDueDate(tpl(id), 2, "weeks", now));
+      expect(f).toBeGreaterThanOrEqual(14);
+      expect(f).toBeLessThan(28);
+    }
   });
 
-  it("one_time tasks are due today", () => {
+it("one_time tasks are due today", () => {
     expect(iso(getInitialDueDate(tpl("once"), 1, "one_time", now))).toBe(iso(now));
   });
 

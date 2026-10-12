@@ -65,7 +65,7 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<FilterKey>("all");
+  const [filter, setFilter] = useState<FilterKey>("this_week");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -106,13 +106,17 @@ export default function TasksPage() {
     fetchTasks();
   }, [fetchTasks]);
 
-  // Deep link from the dashboard: /tasks?task=<id> opens that task once loaded,
-  // then drops the param so closing the dialog doesn't reopen it.
+  // Deep links from the dashboard: /tasks?filter=all picks a filter, and
+  // /tasks?task=<id> opens that task once loaded. Params are dropped after
+  // use so closing the dialog doesn't reopen it.
   useEffect(() => {
     if (loading) return;
-    const id = new URLSearchParams(window.location.search).get("task");
-    if (!id) return;
-    const match = tasks.find((t) => t.id === id);
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("task");
+    const f = params.get("filter");
+    if (!id && !f) return;
+    if (f && filterOptions.some((o) => o.key === f)) setFilter(f as FilterKey);
+    const match = id ? tasks.find((t) => t.id === id) : undefined;
     if (match) setSelectedTask(match);
     router.replace("/tasks", { scroll: false });
   }, [loading, tasks, router]);
@@ -324,6 +328,7 @@ export default function TasksPage() {
   }).length;
 
   const counts: Record<FilterKey, number> = {
+    this_week: overdueCount + dueSoonCount,
     all: activeTasks.length,
     overdue: overdueCount,
     due_soon: dueSoonCount,
@@ -417,6 +422,7 @@ export default function TasksPage() {
 
     let visibleTasks = categoryTasks;
     if (filter === "overdue") visibleTasks = categoryTasks.filter((t) => daysBetween(t.nextDueDate, today) < 0);
+    else if (filter === "this_week") visibleTasks = categoryTasks.filter((t) => daysBetween(t.nextDueDate, today) <= 7);
     else if (filter === "due_soon") visibleTasks = categoryTasks.filter((t) => { const d = daysBetween(t.nextDueDate, today); return d >= 0 && d <= 7; });
 
     if (visibleTasks.length === 0) return null;
@@ -694,6 +700,7 @@ export default function TasksPage() {
             </div>
           </section>
         )}
+        {filter === "this_week" && overdueCount + dueSoonCount === 0 && <EmptyState icon={<Check className="h-8 w-8" />} title="Nothing this week" description="Nothing is due in the next 7 days." action={{ label: "See all tasks", onClick: () => setFilter("all") }} />}
         {filter === "overdue" && overdueCount === 0 && <EmptyState icon={<Check className="h-8 w-8" />} title="No overdue tasks" description="You're all caught up!" />}
         {filter === "due_soon" && dueSoonCount === 0 && <EmptyState icon={<Check className="h-8 w-8" />} title="Nothing due soon" description="No tasks due in the next 7 days." />}
         {filter === "completed" && completedTasks.length === 0 && <EmptyState icon={<Check className="h-8 w-8" />} title="No completed tasks" description="You haven't completed any tasks yet." />}
