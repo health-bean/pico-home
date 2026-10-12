@@ -30,7 +30,8 @@ const match = env.match(/^DATABASE_URL=(.+)$/m);
 if (!match) throw new Error("DATABASE_URL not found in .env.local");
 const client = new pg.Client({
   connectionString: match[1].trim().replace(/^"|"$/g, ""),
-  ssl: { rejectUnauthorized: false },
+  // Verify the server is really Supabase — see certs/supabase-prod-ca-2021.crt
+  ssl: { ca: fs.readFileSync("certs/supabase-prod-ca-2021.crt", "utf8"), rejectUnauthorized: true },
 });
 
 const localIso = (d: Date) =>

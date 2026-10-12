@@ -11,7 +11,10 @@ const env = fs.readFileSync(".env.local", "utf8");
 const match = env.match(/^DATABASE_URL=(.+)$/m);
 if (!match) throw new Error("DATABASE_URL not found in .env.local");
 
-const pool = new pg.Pool({ connectionString: match[1].trim(), ssl: { rejectUnauthorized: false } });
+// Verify the server is really Supabase: pin its root CA (public; downloaded
+// from Supabase, sha256 80:70:25:AD…CA:FA) instead of skipping verification.
+const ca = fs.readFileSync("certs/supabase-prod-ca-2021.crt", "utf8");
+const pool = new pg.Pool({ connectionString: match[1].trim(), ssl: { ca, rejectUnauthorized: true } });
 
 const files = [
   "drizzle/0008_backfill_dangerous_copy.sql",
