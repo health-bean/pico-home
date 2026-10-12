@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { homeSystems, taskInstances } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { apiHandler, parseBody } from "@/lib/api/handler";
 import { getUserHome } from "@/lib/auth/get-user-home";
-import { getApplicableTemplates, getNextDueDate } from "@/lib/tasks/scheduling";
-import type { SystemType, HomeType, ApplianceCategory, FrequencyUnit } from "@/lib/tasks/templates";
-import { appliances } from "@/lib/db/schema";
+import { adjustFrequencyForHealth, getApplicableTemplates } from "@/lib/tasks/scheduling";
+import { loadHomeForMatching } from "@/lib/tasks/home-matching";
+import { getInitialDueDate } from "@/lib/tasks/initial-due";
+import { tasksToRetire, withoutOne } from "@/lib/tasks/retire";
+import type { SystemType, FrequencyUnit } from "@/lib/tasks/templates";
 
 const addSystemSchema = z.object({
   homeId: z.string().uuid(),
@@ -34,56 +36,60 @@ export const POST = apiHandler(async ({ user, request }) => {
     subtype: body.subtype,
   }).returning();
 
-  // Get existing systems and appliances to find NEW applicable templates
-  const existingSystems = await db.select().from(homeSystems).where(eq(homeSystems.homeId, home.id));
-  const systemTypes = existingSystems.map(s => s.systemType as SystemType);
-
-  const existingAppls = await db.select().from(appliances).where(eq(appliances.homeId, home.id));
-
-  // Get existing task names to avoid duplicates
-  const existingTasks = await db.select({ name: taskInstances.name }).from(taskInstances).where(eq(taskInstances.homeId, home.id));
+  // Match against the whole home (systems, climate, household options)
+  const { matching, healthFlags } = await loadHomeForMatching(home);
+  const existingTasks = await db
+    .select({ id: taskInstances.id, name: taskInstances.name, isActive: taskInstances.isActive, dismissedAt: taskInstances.dismissedAt })
+    .from(taskInstances)
+    .where(eq(taskInstances.homeId, home.id));
   const existingTaskNames = new Set(existingTasks.map(t => t.name));
 
-  // Find templates that apply with the new system
-  const systemSubtypes: Partial<Record<SystemType, string[]>> = {};
-  for (const s of existingSystems) {
-    const key = s.systemType as SystemType;
-    (systemSubtypes[key] ??= []).push(s.subtype ?? "standard");
-  }
-  const applicableTemplates = getApplicableTemplates(
-    {
-      type: (home.type || "single_family") as HomeType,
-      systems: systemTypes,
-      appliances: existingAppls.map(a => a.category as ApplianceCategory),
-      systemSubtypes,
-    },
-    {}
-  );
-
-  // Create tasks for new templates that don't already exist
-  const newTasks = applicableTemplates
+  const newTasks = getApplicableTemplates(matching, healthFlags)
     .filter(t => !existingTaskNames.has(t.name))
     .filter(t => t.applicableSystems.includes(body.systemType as SystemType))
-    .map(t => ({
-      homeId: home.id,
-      name: t.name,
-      description: t.description,
-      category: t.category,
-      priority: t.priority,
-      frequencyUnit: t.frequencyUnit,
-      frequencyValue: t.frequencyValue,
-      nextDueDate: getNextDueDate(t.frequencyValue, t.frequencyUnit as FrequencyUnit).toISOString().split("T")[0],
-      lastCompletedDate: null,
-      isActive: true,
-      isCustom: false,
-      notificationDaysBefore: 3,
-    }));
+    .map(t => {
+      const freq = adjustFrequencyForHealth(t.frequencyValue, t.frequencyUnit, t.healthMultipliers, healthFlags);
+      return {
+        homeId: home.id,
+        name: t.name,
+        description: t.description,
+        category: t.category,
+        priority: t.priority,
+        frequencyUnit: freq.frequencyUnit,
+        frequencyValue: freq.frequencyValue,
+        // Same staggered/seasonal first due date as onboarding — never today + frequency
+        nextDueDate: getInitialDueDate(t, freq.frequencyValue, freq.frequencyUnit as FrequencyUnit).toISOString().split("T")[0],
+        lastCompletedDate: null,
+        isActive: true,
+        isCustom: false,
+        notificationDaysBefore: 3,
+        tips: t.tips,
+        whyItMatters: t.whyItMatters,
+        subgroup: t.subgroup,
+      };
+    });
 
   if (newTasks.length > 0) {
     await db.insert(taskInstances).values(newTasks);
   }
 
-  return NextResponse.json({ success: true, systemId: system.id, tasksCreated: newTasks.length });
+  // Re-adding something brings back the tasks its removal dismissed
+  const relevantNames = new Set(
+    getApplicableTemplates(matching, healthFlags)
+      .filter(t => t.applicableSystems.includes(body.systemType as SystemType))
+      .map(t => t.name)
+  );
+  const reviveIds = existingTasks
+    .filter(t => !t.isActive && t.dismissedAt && relevantNames.has(t.name))
+    .map(t => t.id);
+  if (reviveIds.length > 0) {
+    await db
+      .update(taskInstances)
+      .set({ isActive: true, dismissedAt: null, updatedAt: new Date() })
+      .where(inArray(taskInstances.id, reviveIds));
+  }
+
+  return NextResponse.json({ success: true, systemId: system.id, tasksCreated: newTasks.length, tasksRestored: reviveIds.length });
 });
 
 export const DELETE = apiHandler(async ({ user, request }) => {
@@ -100,7 +106,31 @@ export const DELETE = apiHandler(async ({ user, request }) => {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  await db.delete(homeSystems).where(eq(homeSystems.id, body.id));
+  // Tasks that only applied because of this system go to Dismissed
+  // (restorable from Tasks), so the plan matches the profile.
+  const { matching, healthFlags } = await loadHomeForMatching(home);
+  const type = system.systemType as SystemType;
+  const remainingSubtypes = withoutOne(matching.systemSubtypes[type] ?? [], system.subtype ?? "standard");
+  const after = {
+    ...matching,
+    systems: withoutOne(matching.systems, type),
+    systemSubtypes: { ...matching.systemSubtypes, [type]: remainingSubtypes.length ? remainingSubtypes : undefined },
+  };
+  const homeTasks = await db
+    .select({ id: taskInstances.id, name: taskInstances.name, isCustom: taskInstances.isCustom, isActive: taskInstances.isActive })
+    .from(taskInstances)
+    .where(eq(taskInstances.homeId, home.id));
+  const retireIds = tasksToRetire(matching, after, healthFlags, homeTasks);
 
-  return NextResponse.json({ success: true });
+  await db.transaction(async (tx) => {
+    await tx.delete(homeSystems).where(eq(homeSystems.id, body.id));
+    if (retireIds.length > 0) {
+      await tx
+        .update(taskInstances)
+        .set({ isActive: false, dismissedAt: new Date(), updatedAt: new Date() })
+        .where(inArray(taskInstances.id, retireIds));
+    }
+  });
+
+  return NextResponse.json({ success: true, tasksRemoved: retireIds.length });
 });

@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { appliances, taskInstances } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { apiHandler, parseBody } from "@/lib/api/handler";
 import { getUserHome } from "@/lib/auth/get-user-home";
 import { adjustFrequencyForHealth, getApplicableTemplates } from "@/lib/tasks/scheduling";
 import { loadHomeForMatching } from "@/lib/tasks/home-matching";
 import { getInitialDueDate } from "@/lib/tasks/initial-due";
+import { tasksToRetire, withoutOne } from "@/lib/tasks/retire";
 import type { ApplianceCategory, FrequencyUnit } from "@/lib/tasks/templates";
 
 const addApplianceSchema = z.object({
@@ -36,7 +37,10 @@ export const POST = apiHandler(async ({ user, request }) => {
 
   // Match against the whole home (systems, climate, household options)
   const { matching, healthFlags } = await loadHomeForMatching(home);
-  const existingTasks = await db.select({ name: taskInstances.name }).from(taskInstances).where(eq(taskInstances.homeId, home.id));
+  const existingTasks = await db
+    .select({ id: taskInstances.id, name: taskInstances.name, isActive: taskInstances.isActive, dismissedAt: taskInstances.dismissedAt })
+    .from(taskInstances)
+    .where(eq(taskInstances.homeId, home.id));
   const existingTaskNames = new Set(existingTasks.map(t => t.name));
 
   const newTasks = getApplicableTemplates(matching, healthFlags)
@@ -69,7 +73,23 @@ export const POST = apiHandler(async ({ user, request }) => {
     await db.insert(taskInstances).values(newTasks);
   }
 
-  return NextResponse.json({ success: true, applianceId: appliance.id, tasksCreated: newTasks.length });
+  // Re-adding something brings back the tasks its removal dismissed
+  const relevantNames = new Set(
+    getApplicableTemplates(matching, healthFlags)
+      .filter(t => t.applicableApplianceCategories.includes(body.category as ApplianceCategory))
+      .map(t => t.name)
+  );
+  const reviveIds = existingTasks
+    .filter(t => !t.isActive && t.dismissedAt && relevantNames.has(t.name))
+    .map(t => t.id);
+  if (reviveIds.length > 0) {
+    await db
+      .update(taskInstances)
+      .set({ isActive: true, dismissedAt: null, updatedAt: new Date() })
+      .where(inArray(taskInstances.id, reviveIds));
+  }
+
+  return NextResponse.json({ success: true, applianceId: appliance.id, tasksCreated: newTasks.length, tasksRestored: reviveIds.length });
 });
 
 export const DELETE = apiHandler(async ({ user, request }) => {
@@ -85,7 +105,27 @@ export const DELETE = apiHandler(async ({ user, request }) => {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  await db.delete(appliances).where(eq(appliances.id, body.id));
+  // Tasks that only applied because of this appliance go to Dismissed
+  // (restorable from Tasks), so the plan matches the profile.
+  const { matching, healthFlags } = await loadHomeForMatching(home);
+  const after = appliance.category
+    ? { ...matching, appliances: withoutOne(matching.appliances, appliance.category as ApplianceCategory) }
+    : matching;
+  const homeTasks = await db
+    .select({ id: taskInstances.id, name: taskInstances.name, isCustom: taskInstances.isCustom, isActive: taskInstances.isActive })
+    .from(taskInstances)
+    .where(eq(taskInstances.homeId, home.id));
+  const retireIds = tasksToRetire(matching, after, healthFlags, homeTasks);
 
-  return NextResponse.json({ success: true });
+  await db.transaction(async (tx) => {
+    await tx.delete(appliances).where(eq(appliances.id, body.id));
+    if (retireIds.length > 0) {
+      await tx
+        .update(taskInstances)
+        .set({ isActive: false, dismissedAt: new Date(), updatedAt: new Date() })
+        .where(inArray(taskInstances.id, retireIds));
+    }
+  });
+
+  return NextResponse.json({ success: true, tasksRemoved: retireIds.length });
 });

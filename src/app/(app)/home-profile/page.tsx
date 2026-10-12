@@ -360,6 +360,11 @@ function MembersSection() {
 /*  Page                                                               */
 /* ------------------------------------------------------------------ */
 
+function removedMessage(what: string, tasksRemoved: number): string {
+  if (tasksRemoved === 0) return `${what} removed`;
+  return `${what} removed — ${tasksRemoved} task${tasksRemoved === 1 ? "" : "s"} moved to Dismissed`;
+}
+
 export default function HomeProfilePage() {
   const { toast } = useToast();
   const { confirm, confirmDialog } = useConfirm();
@@ -555,7 +560,7 @@ export default function HomeProfilePage() {
   const handleDeleteSystem = async (systemId: string) => {
     const ok = await confirm({
       title: "Remove this system?",
-      description: "Its tasks stay on your list — remove them from Tasks if you no longer need them.",
+      description: "Tasks that only applied to this system move to Dismissed in Tasks — you can restore them there.",
       confirmLabel: "Remove system",
     });
     if (!ok) return;
@@ -568,6 +573,8 @@ export default function HomeProfilePage() {
       });
       if (res.ok) {
         setSystems((prev) => prev.filter((s) => s.id !== systemId));
+        const { tasksRemoved = 0 } = await res.json().catch(() => ({}));
+        toast(removedMessage("System", tasksRemoved), "success");
       } else {
         toast("Couldn't remove that system — try again", "error");
       }
@@ -609,7 +616,7 @@ export default function HomeProfilePage() {
   const handleDeleteAppliance = async (applianceId: string) => {
     const ok = await confirm({
       title: "Remove this appliance?",
-      description: "Its tasks stay on your list — use \u201cDon\u2019t have one\u201d in Tasks to remove them too.",
+      description: "Tasks that only applied to this appliance move to Dismissed in Tasks — you can restore them there.",
       confirmLabel: "Remove appliance",
     });
     if (!ok) return;
@@ -622,6 +629,8 @@ export default function HomeProfilePage() {
       });
       if (res.ok) {
         setApplianceList((prev) => prev.filter((a) => a.id !== applianceId));
+        const { tasksRemoved = 0 } = await res.json().catch(() => ({}));
+        toast(removedMessage("Appliance", tasksRemoved), "success");
       } else {
         toast("Couldn't remove that appliance — try again", "error");
       }
