@@ -4,6 +4,7 @@ import { appliances, taskInstances } from "@/lib/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { apiHandler, parseBody } from "@/lib/api/handler";
+import { addApplianceSchema } from "@/lib/api/schemas";
 import { getUserHome } from "@/lib/auth/get-user-home";
 import { adjustFrequencyForHealth, getApplicableTemplates } from "@/lib/tasks/scheduling";
 import { loadHomeForMatching } from "@/lib/tasks/home-matching";
@@ -11,11 +12,6 @@ import { getInitialDueDate } from "@/lib/tasks/initial-due";
 import { revivedDueDate, tasksToRetire, withoutOne } from "@/lib/tasks/retire";
 import type { ApplianceCategory, FrequencyUnit } from "@/lib/tasks/templates";
 
-const addApplianceSchema = z.object({
-  homeId: z.string().uuid(),
-  name: z.string().min(1).max(255),
-  category: z.string().min(1).max(50),
-});
 
 const deleteApplianceSchema = z.object({
   id: z.string().uuid(),
@@ -32,7 +28,7 @@ export const POST = apiHandler(async ({ user, request }) => {
   const [appliance] = await db.insert(appliances).values({
     homeId: home.id,
     name: body.name,
-    category: body.category as ApplianceCategory,
+    category: body.category,
   }).returning();
 
   // Match against the whole home (systems, climate, household options)

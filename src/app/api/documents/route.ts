@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { documents } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { appliances, documents } from "@/lib/db/schema";
+import { and, eq } from "drizzle-orm";
 import { apiHandler } from "@/lib/api/handler";
 import { createClient } from "@/lib/supabase/server";
 import { getUserHome } from "@/lib/auth/get-user-home";
@@ -195,6 +195,19 @@ export const POST = apiHandler(async ({ user, request }) => {
   const home = await getUserHome(user.id, homeId);
   if (!home) {
     return NextResponse.json({ error: "Home not found" }, { status: 404 });
+  }
+
+  // A client-supplied applianceId must belong to this same home — otherwise
+  // a member could attach documents to (and enumerate) another home's items.
+  if (applianceId) {
+    const [appliance] = await db
+      .select({ id: appliances.id })
+      .from(appliances)
+      .where(and(eq(appliances.id, applianceId), eq(appliances.homeId, home.id)))
+      .limit(1);
+    if (!appliance) {
+      return NextResponse.json({ error: "Appliance not found" }, { status: 404 });
+    }
   }
 
   // Upload to Supabase Storage with the service role: authenticated users

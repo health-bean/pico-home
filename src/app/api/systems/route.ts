@@ -4,6 +4,7 @@ import { homeSystems, taskInstances } from "@/lib/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { apiHandler, parseBody } from "@/lib/api/handler";
+import { addSystemSchema } from "@/lib/api/schemas";
 import { getUserHome } from "@/lib/auth/get-user-home";
 import { adjustFrequencyForHealth, getApplicableTemplates } from "@/lib/tasks/scheduling";
 import { loadHomeForMatching } from "@/lib/tasks/home-matching";
@@ -11,11 +12,6 @@ import { getInitialDueDate } from "@/lib/tasks/initial-due";
 import { revivedDueDate, tasksToRetire, withoutOne } from "@/lib/tasks/retire";
 import type { SystemType, FrequencyUnit } from "@/lib/tasks/templates";
 
-const addSystemSchema = z.object({
-  homeId: z.string().uuid(),
-  systemType: z.string().min(1).max(50),
-  subtype: z.string().max(100).default("standard"),
-});
 
 const deleteSystemSchema = z.object({
   id: z.string().uuid(),
@@ -32,7 +28,7 @@ export const POST = apiHandler(async ({ user, request }) => {
   // Add the system
   const [system] = await db.insert(homeSystems).values({
     homeId: home.id,
-    systemType: body.systemType as SystemType,
+    systemType: body.systemType,
     subtype: body.subtype,
   }).returning();
 

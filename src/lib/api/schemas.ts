@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { APPLIANCE_FEATURES } from "@/lib/tasks/templates";
 import { isAllowedPushEndpoint } from "@/lib/push/endpoint";
+import { applianceCategoryEnum, systemTypeEnum } from "@/lib/db/schema";
 
 // ─── Shared enums (match DB enums exactly) ─────────────────────────────────
 
@@ -21,19 +22,10 @@ const homeTypeValues = [
   "single_family", "townhouse", "condo",
 ] as const;
 
-const systemTypeValues = [
-  "hvac", "plumbing", "electrical", "roofing", "foundation",
-  "water_source", "sewage", "irrigation", "pool", "security", "solar",
-] as const;
-
-const applianceCategoryValues = [
-  "refrigerator", "dishwasher", "washing_machine", "dryer", "oven_range",
-  "microwave", "garbage_disposal", "water_heater", "furnace", "ac_unit",
-  "water_softener", "water_filter", "humidifier", "dehumidifier",
-  "garage_door", "pool_pump", "hot_tub", "sump_pump", "generator",
-  "heat_pump", "boiler", "fireplace", "mini_split", "evap_cooler", "solar_panels",
-  "air_purifier", "other",
-] as const;
+// Taken straight from the Drizzle pgEnums so API validation can't drift
+// from what Postgres accepts.
+const systemTypeValues = systemTypeEnum.enumValues;
+const applianceCategoryValues = applianceCategoryEnum.enumValues;
 
 // ─── API Schemas ────────────────────────────────────────────────────────────
 
@@ -87,6 +79,18 @@ export const updateTaskSchema = z.object({
 
 export const inviteSchema = z.object({
   email: z.string().email().max(255).transform((v) => v.trim().toLowerCase()),
+});
+
+export const addApplianceSchema = z.object({
+  homeId: z.string().uuid(),
+  name: z.string().min(1).max(255),
+  category: z.enum(applianceCategoryValues),
+});
+
+export const addSystemSchema = z.object({
+  homeId: z.string().uuid(),
+  systemType: z.enum(systemTypeValues),
+  subtype: z.string().max(100).default("standard"),
 });
 
 export const pushSubscribeSchema = z.object({

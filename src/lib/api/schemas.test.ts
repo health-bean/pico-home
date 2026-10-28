@@ -1,3 +1,4 @@
+import { applianceCategoryEnum, systemTypeEnum } from "@/lib/db/schema";
 import { describe, it, expect } from "vitest";
 import {
   createTaskSchema,
@@ -5,6 +6,8 @@ import {
   snoozeTaskSchema,
   inviteSchema,
   pushSubscribeSchema,
+  addApplianceSchema,
+  addSystemSchema,
   onboardingSchema,
 } from "./schemas";
 
@@ -217,5 +220,27 @@ describe("onboardingSchema", () => {
     expect(result.appliances).toContain("heat_pump");
     expect(result.appliances).toContain("solar_panels");
     expect(result.systems[0].key).toBe("solar");
+  });
+});
+
+describe("addApplianceSchema / addSystemSchema", () => {
+  const homeId = "00000000-0000-4000-8000-000000000000";
+
+  it("accepts every DB enum value", () => {
+    for (const category of applianceCategoryEnum.enumValues) {
+      expect(addApplianceSchema.parse({ homeId, name: "x", category }).category).toBe(category);
+    }
+    for (const systemType of systemTypeEnum.enumValues) {
+      expect(addSystemSchema.parse({ homeId, systemType }).systemType).toBe(systemType);
+    }
+  });
+
+  it("rejects free-text values the DB enum would choke on", () => {
+    expect(() => addApplianceSchema.parse({ homeId, name: "x", category: "toaster" })).toThrow();
+    expect(() => addSystemSchema.parse({ homeId, systemType: "moat" })).toThrow();
+  });
+
+  it("defaults system subtype to standard", () => {
+    expect(addSystemSchema.parse({ homeId, systemType: "hvac" }).subtype).toBe("standard");
   });
 });
