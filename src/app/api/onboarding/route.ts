@@ -19,6 +19,7 @@ import type { HomeType, SystemType, ApplianceCategory } from "@/lib/tasks/templa
 import { onboardingSchema } from "@/lib/api/schemas";
 import { checkCsrf } from "@/lib/api/handler";
 import { rateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
+import { safeErrorSummary } from "@/lib/log/scrub";
 
 const ACCOUNT_REFUSED = "This account can't be used to sign in to Pico Home.";
 
@@ -317,7 +318,7 @@ export async function POST(request: Request) {
       );
     }
 
-    console.error("[Onboarding Error]", error);
+    console.error("[Onboarding Error]", JSON.stringify(safeErrorSummary(error)));
     return NextResponse.json(
       { error: "An unexpected error occurred" },
       { status: 500 }

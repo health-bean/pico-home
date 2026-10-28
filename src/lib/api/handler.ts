@@ -4,6 +4,7 @@ import * as Sentry from "@sentry/nextjs";
 import { getAuthContext } from "@/lib/auth/get-app-user";
 import { rateLimit, RATE_LIMITS } from "./rate-limit";
 import { DEFAULT_MAX_BODY_BYTES, enforceBodyLimit } from "./body-limit";
+import { safeErrorSummary } from "@/lib/log/scrub";
 
 type AuthContext = NonNullable<Awaited<ReturnType<typeof getAuthContext>>>;
 
@@ -155,7 +156,8 @@ export function apiHandler(handler: HandlerFn, options?: ApiHandlerOptions) {
       }
 
       Sentry.captureException(error);
-      console.error("[API Error]", error);
+      // Never log the raw error: Drizzle errors embed bound params (PII).
+      console.error("[API Error]", JSON.stringify(safeErrorSummary(error)));
 
       return NextResponse.json(
         { error: "An unexpected error occurred" },

@@ -1,11 +1,12 @@
 import { updateSession } from "@/lib/supabase/middleware";
+import { safeErrorSummary } from "@/lib/log/scrub";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
   try {
     return await updateSession(request);
   } catch (error) {
-    console.error("[Middleware Error]", request.nextUrl.pathname, error);
+    console.error("[Middleware Error]", request.nextUrl.pathname, JSON.stringify(safeErrorSummary(error)));
     // API callers need a machine-readable error, not an HTML redirect —
     // and a transient auth-provider outage should read as 503, not logout.
     if (request.nextUrl.pathname.startsWith("/api/")) {

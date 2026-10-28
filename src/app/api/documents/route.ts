@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUserHome } from "@/lib/auth/get-user-home";
 import { z } from "zod";
 import { fileTypeFromBuffer } from "file-type";
+import { safeErrorSummary } from "@/lib/log/scrub";
 import { DOCUMENTS_BUCKET as BUCKET, getServiceRoleClient } from "@/lib/storage/documents";
 
 import {
@@ -215,7 +216,7 @@ export const POST = apiHandler(async ({ user, request }) => {
     });
 
   if (uploadError) {
-    console.error("Storage upload error:", uploadError);
+    console.error("Storage upload error:", JSON.stringify(safeErrorSummary(uploadError)));
     return NextResponse.json(
       { error: "Failed to upload file" },
       { status: 500 }
