@@ -7,8 +7,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getUserHome } from "@/lib/auth/get-user-home";
 import { z } from "zod";
 import { fileTypeFromBuffer } from "file-type";
+import { DOCUMENTS_BUCKET as BUCKET, getServiceRoleClient } from "@/lib/storage/documents";
 
-const BUCKET = "documents";
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 const ALLOWED_MIMES = new Set([
@@ -192,8 +192,15 @@ export const POST = apiHandler(async ({ user, request }) => {
     return NextResponse.json({ error: "Home not found" }, { status: 404 });
   }
 
-  // Upload to Supabase Storage
-  const supabase = await createClient();
+  // Upload to Supabase Storage with the service role: authenticated users
+  // have no INSERT policy on the bucket (0016), so every file must come
+  // through the validation above. Falls back to the session client only
+  // until SUPABASE_SERVICE_ROLE_KEY is configured / 0016 is applied.
+  const admin = getServiceRoleClient();
+  if (!admin && process.env.NODE_ENV === "production") {
+    console.error("[documents] SUPABASE_SERVICE_ROLE_KEY not set; upload uses session client");
+  }
+  const supabase = admin ?? (await createClient());
   const storagePath = `${home.id}/${crypto.randomUUID()}.${ext}`;
 
   const { error: uploadError } = await supabase.storage

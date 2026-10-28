@@ -25,6 +25,7 @@ const files = [
   "drizzle/0013_air_purifier_and_mold_flag.sql",
   "drizzle/0014_tester_feedback_content.sql",
   "drizzle/0015_deck_yearly.sql",
+  "drizzle/0016_storage_server_only_uploads.sql",
 ];
 
 for (const file of files) {
