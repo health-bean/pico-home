@@ -18,7 +18,10 @@ jobs:
           node-version: 22
           cache: npm
 
-      - run: npm ci --force
+      - run: npm ci
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Lint
         run: npm run lint
@@ -28,3 +31,14 @@ jobs:
 
       - name: Test
         run: npm test
+
+      - name: Build
+        run: npx next build
+        env:
+          # Dummy public values so the build doesn't depend on secrets. No
+          # server secrets are needed to compile; nothing here is real.
+          NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+          NEXT_PUBLIC_APP_URL: https://picohome.app
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: ci-placeholder-vapid-key
+          NEXT_TELEMETRY_DISABLED: "1"
