@@ -7,6 +7,7 @@ import { SkeletonCard, Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui";
 import { CheckCircle2 } from "lucide-react";
+import { PendingInvites } from "@/components/invites/pending-invites";
 import { formatFrequency } from "../tasks/task-constants";
 import {
   dashboardUrgency,
@@ -319,6 +320,16 @@ export default function DashboardPage() {
           {data.home.name}
         </h1>
       </div>
+
+      {/* ---- Invites to other homes (joining needs an explicit Accept) ---- */}
+      <PendingInvites
+        onAccepted={(homeId) => {
+          try {
+            localStorage.setItem("pico-active-home", homeId);
+          } catch { /* storage unavailable */ }
+          window.location.reload();
+        }}
+      />
 
       {/* ---- Welcome Nudge Card ---- */}
       {showWelcome && isDebut && (

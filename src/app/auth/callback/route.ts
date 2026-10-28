@@ -26,50 +26,35 @@ export async function GET(request: Request) {
           return NextResponse.redirect(`${origin}/?error=not_allowed`);
         }
 
-        // Check if this user has pending invites
-        const pendingInvites = await db
-          .select()
+        // Pending invites are NOT accepted here — the invitee accepts or
+        // declines them in the app. We only make sure the app user row
+        // exists so the invite card can load (on onboarding or dashboard).
+        const [pendingInvite] = await db
+          .select({ id: homeInvites.id })
           .from(homeInvites)
           .where(
             and(
               eq(homeInvites.invitedEmail, authUser.email.toLowerCase()),
               eq(homeInvites.status, "pending")
             )
-          );
+          )
+          .limit(1);
 
-        if (pendingInvites.length > 0) {
-          // Ensure user record exists (race-safe; only a verified Google
-          // identity may adopt an existing row with the same email)
-          const appUser = await upsertAppUser(authUser);
-          if (!appUser) {
-            await supabase.auth.signOut();
-            return NextResponse.redirect(`${origin}/?error=auth`);
-          }
-
-          // Accept all pending invites
-          for (const invite of pendingInvites) {
-            await db.insert(homeMembers).values({
-              homeId: invite.homeId,
-              userId: appUser.id,
-              role: "member",
-              invitedBy: invite.invitedBy,
-            });
-
-            await db
-              .update(homeInvites)
-              .set({ status: "accepted" })
-              .where(eq(homeInvites.id, invite.id));
-          }
-
-          // Invited user goes straight to dashboard (they already have a home)
-          return NextResponse.redirect(`${origin}/dashboard`);
-        }
-
-        // Check if user already has a home
-        const [appUser] = await db
+        let [appUser] = await db
           .select()
           .from(users)
           .where(eq(users.authId, authUser.id));
+
+        if (!appUser && pendingInvite) {
+          // Race-safe; only a verified Google identity may adopt an existing
+          // row with the same email
+          const upserted = await upsertAppUser(authUser);
+          if (!upserted) {
+            await supabase.auth.signOut();
+            return NextResponse.redirect(`${origin}/?error=auth`);
+          }
+          appUser = upserted;
+        }
 
         if (appUser) {
           const [membership] = await db
@@ -84,7 +69,7 @@ export async function GET(request: Request) {
         }
       }
 
-      // New user with no invites — go to onboarding
+      // No home yet — onboarding (shows any pending invites to accept)
       return NextResponse.redirect(`${origin}/onboarding`);
     }
   }

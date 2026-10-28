@@ -3,6 +3,8 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { FormData } from "./shared";
+import { ToastProvider } from "@/components/ui";
+import { PendingInvites } from "@/components/invites/pending-invites";
 import {
   CLIMATE_ZONES,
   initialSelectedItems,
@@ -27,10 +29,11 @@ const TOTAL_STEPS = 5; // Welcome + 4 wizard steps (About, Systems, Household, Q
 // Step 1: Welcome
 // ---------------------------------------------------------------------------
 
-function StepWelcome({ onNext }: { onNext: () => void }) {
+function StepWelcome({ onNext, invites }: { onNext: () => void; invites?: React.ReactNode }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center -mx-5 -my-6 px-8 bg-gradient-to-b from-[var(--color-primary-50)] via-[var(--color-primary-100)] to-[var(--color-primary-200)]">
       <div className="flex flex-col items-center text-center max-w-xs">
+        {invites}
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/60 backdrop-blur-sm shadow-sm mb-5">
           <span className="text-3xl">{"\u{1F3E0}"}</span>
         </div>
@@ -293,7 +296,27 @@ export default function OnboardingPage() {
             <p className="mt-0.5">Your answers are kept — check your connection and try again.</p>
           </div>
         )}
-        {step === 1 && <StepWelcome onNext={next} />}
+        {step === 1 && (
+          <StepWelcome
+            onNext={next}
+            invites={
+              // Someone invited this user: they can join that home instead of
+              // (or as well as) setting up their own.
+              <ToastProvider>
+                <PendingInvites
+                  className="mb-8 w-full text-left"
+                  onAccepted={(homeId) => {
+                    try {
+                      localStorage.setItem("pico-active-home", homeId);
+                      localStorage.removeItem(DRAFT_KEY);
+                    } catch { /* storage unavailable */ }
+                    window.location.href = "/dashboard";
+                  }}
+                />
+              </ToastProvider>
+            }
+          />
+        )}
         {step === 2 && (
           <StepAboutHome
             data={form}

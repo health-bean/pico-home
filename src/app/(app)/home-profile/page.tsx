@@ -80,7 +80,6 @@ interface Member {
   id: string;
   name: string | null;
   email: string;
-  avatarUrl: string | null;
   role: string;
 }
 
@@ -209,6 +208,8 @@ function homeTypeLabel(type: string | null): string {
 
 function MembersSection() {
   const { toast } = useToast();
+  const { confirm, confirmDialog } = useConfirm();
+  const [leaving, setLeaving] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [showInvite, setShowInvite] = useState(false);
@@ -255,7 +256,7 @@ function MembersSection() {
         setInviteSuccess(
           data.emailSent
             ? "Invite sent — they'll get an email with instructions."
-            : "Invite recorded, but the email couldn't be sent — ask them to sign in at picohome.app with this address and they'll be added automatically."
+            : "Invite recorded, but the email couldn't be sent — ask them to sign in at picohome.app with this address and accept the invite."
         );
         setInviteEmail("");
         fetchMembers();
@@ -264,6 +265,31 @@ function MembersSection() {
       setInviteError("Something went wrong");
     } finally {
       setInviteLoading(false);
+    }
+  };
+
+  // A sole owner can't leave (the API refuses — it would orphan the home)
+  const canLeave = members.length > 0 && (!isOwner || members.length > 1);
+
+  const handleLeave = async () => {
+    const ok = await confirm({
+      title: "Leave this home?",
+      description: isOwner
+        ? "You'll lose access to its tasks. Ownership passes to the member who joined first."
+        : "You'll lose access to its tasks. The owner can invite you again later.",
+      confirmLabel: "Leave home",
+    });
+    if (!ok) return;
+    setLeaving(true);
+    try {
+      const res = await fetch("/api/home/members/me", { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error);
+      try { localStorage.removeItem("pico-active-home"); } catch { /* storage unavailable */ }
+      window.location.href = "/dashboard";
+    } catch (err) {
+      toast(err instanceof Error && err.message ? err.message : "Couldn't leave the home — try again", "error");
+      setLeaving(false);
     }
   };
 
@@ -352,6 +378,17 @@ function MembersSection() {
           </div>
         </div>
       </Dialog>
+
+      {canLeave && (
+        <button
+          onClick={handleLeave}
+          disabled={leaving}
+          className="mt-3 text-[13px] font-semibold text-[var(--color-danger-700)] disabled:opacity-50"
+        >
+          {leaving ? "Leaving..." : "Leave home"}
+        </button>
+      )}
+      {confirmDialog}
     </section>
   );
 }

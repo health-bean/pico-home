@@ -2,13 +2,24 @@ import { NextResponse } from "next/server";
 import { getUserHome } from "@/lib/auth/get-user-home";
 import { db } from "@/lib/db";
 import { homeInvites, homeMembers, users } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gte, count } from "drizzle-orm";
 import { apiHandler, parseBody } from "@/lib/api/handler";
 import { inviteSchema } from "@/lib/api/schemas";
 import { sendEmail } from "@/lib/email/send";
 import { rateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
+import {
+  buildInviteEmail,
+  isOverDailyInviteCap,
+  INVITE_CAP_WINDOW_MS,
+} from "@/lib/invites/rules";
 
-// Send an invite
+function homeIdParam(request: Request) {
+  return new URL(request.url).searchParams.get("homeId") ?? undefined;
+}
+
+// Send an invite. Every invite — whether or not the address already has an
+// account — is a pending row the invitee must explicitly accept in the app.
+// The response never reveals whether the address has an account.
 export const POST = apiHandler(
   async ({ user, request }) => {
     // Extra rate limiting for invites (sensitive operation)
@@ -20,7 +31,7 @@ export const POST = apiHandler(
       );
     }
 
-    const home = await getUserHome(user.id);
+    const home = await getUserHome(user.id, homeIdParam(request));
     if (!home || home.memberRole !== "owner") {
       return NextResponse.json(
         { error: "Only the home owner can invite members" },
@@ -31,7 +42,24 @@ export const POST = apiHandler(
     const body = await parseBody(request, inviteSchema);
     const email = body.email;
 
-    // Check if already a member
+    // Durable daily cap (the in-memory limiter doesn't span instances)
+    const [{ sent }] = await db
+      .select({ sent: count() })
+      .from(homeInvites)
+      .where(
+        and(
+          eq(homeInvites.invitedBy, user.id),
+          gte(homeInvites.createdAt, new Date(Date.now() - INVITE_CAP_WINDOW_MS))
+        )
+      );
+    if (isOverDailyInviteCap(Number(sent))) {
+      return NextResponse.json(
+        { error: "You've sent a lot of invites today. Please try again tomorrow." },
+        { status: 429 }
+      );
+    }
+
+    // Check if already a member of this home
     const existingMembers = await db
       .select({ email: users.email })
       .from(homeMembers)
@@ -47,7 +75,7 @@ export const POST = apiHandler(
 
     // Check if invite already pending
     const [existingInvite] = await db
-      .select()
+      .select({ id: homeInvites.id })
       .from(homeInvites)
       .where(
         and(
@@ -64,76 +92,31 @@ export const POST = apiHandler(
       );
     }
 
-    // Check if the invited user already exists (signed up before)
-    const [existingUser] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email));
-
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://picohome.app";
-    const inviterName = user.name || "Someone";
-
-    if (existingUser) {
-      // Auto-accept: add them as a member directly
-      await db.insert(homeMembers).values({
-        homeId: home.id,
-        userId: existingUser.id,
-        role: "member",
-        invitedBy: user.id,
-      });
-
-      const emailSent = await sendEmail({
-        to: email,
-        subject: `${inviterName} added you to ${home.name} on Pico Home`,
-        text: `Hi,
-
-${inviterName} added you to "${home.name}" on Pico Home — you can now see and check off the home's maintenance tasks together.
-
-Open it here: ${appUrl}/dashboard
-
-— Pico Home`,
-      });
-
-      // Return same shape regardless — prevents email enumeration
-      return NextResponse.json({ success: true, emailSent });
-    }
-
-    // Create a pending invite for when they sign up
     await db.insert(homeInvites).values({
       homeId: home.id,
       invitedEmail: email,
       invitedBy: user.id,
     });
 
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://picohome.app";
     const emailSent = await sendEmail({
       to: email,
-      subject: `${inviterName} invited you to ${home.name} on Pico Home`,
-      text: `Hi,
-
-${inviterName} invited you to share "${home.name}" on Pico Home — a shared list of your home's maintenance, so nobody has to ask "did you change the filter?".
-
-To join, sign in with Google using this email address:
-${appUrl}
-
-You'll be added automatically.
-
-— Pico Home`,
+      ...buildInviteEmail({ inviterName: user.name, appUrl }),
     });
 
-    // Same response shape — don't reveal if user exists
     return NextResponse.json({ success: true, emailSent });
   },
   { rateLimitPreset: "sensitive" }
 );
 
-// Get pending invites and current members
-export const GET = apiHandler(async ({ user }) => {
-  const home = await getUserHome(user.id);
+// Current (accepted) members, plus — for the owner only — pending invites as
+// the email address they typed. Nothing about the invitee's account is shown.
+export const GET = apiHandler(async ({ user, request }) => {
+  const home = await getUserHome(user.id, homeIdParam(request));
   if (!home) {
     return NextResponse.json({ members: [], invites: [] });
   }
 
-  // Only owners can see pending invites
   const isOwner = home.memberRole === "owner";
 
   const members = await db
@@ -141,7 +124,6 @@ export const GET = apiHandler(async ({ user }) => {
       id: users.id,
       name: users.name,
       email: users.email,
-      avatarUrl: users.avatarUrl,
       role: homeMembers.role,
     })
     .from(homeMembers)
@@ -149,18 +131,22 @@ export const GET = apiHandler(async ({ user }) => {
     .where(eq(homeMembers.homeId, home.id))
     .orderBy(homeMembers.joinedAt);
 
-  let invites: typeof homeInvites.$inferSelect[] = [];
-  if (isOwner) {
-    invites = await db
-      .select()
-      .from(homeInvites)
-      .where(
-        and(
-          eq(homeInvites.homeId, home.id),
-          eq(homeInvites.status, "pending")
+  const invites = isOwner
+    ? await db
+        .select({
+          id: homeInvites.id,
+          invitedEmail: homeInvites.invitedEmail,
+          status: homeInvites.status,
+          createdAt: homeInvites.createdAt,
+        })
+        .from(homeInvites)
+        .where(
+          and(
+            eq(homeInvites.homeId, home.id),
+            eq(homeInvites.status, "pending")
+          )
         )
-      );
-  }
+    : [];
 
   // currentUserId drives the "You" badge; isOwner hides Invite from members
   return NextResponse.json({ members, invites, currentUserId: user.id, isOwner });
