@@ -7,6 +7,7 @@ import {
   buildInviteEmail,
   summarizePendingInvites,
   planLeave,
+  canCancelInvite,
 } from "./rules";
 
 describe("inviteMatchesAuthUser", () => {
@@ -116,5 +117,27 @@ describe("planLeave", () => {
 
   it("a sole owner can't leave (would orphan the home)", () => {
     expect(planLeave("owner", null)).toEqual({ kind: "sole_member" });
+  });
+});
+
+describe("canCancelInvite", () => {
+  const home = { id: "h1", memberRole: "owner" };
+  const invite = { homeId: "h1", status: "pending" };
+
+  it("lets the owner cancel a pending invite to their home", () => {
+    expect(canCancelInvite(home, invite)).toBe(true);
+  });
+  it("refuses non-owners", () => {
+    expect(canCancelInvite({ ...home, memberRole: "member" }, invite)).toBe(false);
+  });
+  it("refuses invites for another home", () => {
+    expect(canCancelInvite(home, { ...invite, homeId: "h2" })).toBe(false);
+  });
+  it("refuses invites that are no longer pending", () => {
+    expect(canCancelInvite(home, { ...invite, status: "accepted" })).toBe(false);
+    expect(canCancelInvite(home, { ...invite, status: "declined" })).toBe(false);
+  });
+  it("refuses when there's no home", () => {
+    expect(canCancelInvite(null, invite)).toBe(false);
   });
 });

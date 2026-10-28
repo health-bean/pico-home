@@ -269,6 +269,28 @@ function MembersSection() {
     }
   };
 
+  const [cancelingInviteId, setCancelingInviteId] = useState<string | null>(null);
+
+  const handleCancelInvite = async (inv: Invite) => {
+    const ok = await confirm({
+      title: "Cancel this invite?",
+      description: `${inv.invitedEmail} won't be able to join with it. You can invite them again later.`,
+      confirmLabel: "Cancel invite",
+      cancelLabel: "Keep invite",
+    });
+    if (!ok) return;
+    setCancelingInviteId(inv.id);
+    try {
+      const res = await fetch(`/api/home/invite?id=${encodeURIComponent(inv.id)}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setInvites((prev) => prev.filter((i) => i.id !== inv.id));
+    } catch {
+      toast("Couldn't cancel that invite — try again", "error");
+    } finally {
+      setCancelingInviteId(null);
+    }
+  };
+
   // A sole owner can't leave (the API refuses — it would orphan the home)
   const canLeave = members.length > 0 && (!isOwner || members.length > 1);
 
@@ -357,6 +379,16 @@ function MembersSection() {
                   <p className="text-xs text-[var(--color-neutral-500)]">Pending invite</p>
                 </div>
                 <Badge variant="warning" size="sm">Pending</Badge>
+                {isOwner && (
+                  <button
+                    onClick={() => handleCancelInvite(inv)}
+                    disabled={cancelingInviteId === inv.id}
+                    aria-label={`Cancel invite to ${inv.invitedEmail}`}
+                    className="text-[13px] font-semibold text-[var(--color-neutral-500)] hover:text-[var(--color-danger-700)] disabled:opacity-50"
+                  >
+                    {cancelingInviteId === inv.id ? "Canceling..." : "Cancel"}
+                  </button>
+                )}
               </div>
             );
           }

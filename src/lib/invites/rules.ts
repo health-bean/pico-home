@@ -95,3 +95,13 @@ export function planLeave(role: string, heirUserId: string | null): LeavePlan {
   if (heirUserId) return { kind: "transfer", heirUserId };
   return { kind: "sole_member" };
 }
+
+/** Only the home's owner may cancel, and only an invite to that home that is
+ *  still pending (accepted invites are memberships; use member removal). */
+export function canCancelInvite(
+  home: { id: string; memberRole: string } | null | undefined,
+  invite: { homeId: string; status: string }
+): boolean {
+  if (!home || home.memberRole !== "owner") return false;
+  return invite.homeId === home.id && invite.status === "pending";
+}

@@ -7,8 +7,10 @@ import { apiHandler, parseBody } from "@/lib/api/handler";
 import { inviteSchema } from "@/lib/api/schemas";
 import { sendEmail } from "@/lib/email/send";
 import { rateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
+import { z } from "zod";
 import {
   buildInviteEmail,
+  canCancelInvite,
   isOverDailyInviteCap,
   INVITE_CAP_WINDOW_MS,
 } from "@/lib/invites/rules";
@@ -150,4 +152,37 @@ export const GET = apiHandler(async ({ user, request }) => {
 
   // currentUserId drives the "You" badge; isOwner hides Invite from members
   return NextResponse.json({ members, invites, currentUserId: user.id, isOwner });
+});
+
+// Cancel a pending invite (owner only). The row is marked "declined" rather
+// than deleted so it still counts toward the durable daily invite cap —
+// otherwise send/cancel loops could email-bomb an address. A declined
+// invite can no longer be accepted.
+export const DELETE = apiHandler(async ({ user, request }) => {
+  const inviteId = z
+    .string()
+    .uuid()
+    .safeParse(new URL(request.url).searchParams.get("id"));
+  if (!inviteId.success) {
+    return NextResponse.json({ error: "Valid invite id is required" }, { status: 400 });
+  }
+
+  const home = await getUserHome(user.id, homeIdParam(request));
+  const [invite] = await db
+    .select({ id: homeInvites.id, homeId: homeInvites.homeId, status: homeInvites.status })
+    .from(homeInvites)
+    .where(eq(homeInvites.id, inviteId.data))
+    .limit(1);
+
+  // 404 for every refusal so invite ids for other homes aren't confirmable
+  if (!invite || !canCancelInvite(home, invite)) {
+    return NextResponse.json({ error: "Invite not found" }, { status: 404 });
+  }
+
+  await db
+    .update(homeInvites)
+    .set({ status: "declined" })
+    .where(and(eq(homeInvites.id, invite.id), eq(homeInvites.status, "pending")));
+
+  return NextResponse.json({ success: true });
 });
