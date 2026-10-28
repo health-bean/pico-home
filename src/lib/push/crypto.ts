@@ -27,12 +27,22 @@ function getKey(): Buffer | null {
 }
 
 /**
- * Encrypts a value if PUSH_ENCRYPTION_KEY is set; otherwise returns plaintext.
- * Callers should always use this before writing push key columns.
+ * Encrypts a value with PUSH_ENCRYPTION_KEY. Callers should always use this
+ * before writing push key columns.
+ *
+ * Without a key: in production this throws (and logs) rather than silently
+ * storing plaintext, so a missing env var surfaces immediately; in
+ * development it returns plaintext so local setup stays zero-config.
  */
 export function encryptPushKey(plaintext: string): string {
   const key = getKey();
-  if (!key) return plaintext;
+  if (!key) {
+    if (process.env.NODE_ENV === "production") {
+      console.error("[push] PUSH_ENCRYPTION_KEY is not set; refusing to store push keys in plaintext");
+      throw new Error("PUSH_ENCRYPTION_KEY is required in production");
+    }
+    return plaintext;
+  }
 
   const iv = randomBytes(12);
   const cipher = createCipheriv(ALGORITHM, key, iv);
