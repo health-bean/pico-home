@@ -229,6 +229,11 @@ export const homeInvites = pgTable(
   },
   (table) => ({
     emailIdx: index("home_invites_email_idx").on(table.invitedEmail),
+    // Daily invite cap lookup (migration 0017)
+    invitedByCreatedAtIdx: index("home_invites_invited_by_created_at_idx").on(
+      table.invitedBy,
+      table.createdAt
+    ),
   }),
 );
 
