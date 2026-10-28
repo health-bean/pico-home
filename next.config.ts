@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
+// Document thumbnails/links are Supabase Storage signed URLs; avatars come
+// from the Google profile (lh3.googleusercontent.com).
+const SUPABASE_ORIGIN = "https://*.supabase.co";
+const GOOGLE_AVATAR_ORIGIN = "https://lh3.googleusercontent.com";
+
 const nextConfig: NextConfig = {
   async headers() {
     return [
@@ -11,7 +16,7 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           {
             key: "Strict-Transport-Security",
-            value: "max-age=31536000; includeSubDomains",
+            value: "max-age=31536000; includeSubDomains; preload",
           },
           {
             key: "Referrer-Policy",
@@ -19,14 +24,29 @@ const nextConfig: NextConfig = {
           },
           { key: "X-DNS-Prefetch-Control", value: "on" },
           {
+            // The web app uses none of these (document photos go through a
+            // plain file picker, which needs no camera permission).
+            key: "Permissions-Policy",
+            value: [
+              "camera=()",
+              "microphone=()",
+              "geolocation=()",
+              "payment=()",
+              "usb=()",
+              "browsing-topics=()",
+            ].join(", "),
+          },
+          {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline'",
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob: https:",
+              `img-src 'self' data: blob: ${SUPABASE_ORIGIN} ${GOOGLE_AVATAR_ORIGIN}`,
               "font-src 'self' https://fonts.gstatic.com",
-              "connect-src 'self' https://*.supabase.co https://*.sentry.io https://api.resend.com",
+              // Resend is called server-side only, so it isn't listed here.
+              `connect-src 'self' ${SUPABASE_ORIGIN} https://*.sentry.io`,
+              "object-src 'none'",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
