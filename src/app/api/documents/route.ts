@@ -9,7 +9,11 @@ import { z } from "zod";
 import { fileTypeFromBuffer } from "file-type";
 import { DOCUMENTS_BUCKET as BUCKET, getServiceRoleClient } from "@/lib/storage/documents";
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+import {
+  MAX_DOCUMENT_BYTES,
+  MAX_DOCUMENT_LABEL,
+  MAX_DOCUMENT_REQUEST_BYTES,
+} from "@/lib/documents/limits";
 
 const ALLOWED_MIMES = new Set([
   "application/pdf",
@@ -151,9 +155,9 @@ export const POST = apiHandler(async ({ user, request }) => {
   }
 
   // Validate file size
-  if (file.size > MAX_FILE_SIZE) {
+  if (file.size > MAX_DOCUMENT_BYTES) {
     return NextResponse.json(
-      { error: "File too large. Maximum size is 10 MB." },
+      { error: `File too large. Maximum size is ${MAX_DOCUMENT_LABEL}.` },
       { status: 400 }
     );
   }
@@ -235,7 +239,7 @@ export const POST = apiHandler(async ({ user, request }) => {
     .returning();
 
   return NextResponse.json({ document: doc }, { status: 201 });
-});
+}, { maxBodyBytes: MAX_DOCUMENT_REQUEST_BYTES });
 
 /**
  * DELETE /api/documents?id=...

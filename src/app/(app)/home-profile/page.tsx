@@ -11,6 +11,7 @@ import {
   useToast,
 } from "@/components/ui";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MAX_DOCUMENT_BYTES, MAX_DOCUMENT_LABEL } from "@/lib/documents/limits";
 import {
   FileText,
   ShieldCheck,
@@ -519,6 +520,10 @@ export default function HomeProfilePage() {
 
   const handleUpload = async () => {
     if (!uploadFile || !uploadName.trim() || !home) return;
+    if (uploadFile.size > MAX_DOCUMENT_BYTES) {
+      toast(`That file is over ${MAX_DOCUMENT_LABEL} — choose a smaller one`, "error");
+      return;
+    }
     setUploading(true);
     try {
       const formData = new FormData();
@@ -534,6 +539,8 @@ export default function HomeProfilePage() {
         setUploadType("other");
         const docsRes = await fetch(`/api/documents?homeId=${home.id}`);
         if (docsRes.ok) setDocs((await docsRes.json()).documents || []);
+      } else if (res.status === 413) {
+        toast(`That file is over ${MAX_DOCUMENT_LABEL} — choose a smaller one`, "error");
       } else {
         toast("Couldn't upload that document — try again", "error");
       }
@@ -1181,9 +1188,20 @@ export default function HomeProfilePage() {
                 onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
                 className="text-sm"
               />
-              {uploadFile && (
-                <p className="text-xs text-[var(--color-neutral-500)]">
+              {uploadFile ? (
+                <p
+                  className={
+                    uploadFile.size > MAX_DOCUMENT_BYTES
+                      ? "text-xs text-[var(--color-danger-700)]"
+                      : "text-xs text-[var(--color-neutral-500)]"
+                  }
+                >
                   {uploadFile.name} ({formatFileSize(uploadFile.size)})
+                  {uploadFile.size > MAX_DOCUMENT_BYTES ? ` — over the ${MAX_DOCUMENT_LABEL} limit` : ""}
+                </p>
+              ) : (
+                <p className="text-xs text-[var(--color-neutral-500)]">
+                  PDF, image, Word, Excel or CSV, up to {MAX_DOCUMENT_LABEL}
                 </p>
               )}
             </div>
@@ -1192,7 +1210,7 @@ export default function HomeProfilePage() {
                 variant="primary"
                 className="flex-1"
                 onClick={handleUpload}
-                disabled={!uploadFile || !uploadName.trim() || uploading}
+                disabled={!uploadFile || uploadFile.size > MAX_DOCUMENT_BYTES || !uploadName.trim() || uploading}
               >
                 {uploading ? "Uploading..." : "Upload"}
               </Button>

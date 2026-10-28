@@ -3,6 +3,7 @@ import { type ZodSchema } from "zod";
 import * as Sentry from "@sentry/nextjs";
 import { getAuthContext } from "@/lib/auth/get-app-user";
 import { rateLimit, RATE_LIMITS } from "./rate-limit";
+import { DEFAULT_MAX_BODY_BYTES, enforceBodyLimit } from "./body-limit";
 
 type AuthContext = NonNullable<Awaited<ReturnType<typeof getAuthContext>>>;
 
@@ -18,6 +19,9 @@ type HandlerFn = (ctx: HandlerContext) => Promise<NextResponse>;
 interface ApiHandlerOptions {
   /** Rate limit preset. Defaults to "standard" for GET, "write" for mutations */
   rateLimitPreset?: keyof typeof RATE_LIMITS;
+  /** Max request body in bytes (default 1 MiB). Enforced with or without
+   *  a Content-Length header. */
+  maxBodyBytes?: number;
 }
 
 const ALLOWED_ORIGINS = new Set([
@@ -79,21 +83,26 @@ export function checkCsrf(request: Request): boolean {
  */
 export function apiHandler(handler: HandlerFn, options?: ApiHandlerOptions) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  return async (request: Request, _routeParams?: unknown) => {
+  return async (incoming: Request, _routeParams?: unknown) => {
     try {
+      let request = incoming;
       // 0. CSRF protection
       if (!checkCsrf(request)) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
 
-      // 0.5 Request body size limit (1MB for JSON endpoints)
-      const contentLength = request.headers.get("content-length");
-      if (contentLength && parseInt(contentLength, 10) > 1_048_576) {
+      // 0.5 Request body size limit (1 MiB unless the route opts higher)
+      const bounded = await enforceBodyLimit(
+        request,
+        options?.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES
+      );
+      if (!bounded) {
         return NextResponse.json(
           { error: "Request body too large" },
           { status: 413 }
         );
       }
+      request = bounded;
 
       // 1. Authenticate (also enforces the ALLOWED_EMAILS beta gate)
       const auth = await getAuthContext();
