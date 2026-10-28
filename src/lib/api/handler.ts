@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { type ZodSchema } from "zod";
 import * as Sentry from "@sentry/nextjs";
-import { getAppUser } from "@/lib/auth/get-app-user";
+import { getAuthContext } from "@/lib/auth/get-app-user";
 import { rateLimit, RATE_LIMITS } from "./rate-limit";
 
-type AppUser = NonNullable<Awaited<ReturnType<typeof getAppUser>>>;
+type AuthContext = NonNullable<Awaited<ReturnType<typeof getAuthContext>>>;
 
 interface HandlerContext {
-  user: AppUser;
+  user: AuthContext["appUser"];
+  /** The Supabase auth user (verified-email / provider checks). */
+  authUser: AuthContext["authUser"];
   request: Request;
 }
 
@@ -93,11 +95,12 @@ export function apiHandler(handler: HandlerFn, options?: ApiHandlerOptions) {
         );
       }
 
-      // 1. Authenticate
-      const user = await getAppUser();
-      if (!user) {
+      // 1. Authenticate (also enforces the ALLOWED_EMAILS beta gate)
+      const auth = await getAuthContext();
+      if (!auth) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
+      const { appUser: user, authUser } = auth;
 
       // 2. Rate limit by user ID
       const method = request.method;
@@ -121,7 +124,7 @@ export function apiHandler(handler: HandlerFn, options?: ApiHandlerOptions) {
       }
 
       // 3. Run the handler
-      return await handler({ user, request });
+      return await handler({ user, authUser, request });
     } catch (error) {
       // Zod validation errors
       if (

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { users, homeInvites, homeMembers } from "@/lib/db/schema";
 import { upsertAppUser } from "@/lib/auth/upsert-user";
+import { isEmailAllowed } from "@/lib/auth/allow-list";
 import { eq, and } from "drizzle-orm";
 
 export async function GET(request: Request) {
@@ -20,17 +21,9 @@ export async function GET(request: Request) {
 
       if (authUser?.email) {
         // Beta gate: check allow-list if configured
-        const allowList = process.env.ALLOWED_EMAILS;
-        if (allowList) {
-          const allowed = allowList
-            .split(",")
-            .map((e) => e.trim().toLowerCase());
-          if (!allowed.includes(authUser.email.toLowerCase())) {
-            await supabase.auth.signOut();
-            return NextResponse.redirect(
-              `${origin}/?error=not_allowed`
-            );
-          }
+        if (!isEmailAllowed(authUser.email)) {
+          await supabase.auth.signOut();
+          return NextResponse.redirect(`${origin}/?error=not_allowed`);
         }
 
         // Check if this user has pending invites
@@ -45,9 +38,11 @@ export async function GET(request: Request) {
           );
 
         if (pendingInvites.length > 0) {
-          // Ensure user record exists (race-safe; adopts deleted-auth rows)
+          // Ensure user record exists (race-safe; only a verified Google
+          // identity may adopt an existing row with the same email)
           const appUser = await upsertAppUser(authUser);
           if (!appUser) {
+            await supabase.auth.signOut();
             return NextResponse.redirect(`${origin}/?error=auth`);
           }
 

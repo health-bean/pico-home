@@ -12,12 +12,15 @@ import {
 import { eq } from "drizzle-orm";
 import { getApplicableTemplates, getNextDueDate, adjustFrequencyForHealth } from "@/lib/tasks/scheduling";
 import { upsertAppUser } from "@/lib/auth/upsert-user";
+import { isEmailAllowed } from "@/lib/auth/allow-list";
 import { getInitialDueDate, selectStarterTemplates } from "@/lib/tasks/initial-due";
 import type { HealthFlags } from "@/lib/tasks/scheduling";
 import type { HomeType, SystemType, ApplianceCategory } from "@/lib/tasks/templates";
 import { onboardingSchema } from "@/lib/api/schemas";
 import { checkCsrf } from "@/lib/api/handler";
 import { rateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
+
+const ACCOUNT_REFUSED = "This account can't be used to sign in to Pico Home.";
 
 export async function POST(request: Request) {
   try {
@@ -35,6 +38,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Beta gate (ALLOWED_EMAILS) — enforced here too, not just in the callback
+    if (!isEmailAllowed(authUser.email)) {
+      return NextResponse.json({ error: ACCOUNT_REFUSED }, { status: 403 });
+    }
+
     // Rate limit onboarding (sensitive — creates many records)
     const rl = rateLimit(`${authUser.id}:onboarding`, RATE_LIMITS.sensitive);
     if (!rl.allowed) {
@@ -48,10 +56,11 @@ export async function POST(request: Request) {
     const raw = await request.json();
     const body = onboardingSchema.parse(raw);
 
-    // Upsert our app user record (race-safe; adopts deleted-auth rows)
+    // Upsert our app user record (race-safe; adopts a deleted-auth row only
+    // for a verified Google identity)
     const appUser = await upsertAppUser(authUser);
     if (!appUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: ACCOUNT_REFUSED }, { status: 403 });
     }
 
     // Guard against double-submission: if user already has a home, return it
