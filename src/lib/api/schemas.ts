@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { APPLIANCE_FEATURES } from "@/lib/tasks/templates";
+import { isAllowedPushEndpoint } from "@/lib/push/endpoint";
 
 // ─── Shared enums (match DB enums exactly) ─────────────────────────────────
 
@@ -89,7 +90,11 @@ export const inviteSchema = z.object({
 });
 
 export const pushSubscribeSchema = z.object({
-  endpoint: z.string().url().max(2000),
+  endpoint: z
+    .string()
+    .url()
+    .max(2000)
+    .refine(isAllowedPushEndpoint, "Unsupported push service endpoint"),
   keys: z.object({
     p256dh: z.string().min(1).max(500),
     auth: z.string().min(1).max(500),

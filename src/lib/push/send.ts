@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { pushSubscriptions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { decryptPushKey } from "./crypto";
+import { isAllowedPushEndpoint } from "./endpoint";
 
 let vapidConfigured = false;
 
@@ -43,6 +44,13 @@ export async function sendPushToUser(
   let failed = 0;
 
   for (const sub of subs) {
+    // Re-check rows stored before the subscribe allow-list existed: never
+    // POST to an arbitrary URL. Drop the row so it isn't retried forever.
+    if (!isAllowedPushEndpoint(sub.endpoint)) {
+      await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, sub.id));
+      failed++;
+      continue;
+    }
     try {
       await webPush.sendNotification(
         {

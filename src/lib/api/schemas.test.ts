@@ -115,10 +115,22 @@ describe("pushSubscribeSchema", () => {
     ).toThrow();
   });
 
+  it("rejects endpoints outside the push-service allow-list (SSRF)", () => {
+    for (const endpoint of [
+      "https://example.com/push",
+      "http://fcm.googleapis.com/fcm/send/abc",
+      "https://169.254.169.254/latest/meta-data",
+    ]) {
+      expect(() =>
+        pushSubscribeSchema.parse({ endpoint, keys: { p256dh: "k1", auth: "k2" } })
+      ).toThrow();
+    }
+  });
+
   it("rejects empty keys", () => {
     expect(() =>
       pushSubscribeSchema.parse({
-        endpoint: "https://example.com/push",
+        endpoint: "https://fcm.googleapis.com/fcm/send/abc",
         keys: { p256dh: "", auth: "" },
       })
     ).toThrow();
