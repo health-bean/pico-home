@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  FileProvider roots, kept as narrow as the app needs:
+  - external-files-path Pictures: Capacitor's BridgeWebChromeClient writes the
+    temp photo for <input type="file"> camera capture to
+    getExternalFilesDir(DIRECTORY_PICTURES) (app-private, not shared storage).
+  - cache-path: Capacitor AssetUtil / Share plugin hand out cache-dir files.
+  The previous external-path "." exposed all of shared external storage.
+-->
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <external-path name="my_images" path="." />
+    <external-files-path name="my_images" path="Pictures/" />
     <cache-path name="my_cache_images" path="." />
 </paths>
