@@ -111,10 +111,21 @@ describe("freestanding air purifiers and dehumidifiers", () => {
     expect([d.frequencyValue, d.frequencyUnit]).toEqual([2, "months"]);
   });
 
+  it("dehumidifier owners also get a yearly filter replacement, in the Dehumidifiers group (2026-10-29)", () => {
+    const r = byId("dehumidifier-replace-filter");
+    expect(r.name).toBe("Replace Dehumidifier Filters");
+    expect(r.subgroup).toBe("dehumidifier");
+    expect(r.category).toBe("air_quality");
+    expect([r.frequencyValue, r.frequencyUnit]).toEqual([1, "years"]);
+    expect(ids(getApplicableTemplates(house([], ["dehumidifier"])))).toContain(r.id);
+    expect(text(r.id)).toMatch(/manufacturer|manual/i);
+  });
+
   it("nobody without the unit gets its tasks", () => {
     const got = ids(getApplicableTemplates(house(["hvac", "plumbing"], ["refrigerator"])));
     expect(got).not.toContain("air-purifier-clean-prefilter");
     expect(got).not.toContain("dehumidifier-clean-filter");
+    expect(got).not.toContain("dehumidifier-replace-filter");
   });
 
   it("air quality tasks are grouped under purifiers, dehumidifiers, mold & moisture, radon", () => {
