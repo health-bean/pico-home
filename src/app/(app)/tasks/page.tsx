@@ -456,6 +456,12 @@ export default function TasksPage() {
   // add a new task (which would often be a duplicate).
   const nearResults =
     searching && searchResults.length === 0 ? closeMatches(tasks, query, searchLabels) : [];
+  // Portable units the home hasn't added — their Air Quality tasks only
+  // appear once they're on Property, so hint at them there.
+  const missingUnits = APPLIANCE_HINTS.filter(
+    (h) => !tasks.some((t) => t.subgroup === h.subgroup)
+  ).map((h) => h.label.toLowerCase().replace("portable ", ""));
+
   // Searching for a portable unit the home hasn't added: its tasks only
   // appear once it's on the Property page.
   const applianceHint = searching
@@ -663,6 +669,19 @@ export default function TasksPage() {
                   </div>
                 );
               })
+            )}
+            {category === "air_quality" && missingUnits.length > 0 && (
+              <p className="px-1 pt-1 text-xs text-[var(--color-neutral-500)]">
+                Have a portable {missingUnits.join(" or ")}?{" "}
+                <button
+                  type="button"
+                  onClick={() => router.push("/home-profile")}
+                  className="font-semibold text-[var(--color-primary-700)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                >
+                  Add it on Property
+                </button>{" "}
+                to get its filter reminders.
+              </p>
             )}
           </div>
         )}

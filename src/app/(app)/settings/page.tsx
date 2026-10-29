@@ -40,16 +40,6 @@ const TIMEZONE_OPTIONS = [
   { value: "Pacific/Honolulu", label: "Hawaii Time (HT)" },
 ];
 
-const HOUSEHOLD_OPTIONS: { key: string; label: string }[] = [
-  { key: "hasAllergies", label: "Allergies or asthma" },
-  { key: "hasYoungChildren", label: "Young children (under 5)" },
-  { key: "hasPets", label: "Pets" },
-  { key: "hasElderly", label: "Elderly family (65+)" },
-  { key: "hasImmunocompromised", label: "Immune-compromised" },
-  { key: "prioritizeAirQuality", label: "Prioritize air quality" },
-  { key: "prioritizeEnergyEfficiency", label: "Prioritize energy efficiency" },
-  { key: "moldSensitive", label: "Mold sensitivity" },
-];
 
 /* ------------------------------------------------------------------ */
 /*  iOS Toggle Switch                                                  */
@@ -158,7 +148,6 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [prefs, setPrefs] = useState<NotificationPrefs | null>(null);
-  const [flags, setFlags] = useState<Record<string, boolean> | null>(null);
   const [loading, setLoading] = useState(true);
   // Without real prefs the toggles would show defaults as if they were saved
   const [loadError, setLoadError] = useState(false);
@@ -168,15 +157,13 @@ export default function SettingsPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [userRes, prefsRes, flagsRes] = await Promise.all([
+      const [userRes, prefsRes] = await Promise.all([
         fetch("/api/user/profile"),
         fetch("/api/settings"),
-        fetch("/api/household-health"),
       ]);
-      if (!userRes.ok || !prefsRes.ok || !flagsRes.ok) throw new Error("Failed to load settings");
+      if (!userRes.ok || !prefsRes.ok) throw new Error("Failed to load settings");
       setUser(await userRes.json());
       setPrefs(await prefsRes.json());
-      setFlags(await flagsRes.json());
       setLoadError(false);
     } catch {
       setLoadError(true);
@@ -211,37 +198,6 @@ export default function SettingsPage() {
       }
     },
     [prefs, toast]
-  );
-
-  const updateFlag = useCallback(
-    async (key: string, value: boolean) => {
-      if (!flags) return;
-      const previous = flags;
-      const next = { ...flags, [key]: value };
-      setFlags(next);
-      setSaving(true);
-      try {
-        const res = await fetch("/api/household-health", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(next),
-        });
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        const plural = (n: number) => `${n} task${n === 1 ? "" : "s"}`;
-        const changes = [
-          data.tasksAdded > 0 && `${plural(data.tasksAdded)} added to your list`,
-          data.tasksAdjusted > 0 && `${plural(data.tasksAdjusted)} rescheduled from the next cycle`,
-        ].filter(Boolean);
-        if (changes.length > 0) toast(`Saved — ${changes.join(", ")}`, "success");
-      } catch {
-        setFlags(previous);
-        toast("Couldn't save household settings", "error");
-      } finally {
-        setSaving(false);
-      }
-    },
-    [flags, toast]
   );
 
   const deleteAccount = useCallback(async () => {
@@ -372,25 +328,11 @@ export default function SettingsPage() {
         <Row label="Timezone" value={timezoneLabel} />
       </Section>
 
-      {/* ---- Household ---- */}
+      {/* ---- Household needs moved to Property (they shape the shared plan) ---- */}
       <Section label="Household">
-        {HOUSEHOLD_OPTIONS.map((opt) => (
-          <Row
-            key={opt.key}
-            label={opt.label}
-            toggle={
-              <Toggle
-                checked={flags?.[opt.key] ?? false}
-                onChange={(v) => updateFlag(opt.key, v)}
-                label={opt.label}
-                disabled={saving || !flags}
-              />
-            }
-          />
-        ))}
-        <p className="px-4 py-2.5 text-[11px] text-[var(--color-neutral-500)]">
-          These tailor how often tasks recur — changes apply from each task&apos;s next cycle.
-        </p>
+        <Link href="/home-profile#household">
+          <Row label="Household needs" value="On Property" chevron />
+        </Link>
       </Section>
 
       {/* ---- About ---- */}

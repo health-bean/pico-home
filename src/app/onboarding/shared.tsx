@@ -818,7 +818,7 @@ export function StepHousehold({
     <>
       <StepTitle
         title="Your Household"
-        subtitle="This helps us personalize your plan — you can set this up anytime in settings."
+        subtitle="This helps us personalize your plan — you can change it anytime on the Property page."
       />
 
       <div className="flex flex-col gap-2.5">

@@ -11,6 +11,7 @@ import {
   useToast,
 } from "@/components/ui";
 import { Skeleton } from "@/components/ui/skeleton";
+import { HouseholdNeedsSection } from "./household-needs";
 import { MAX_DOCUMENT_BYTES, MAX_DOCUMENT_LABEL } from "@/lib/documents/limits";
 import {
   FileText,
@@ -675,10 +676,18 @@ export default function HomeProfilePage() {
         }),
       });
       if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const added = (data.tasksCreated ?? 0) + (data.tasksRestored ?? 0);
         setAddApplianceOpen(false);
         setNewApplianceName("");
         setNewApplianceCategory("");
         fetchAll();
+        toast(
+          added > 0
+            ? `Added — ${added} task${added === 1 ? "" : "s"} added to your plan`
+            : "Added",
+          "success"
+        );
       } else {
         toast("Couldn't add that appliance — try again", "error");
       }
@@ -1034,21 +1043,25 @@ export default function HomeProfilePage() {
         {/* Add Appliance Dialog */}
         <Dialog open={addApplianceOpen} onClose={() => setAddApplianceOpen(false)} title="Add Appliance" size="sm">
           <div className="space-y-4 mt-2">
-            <Input
-              label="Appliance Name"
-              placeholder="e.g. Samsung Refrigerator"
-              value={newApplianceName}
-              onChange={(e) => setNewApplianceName(e.target.value)}
-              required
-            />
+            <p className="text-sm text-[var(--color-neutral-600)]">
+              Adds its upkeep tasks to your plan.
+            </p>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="add-appliance-category" className="text-sm font-medium text-foreground">Category</label>
+              <label htmlFor="add-appliance-category" className="text-sm font-medium text-foreground">Type</label>
               <select id="add-appliance-category"
                 value={newApplianceCategory}
-                onChange={(e) => setNewApplianceCategory(e.target.value)}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  const label = (v: string) => APPLIANCE_OPTIONS.find((o) => o.value === v)?.label ?? "";
+                  // Name follows the type until they type their own
+                  if (!newApplianceName.trim() || newApplianceName === label(newApplianceCategory)) {
+                    setNewApplianceName(label(next));
+                  }
+                  setNewApplianceCategory(next);
+                }}
                 className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
               >
-                <option value="">Select a category...</option>
+                <option value="">Choose a type...</option>
                 {APPLIANCE_GROUPS.map((group) => (
                   <optgroup key={group} label={group}>
                     {APPLIANCE_OPTIONS.filter((o) => o.group === group).map((o) => (
@@ -1060,6 +1073,13 @@ export default function HomeProfilePage() {
                 ))}
               </select>
             </div>
+            <Input
+              label="Name"
+              placeholder="e.g. Basement dehumidifier"
+              value={newApplianceName}
+              onChange={(e) => setNewApplianceName(e.target.value)}
+              required
+            />
             <div className="flex gap-2 pt-2">
               <Button
                 variant="primary"
@@ -1079,6 +1099,9 @@ export default function HomeProfilePage() {
 
       {/* ---- Members ---- */}
       <MembersSection />
+
+      {/* ---- Household needs (shape the shared plan) ---- */}
+      <HouseholdNeedsSection />
 
       {/* ---- Contractors ---- */}
       {contractorList.length > 0 && (
