@@ -128,8 +128,8 @@ describe("freestanding air purifiers and dehumidifiers", () => {
     expect(got).not.toContain("dehumidifier-replace-filter");
   });
 
-  it("air quality tasks are grouped under purifiers, dehumidifiers, mold & moisture, radon", () => {
-    const allowed = ["air_purifier", "dehumidifier", "mold_moisture", "radon"];
+  it("air quality tasks are grouped under purifiers, dehumidifiers, mold & moisture, drains, radon", () => {
+    const allowed = ["air_purifier", "dehumidifier", "mold_moisture", "drains", "radon"];
     for (const t of TASK_TEMPLATES.filter((t) => t.category === "air_quality")) {
       expect(allowed, t.name).toContain(t.subgroup);
     }
@@ -143,6 +143,18 @@ describe("mold sensitivity", () => {
     const got = ids(getApplicableTemplates(house(["plumbing"]), moldy));
     expect(got).toContain("health-inspect-mold");
     expect(got).toContain("health-check-humidity");
+  });
+
+  it("drains live under Air Quality & Health as Clean and Flush Drains (2026-10-29)", () => {
+    const d = byId("plumbing-drain-treatment");
+    expect(d.name).toBe("Clean and Flush Drains");
+    expect(d.category).toBe("air_quality");
+    expect(d.subgroup).toBe("drains");
+    expect(text(d.id)).toMatch(/sink/i);
+    expect(text(d.id)).toMatch(/shower/i);
+    expect(text(d.id)).toMatch(/tub/i);
+    expect(text(d.id)).toMatch(/flush/i);
+    expect(ids(getApplicableTemplates(house(["plumbing"])))).toContain(d.id);
   });
 
   it("makes drain treatment monthly (3-monthly otherwise)", () => {

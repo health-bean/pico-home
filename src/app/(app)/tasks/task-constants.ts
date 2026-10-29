@@ -164,6 +164,7 @@ export const SUBGROUP_LABELS: Record<string, string> = {
   air_purifier: "Air Purifiers",
   dehumidifier: "Dehumidifiers",
   mold_moisture: "Mold & Moisture",
+  drains: "Drains",
   radon: "Radon",
 };
 
