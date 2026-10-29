@@ -27,6 +27,7 @@ const files = [
   "drizzle/0015_deck_yearly.sql",
   "drizzle/0016_storage_server_only_uploads.sql",
   "drizzle/0017_home_invites_inviter_created_idx.sql",
+  "drizzle/0018_tester_feedback_round2.sql",
 ];
 
 for (const file of files) {

@@ -151,3 +151,23 @@ describe("mold sensitivity", () => {
     });
   });
 });
+
+// Agreed 2026-10-29, round 2 — tester's second "PICO home edits" pass.
+describe("round 2: no prices, one washer task", () => {
+  it("no task copy quotes a price — prices change over time", () => {
+    for (const t of TASK_TEMPLATES) {
+      const copy = `${t.name} ${t.description} ${t.tips ?? ""} ${t.whyItMatters ?? ""}`;
+      expect(copy, t.id).not.toMatch(/\$\s?\d/);
+      expect(copy, t.id).not.toMatch(/\d+\s*(dollars|bucks)\b/i);
+    }
+  });
+
+  it("the washer door-seal check is folded into Clean Washing Machine", () => {
+    expect(TASK_TEMPLATES.find((t) => t.id === "appliance-washer-door-seal")).toBeUndefined();
+    expect(TASK_TEMPLATES.find((t) => t.name === "Inspect Washing Machine Door Seal")).toBeUndefined();
+    const w = text("appliance-washer-clean");
+    expect(w).toMatch(/gasket/i);
+    expect(w).toMatch(/torn|tear|damage/i);
+    expect(w).toMatch(/mold/i);
+  });
+});
