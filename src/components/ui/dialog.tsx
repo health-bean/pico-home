@@ -37,6 +37,10 @@ function Dialog({ open, onClose, children, title, description, size, className }
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        // Inline editors (marked data-own-escape) use Escape to cancel
+        // themselves, not to close the whole dialog.
+        const active = document.activeElement as HTMLElement | null;
+        if (e.defaultPrevented || active?.closest("[data-own-escape]")) return;
         onClose();
         return;
       }

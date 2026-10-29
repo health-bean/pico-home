@@ -65,7 +65,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
       <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
         {toasts.map((t) => (
-          <div key={t.id} className={cn(toastVariants({ variant: t.variant }))} role="status">
+          <div key={t.id} className={cn(toastVariants({ variant: t.variant }), "pointer-events-auto")} role="status">
             <p className="text-sm font-medium">{t.message}</p>
             {t.action && (
               <button

@@ -41,6 +41,9 @@ import { AddTaskDialog } from "./add-task-dialog";
 import { groupBySubgroup } from "@/lib/tasks/grouping";
 import { formatDay } from "@/lib/tasks/date-edit";
 
+const shortDate = (day: string) =>
+  new Date(day + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
 // ---------------------------------------------------------------------------
 // Category icons (kept here because they reference React/Lucide components)
 // ---------------------------------------------------------------------------
@@ -106,6 +109,11 @@ export default function TasksPage() {
   useEffect(() => {
     fetchTasks();
   }, [fetchTasks]);
+
+  // Keep an open task dialog in sync after a refetch (e.g. an inline date edit).
+  useEffect(() => {
+    setSelectedTask((cur) => (cur ? tasks.find((t) => t.id === cur.id) ?? cur : cur));
+  }, [tasks]);
 
   // Deep links from the dashboard: /tasks?filter=all picks a filter, and
   // /tasks?task=<id> opens that task once loaded. Params are dropped after
@@ -198,33 +206,53 @@ export default function TasksPage() {
     [fetchTasks, toast, undoTask]
   );
 
-  // Hand-edit Next Due / Last Completed. Returns whether it saved so the
-  // dialog can stay open on failure.
+  // Inline edit of Next Due / Last Completed. The toast confirms what moved
+  // and offers Undo (puts both dates back).
   const saveDates = useCallback(
     async (
       id: string,
       dates: { nextDueDate?: string; lastCompletedDate?: string | null },
-      successMessage = "Dates updated"
+      opts: { silent?: boolean } = {}
     ): Promise<boolean> => {
+      const before = tasks.find((t) => t.id === id);
       try {
         const res = await fetch(`/api/tasks/${id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ...dates, today: formatDay(new Date()) }),
         });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || "Couldn't update the dates");
-        }
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Couldn't update the date");
         await fetchTasks();
-        toast(successMessage, "success");
+        if (opts.silent) return true;
+        const due = typeof data.nextDueDate === "string" ? data.nextDueDate : dates.nextDueDate;
+        const message =
+          dates.lastCompletedDate !== undefined && due && due !== before?.nextDueDate
+            ? `Saved — next due ${shortDate(due)}`
+            : "Saved";
+        toast(
+          message,
+          "success",
+          before
+            ? {
+                label: "Undo",
+                onClick: () => {
+                  saveDates(
+                    id,
+                    { nextDueDate: before.nextDueDate, lastCompletedDate: before.lastCompletedDate },
+                    { silent: true }
+                  ).then((ok) => ok && toast("Undone", "info"));
+                },
+              }
+            : undefined
+        );
         return true;
       } catch (e) {
-        toast(e instanceof Error ? e.message : "Couldn't update the dates", "error");
+        toast(e instanceof Error ? e.message : "Couldn't update the date", "error");
         return false;
       }
     },
-    [fetchTasks, toast]
+    [fetchTasks, toast, tasks]
   );
 
   // Lasting undo for the most recent Complete/Skip (the toast Undo expires).
@@ -268,7 +296,9 @@ export default function TasksPage() {
             ? {
                 label: "Undo",
                 onClick: () => {
-                  saveDates(id, { nextDueDate: previousDue }, "Snooze undone");
+                  saveDates(id, { nextDueDate: previousDue }, { silent: true }).then(
+                    (ok) => ok && toast("Snooze undone", "info")
+                  );
                 },
               }
             : undefined

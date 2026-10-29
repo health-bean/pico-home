@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Check, SkipForward, Clock, CircleSlash, RotateCcw } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Check, SkipForward, Clock, CircleSlash, RotateCcw, Pencil } from "lucide-react";
 import {
   Button,
   Badge,
@@ -18,8 +18,7 @@ import {
   priorityLabels,
   formatFrequency,
 } from "./task-constants";
-import { formatDay, nextDueFrom } from "@/lib/tasks/date-edit";
-import type { FrequencyUnit } from "@/lib/tasks/templates";
+import { formatDay } from "@/lib/tasks/date-edit";
 
 const longDate = (day: string) =>
   new Date(day + "T00:00:00").toLocaleDateString("en-US", {
@@ -70,13 +69,6 @@ export function TaskDetailDialog({
   const [completionDate, setCompletionDate] = useState("");
   const [doneEarlier, setDoneEarlier] = useState(false);
 
-  // Hand-editing Next Due / Last Completed
-  const [editingDates, setEditingDates] = useState(false);
-  const [dueInput, setDueInput] = useState("");
-  const [lastInput, setLastInput] = useState("");
-  const [dueTouched, setDueTouched] = useState(false);
-  const [savingDates, setSavingDates] = useState(false);
-
   // Lasting undo of the last Complete/Skip asks once before it acts
   const [confirmingRevert, setConfirmingRevert] = useState(false);
 
@@ -89,59 +81,7 @@ export function TaskDetailDialog({
     setDoneEarlier(false);
     setConfirmingDismiss(false);
     setConfirmingRevert(false);
-    setEditingDates(false);
   }, [task?.id]);
-
-  const startEditingDates = () => {
-    if (!task) return;
-    setDueInput(task.nextDueDate);
-    setLastInput(task.lastCompletedDate ?? "");
-    setDueTouched(false);
-    setEditingDates(true);
-  };
-
-  // Changing "last done" suggests a matching next due until they set one.
-  const onLastInputChange = (value: string) => {
-    setLastInput(value);
-    if (task && value && !dueTouched) {
-      setDueInput(
-        nextDueFrom(value, {
-          frequencyValue: task.frequencyValue,
-          frequencyUnit: task.frequencyUnit as FrequencyUnit,
-        })
-      );
-    }
-  };
-
-  const saveDates = async () => {
-    if (!task || !dueInput) return;
-    const dates: { nextDueDate?: string; lastCompletedDate?: string | null } = {};
-    if (dueInput !== task.nextDueDate) dates.nextDueDate = dueInput;
-    const last = lastInput || null;
-    if (last !== task.lastCompletedDate) {
-      dates.lastCompletedDate = last;
-      dates.nextDueDate = dueInput; // what they see is what they get
-    }
-    if (Object.keys(dates).length === 0) {
-      setEditingDates(false);
-      return;
-    }
-    setSavingDates(true);
-    const ok = await onSaveDates(task.id, dates);
-    setSavingDates(false);
-    if (ok) onClose();
-  };
-
-  // Populate edit fields when a task is selected
-  useEffect(() => {
-    if (task) {
-      setEditName(task.name);
-      setEditFreqValue(task.frequencyValue);
-      setEditFreqUnit(task.frequencyUnit);
-      setEditNotes(task.notes || "");
-      setEditing(false);
-    }
-  }, [task]);
 
   const saveTaskEdit = useCallback(async () => {
     if (!task) return;
@@ -286,126 +226,68 @@ export function TaskDetailDialog({
                     {formatFrequency(task.frequencyValue, task.frequencyUnit)}
                   </p>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Next Due</p>
-                  <p className="text-sm font-medium text-foreground">
-                    {longDate(task.nextDueDate)}
-                  </p>
-                </div>
+                <InlineDateField
+                  label="Next Due"
+                  value={task.nextDueDate}
+                  editable={task.isActive}
+                  onSave={(v) => (v ? onSaveDates(task.id, { nextDueDate: v }) : Promise.resolve(false))}
+                />
                 <div>
                   <p className="text-xs text-muted-foreground">Category</p>
                   <p className="text-sm font-medium text-foreground">
                     {getCategoryLabel(task.category)}
                   </p>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">
-                    Last Completed
-                  </p>
-                  <p className="text-sm font-medium text-foreground">
-                    {task.lastCompletedDate ? longDate(task.lastCompletedDate) : "Never"}
-                    {task.lastCompletedBy ? ` · by ${task.lastCompletedBy}` : ""}
-                  </p>
-                </div>
+                <InlineDateField
+                  label="Last Completed"
+                  value={task.lastCompletedDate}
+                  emptyText="Never"
+                  suffix={task.lastCompletedBy ? ` · by ${task.lastCompletedBy}` : ""}
+                  max={formatDay(new Date())}
+                  editable={task.isActive}
+                  onSave={(v) => onSaveDates(task.id, { lastCompletedDate: v })}
+                />
               </div>
 
-              {/* Hand-edit the dates */}
-              {editingDates ? (
-                <div className="space-y-3 rounded-lg border border-border p-4">
-                  <div>
-                    <label htmlFor="edit-last-done" className="text-xs text-muted-foreground">
-                      Last completed
-                    </label>
-                    <input
-                      id="edit-last-done"
-                      type="date"
-                      value={lastInput}
-                      max={formatDay(new Date())}
-                      onChange={(e) => onLastInputChange(e.target.value)}
-                      className={dateInputClass}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="edit-next-due" className="text-xs text-muted-foreground">
-                      Next due
-                    </label>
-                    <input
-                      id="edit-next-due"
-                      type="date"
-                      value={dueInput}
-                      onChange={(e) => {
-                        setDueInput(e.target.value);
-                        setDueTouched(true);
-                      }}
-                      className={dateInputClass}
-                    />
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Changing the last-completed date fills this in from the task&rsquo;s frequency. You can still pick any date.
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="primary"
-                      className="flex-1"
-                      onClick={saveDates}
-                      disabled={!dueInput || savingDates}
-                    >
-                      {savingDates ? "Saving..." : "Save dates"}
-                    </Button>
-                    <Button variant="outline" className="flex-1" onClick={() => setEditingDates(false)}>
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                (task.isActive || task.lastAction) && !task.dismissedAt && (
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-                    {task.lastAction ? (
-                      confirmingRevert ? (
-                        <span className="flex flex-wrap items-center gap-2">
-                          <span className="font-medium text-foreground">
-                            Undo the {task.lastAction.type === "skipped" ? "skip" : "completion"} on{" "}
-                            {longDate(task.lastAction.date)}?
-                          </span>
-                          <Button
-                            size="sm"
-                            variant="primary"
-                            onClick={() => {
-                              onRevertLast(task.id);
-                              onClose();
-                            }}
-                          >
-                            Undo it
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => setConfirmingRevert(false)}>
-                            Keep it
-                          </Button>
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1">
-                          {task.lastAction.type === "skipped" ? "Skipped" : "Completed"}{" "}
-                          {longDate(task.lastAction.date)}
-                          {task.lastAction.by ? ` by ${task.lastAction.by}` : ""}
-                          <button
-                            type="button"
-                            onClick={() => setConfirmingRevert(true)}
-                            className="ml-1 inline-flex items-center gap-1 rounded px-1 font-semibold text-primary-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                          >
-                            <RotateCcw className="h-3 w-3" />
-                            Undo
-                          </button>
-                        </span>
-                      )
-                    ) : (
-                      <span />
-                    )}
-                    {task.isActive && (
-                      <Button variant="ghost" size="sm" onClick={startEditingDates}>
-                        Change dates
+              {/* Last Complete/Skip, revertable any time */}
+              {task.lastAction && !task.dismissedAt && (
+                <div className="text-xs text-muted-foreground">
+                  {confirmingRevert ? (
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium text-foreground">
+                        Undo the {task.lastAction.type === "skipped" ? "skip" : "completion"} on{" "}
+                        {longDate(task.lastAction.date)}?
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={() => {
+                          onRevertLast(task.id);
+                          setConfirmingRevert(false);
+                        }}
+                      >
+                        Undo it
                       </Button>
-                    )}
-                  </div>
-                )
+                      <Button size="sm" variant="outline" onClick={() => setConfirmingRevert(false)}>
+                        Keep it
+                      </Button>
+                    </span>
+                  ) : (
+                    <span className="flex flex-wrap items-center gap-1">
+                      {task.lastAction.type === "skipped" ? "Skipped" : "Completed"}{" "}
+                      {longDate(task.lastAction.date)}
+                      {task.lastAction.by ? ` by ${task.lastAction.by}` : ""}
+                      <button
+                        type="button"
+                        onClick={() => setConfirmingRevert(true)}
+                        className="ml-1 inline-flex items-center gap-1 rounded px-1 font-semibold text-primary-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                        Undo
+                      </button>
+                    </span>
+                  )}
+                </div>
               )}
 
               {/* Why It Matters */}
@@ -580,5 +462,141 @@ export function TaskDetailDialog({
         </div>
       )}
     </Dialog>
+  );
+}
+
+const isCompleteDay = (v: string) => {
+  const year = Number(v.slice(0, 4));
+  return /^\d{4}-\d{2}-\d{2}$/.test(v) && year >= 2000 && year <= 2100;
+};
+
+/**
+ * A date in the details grid that edits in place: tap the value (or its
+ * pencil) and the picker opens; picking a date saves it. Esc cancels.
+ */
+function InlineDateField({
+  label,
+  value,
+  emptyText = "",
+  suffix = "",
+  max,
+  editable,
+  onSave,
+}: {
+  label: string;
+  value: string | null;
+  emptyText?: string;
+  suffix?: string;
+  max?: string;
+  editable: boolean;
+  onSave: (value: string | null) => Promise<boolean>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value ?? "");
+  const [saving, setSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const committed = useRef(false);
+  // Typing changes one segment at a time, and each step can already look
+  // like a whole date — so typed edits save on Enter/blur, picks save at once.
+  const typing = useRef(false);
+
+  useEffect(() => {
+    if (!editing) return;
+    const el = inputRef.current;
+    if (!el) return;
+    el.focus();
+    try {
+      el.showPicker?.();
+    } catch {
+      // Some browsers only open the picker from a direct tap; focus is enough.
+    }
+  }, [editing]);
+
+  const commit = async (next: string) => {
+    if (committed.current) return;
+    committed.current = true;
+    const normalized = next || null;
+    if (normalized === value || (!normalized && !value)) {
+      setEditing(false);
+      return;
+    }
+    // Half-typed dates, or an empty Next Due, just back out.
+    if ((normalized && !isCompleteDay(normalized)) || (!normalized && label === "Next Due")) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    await onSave(normalized);
+    setSaving(false);
+    setEditing(false);
+  };
+
+  const display = value ? longDate(value) : emptyText;
+  const id = `inline-${label.toLowerCase().replace(/\s+/g, "-")}`;
+
+  return (
+    <div>
+      <label htmlFor={id} className="block text-xs text-muted-foreground">
+        {label}
+      </label>
+      {editing ? (
+        <input
+          ref={inputRef}
+          id={id}
+          type="date"
+          data-own-escape
+          value={draft}
+          max={max}
+          disabled={saving}
+          onChange={(e) => {
+            const v = e.target.value;
+            setDraft(v);
+            if (!typing.current && isCompleteDay(v)) commit(v);
+          }}
+          onBlur={() => commit(draft)}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter" && e.key !== "Escape" && e.key !== "Tab") {
+              typing.current = true;
+            }
+            if (e.key === "Enter") {
+              e.preventDefault();
+              commit(draft);
+            } else if (e.key === "Escape") {
+              e.preventDefault();
+              e.stopPropagation();
+              committed.current = true;
+              setEditing(false);
+            }
+          }}
+          className="-mx-1 block h-5 w-[calc(100%+0.5rem)] rounded border-0 bg-white px-1 text-sm font-medium text-foreground outline-none ring-2 ring-ring"
+        />
+      ) : editable ? (
+        <button
+          type="button"
+          onClick={() => {
+            committed.current = false;
+            typing.current = false;
+            setDraft(value ?? "");
+            setEditing(true);
+          }}
+          aria-label={`${label}: ${display || "not set"}. Edit`}
+          className="group -mx-1 flex items-center gap-1.5 rounded px-1 text-left text-sm font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <span>
+            {display}
+            {suffix}
+          </span>
+          <Pencil
+            aria-hidden="true"
+            className="h-3 w-3 shrink-0 text-muted-foreground group-hover:text-foreground"
+          />
+        </button>
+      ) : (
+        <p className="text-sm font-medium text-foreground">
+          {display}
+          {suffix}
+        </p>
+      )}
+    </div>
   );
 }
