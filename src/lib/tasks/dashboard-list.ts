@@ -48,8 +48,9 @@ export function dashboardUrgency(
 }
 
 /**
- * Pick the dashboard's short list: overdue before upcoming, safety first
- * within each; overdue ordered by lateness relative to cycle, upcoming by date.
+ * Pick the dashboard's short list: overdue before upcoming. Overdue: safety
+ * first, then by lateness relative to cycle. Upcoming: soonest first, safety
+ * first only within the same day (so "today" never sits below next week).
  */
 export function selectDashboardTasks<T extends ListTask>(
   tasks: T[],
@@ -68,7 +69,7 @@ export function selectDashboardTasks<T extends ListTask>(
     .filter((t) => daysUntil(t.nextDueDate, todayStr) >= 0)
     .sort(
       (a, b) =>
-        safetyRank(a) - safetyRank(b) || a.nextDueDate.localeCompare(b.nextDueDate)
+        a.nextDueDate.localeCompare(b.nextDueDate) || safetyRank(a) - safetyRank(b)
     );
   const ordered = [...overdue, ...upcoming];
   return { shown: ordered.slice(0, limit), moreCount: Math.max(0, ordered.length - limit) };

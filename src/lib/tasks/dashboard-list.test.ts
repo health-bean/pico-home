@@ -45,21 +45,28 @@ describe("selectDashboardTasks", () => {
     expect(moreCount).toBe(3);
   });
 
-  it("puts safety first within overdue, then within upcoming", () => {
+  it("puts safety first within overdue; upcoming goes by date, safety first only on the same day", () => {
+    // Critique 2026-10-29: a safety task due in 3 days was listed above a
+    // chore due today. Soonest first; safety breaks ties within a day.
     const { shown } = selectDashboardTasks(
       [
         t("upcoming chore", "2026-10-13"),
         t("upcoming safety", "2026-10-15", "safety"),
+        t("same-day chore", "2026-10-15"),
+        t("today chore", "2026-10-12"),
         t("overdue chore", "2026-10-01"),
         t("overdue safety", "2026-10-10", "safety"),
       ],
-      TODAY
+      TODAY,
+      10
     );
     expect(shown.map((x) => x.name)).toEqual([
       "overdue safety",
       "overdue chore",
-      "upcoming safety",
+      "today chore",
       "upcoming chore",
+      "upcoming safety",
+      "same-day chore",
     ]);
   });
 

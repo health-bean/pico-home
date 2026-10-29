@@ -42,7 +42,12 @@ import { TaskDetailDialog } from "./task-detail-dialog";
 import { AddTaskDialog } from "./add-task-dialog";
 import { groupBySubgroup } from "@/lib/tasks/grouping";
 import { formatDay } from "@/lib/tasks/date-edit";
-import { searchTasks } from "@/lib/tasks/search";
+import { searchTasks, closeMatches } from "@/lib/tasks/search";
+
+const APPLIANCE_HINTS = [
+  { pattern: /dehumidif/i, subgroup: "dehumidifier", label: "Portable Dehumidifier" },
+  { pattern: /purifier/i, subgroup: "air_purifier", label: "Portable Air Purifier" },
+];
 
 const shortDate = (day: string) =>
   new Date(day + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -231,10 +236,13 @@ export default function TasksPage() {
         await fetchTasks();
         if (opts.silent) return true;
         const due = typeof data.nextDueDate === "string" ? data.nextDueDate : dates.nextDueDate;
+        // A Last Completed edit is a correction, not a logged completion.
         const message =
-          dates.lastCompletedDate !== undefined && due && due !== before?.nextDueDate
-            ? `Saved — next due ${shortDate(due)}`
-            : "Saved";
+          dates.lastCompletedDate !== undefined
+            ? due && due !== before?.nextDueDate
+              ? `Date corrected — next due ${shortDate(due)}`
+              : "Date corrected"
+            : `Next due ${shortDate(due ?? "")}`;
         toast(
           message,
           "success",
@@ -439,13 +447,23 @@ export default function TasksPage() {
 
   // Search looks across every task, whatever filter is selected.
   const searching = query.trim().length > 0;
-  const searchResults = searching
-    ? searchTasks(tasks, query, (t) =>
-        `${getCategoryLabel(t.category)} ${t.subgroup ? SUBGROUP_LABELS[t.subgroup] ?? "" : ""}`
-      )
-    : [];
+  const searchLabels = (t: Task) =>
+    `${getCategoryLabel(t.category)} ${t.subgroup ? SUBGROUP_LABELS[t.subgroup] ?? "" : ""}`;
+  const searchResults = searching ? searchTasks(tasks, query, searchLabels) : [];
   const resultsInPlan = searchResults.filter((t) => !t.dismissedAt);
   const resultsRemoved = searchResults.filter((t) => t.dismissedAt);
+  // Nothing matched every word: show what matched some, before offering to
+  // add a new task (which would often be a duplicate).
+  const nearResults =
+    searching && searchResults.length === 0 ? closeMatches(tasks, query, searchLabels) : [];
+  // Searching for a portable unit the home hasn't added: its tasks only
+  // appear once it's on the Property page.
+  const applianceHint = searching
+    ? APPLIANCE_HINTS.find(
+        (h) =>
+          h.pattern.test(query) && !tasks.some((t) => t.subgroup === h.subgroup)
+      )
+    : undefined;
 
   // Auto-expand urgent categories on mount
   useEffect(() => {
@@ -787,10 +805,24 @@ export default function TasksPage() {
 
       {searching ? (
         <div aria-live="polite">
+          {applianceHint && (
+            <div className="mb-4 rounded-2xl border border-[var(--color-neutral-200)] bg-white p-3.5">
+              <p className="text-sm text-[var(--color-neutral-900)]">
+                Filter reminders for a {applianceHint.label.toLowerCase()} show up once you add one to your home.
+              </p>
+              <button
+                type="button"
+                onClick={() => router.push("/home-profile")}
+                className="mt-1.5 text-sm font-semibold text-primary-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+              >
+                Add it on Property &rarr;
+              </button>
+            </div>
+          )}
           {resultsInPlan.length > 0 && (
             <section className="mb-5">
               <p className="mb-2.5 text-xs text-[var(--color-neutral-500)]">
-                {searchResults.length} {searchResults.length === 1 ? "task" : "tasks"}
+                {resultsInPlan.length} {resultsInPlan.length === 1 ? "task" : "tasks"} in your plan
               </p>
               <div className="flex flex-col gap-2">
                 {resultsInPlan.map((task) =>
@@ -809,7 +841,31 @@ export default function TasksPage() {
               </div>
             </section>
           )}
-          {searchResults.length === 0 && (
+          {nearResults.length > 0 && (
+            <section className="mb-5">
+              <p className="mb-2.5 text-xs text-[var(--color-neutral-500)]">
+                No exact match for &ldquo;{query.trim()}&rdquo;. Close matches:
+              </p>
+              <div className="flex flex-col gap-2">
+                {nearResults.map((task) =>
+                  task.dismissedAt
+                    ? renderDismissedRow(task)
+                    : renderTaskRow(task, task.isActive ? getStatusGroup(task, today) : "completed")
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setAddPrefill(query.trim());
+                  setAddOpen(true);
+                }}
+                className="mt-3 text-sm font-semibold text-primary-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+              >
+                None of these? Add &ldquo;{query.trim()}&rdquo; as a task
+              </button>
+            </section>
+          )}
+          {searchResults.length === 0 && nearResults.length === 0 && (
             <EmptyState
               icon={<Search className="h-8 w-8" />}
               title={`No tasks match “${query.trim()}”`}

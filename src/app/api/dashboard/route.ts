@@ -64,17 +64,17 @@ export const GET = apiHandler(async ({ user, request }) => {
     (t) => t.nextDueDate >= today && t.nextDueDate <= weekFromNow
   );
 
-  // Focus: the top 3 actionable tasks — overdue first, then due soon;
-  // safety priority first within each group, then by date.
-  const safetyFirstThenDate = (
-    a: (typeof tasks)[number],
-    b: (typeof tasks)[number]
-  ) =>
-    (a.priority === "safety" ? 0 : 1) - (b.priority === "safety" ? 0 : 1) ||
-    a.nextDueDate.localeCompare(b.nextDueDate);
+  // Focus: the top 3 actionable tasks — overdue first (safety first), then
+  // due soon by date (safety first only within the same day).
+  type T = (typeof tasks)[number];
+  const safetyRank = (t: T) => (t.priority === "safety" ? 0 : 1);
+  const safetyFirstThenDate = (a: T, b: T) =>
+    safetyRank(a) - safetyRank(b) || a.nextDueDate.localeCompare(b.nextDueDate);
+  const dateThenSafety = (a: T, b: T) =>
+    a.nextDueDate.localeCompare(b.nextDueDate) || safetyRank(a) - safetyRank(b);
   const focus = [
     ...[...overdueTasks].sort(safetyFirstThenDate),
-    ...[...upcomingTasks].sort(safetyFirstThenDate),
+    ...[...upcomingTasks].sort(dateThenSafety),
   ]
     .slice(0, 3)
     .map((t) => ({

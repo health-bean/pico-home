@@ -245,6 +245,7 @@ export function TaskDetailDialog({
                   suffix={task.lastCompletedBy ? ` · by ${task.lastCompletedBy}` : ""}
                   max={formatDay(new Date())}
                   editable={task.isActive}
+                  hint="Corrects the date only — it won’t count as done. To log it, use Complete."
                   onSave={(v) => onSaveDates(task.id, { lastCompletedDate: v })}
                 />
               </div>
@@ -366,7 +367,7 @@ export function TaskDetailDialog({
                     <button
                       type="button"
                       onClick={() => setDoneEarlier(true)}
-                      className="self-start rounded px-1 text-xs font-semibold text-primary-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="-my-1 inline-flex min-h-11 items-center self-start rounded px-1 text-sm font-semibold text-primary-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       Did it on another day?
                     </button>
@@ -481,9 +482,12 @@ function InlineDateField({
   suffix = "",
   max,
   editable,
+  hint,
   onSave,
 }: {
   label: string;
+  /** Shown under the field while editing. */
+  hint?: string;
   value: string | null;
   emptyText?: string;
   suffix?: string;
@@ -531,8 +535,9 @@ function InlineDateField({
     setEditing(false);
   };
 
-  const display = value ? longDate(value) : emptyText;
+  const display = value ? (value === formatDay(new Date()) ? "Today" : longDate(value)) : emptyText;
   const id = `inline-${label.toLowerCase().replace(/\s+/g, "-")}`;
+  const hintId = `${id}-hint`;
 
   return (
     <div>
@@ -540,11 +545,13 @@ function InlineDateField({
         {label}
       </label>
       {editing ? (
+        <>
         <input
           ref={inputRef}
           id={id}
           type="date"
           data-own-escape
+          aria-describedby={hintId}
           value={draft}
           max={max}
           disabled={saving}
@@ -570,6 +577,10 @@ function InlineDateField({
           }}
           className="-mx-1 block h-5 w-[calc(100%+0.5rem)] rounded border-0 bg-white px-1 text-sm font-medium text-foreground outline-none ring-2 ring-ring"
         />
+        <p id={hintId} className="mt-1.5 text-xs text-muted-foreground">
+          {hint ? `${hint} ` : ""}Picking a date saves it; Esc cancels.
+        </p>
+        </>
       ) : editable ? (
         <button
           type="button"
