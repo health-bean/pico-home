@@ -15,6 +15,8 @@ import {
   Refrigerator,
   Wind,
   Fence,
+  Search,
+  X,
 } from "lucide-react";
 import {
   Button,
@@ -40,6 +42,7 @@ import { TaskDetailDialog } from "./task-detail-dialog";
 import { AddTaskDialog } from "./add-task-dialog";
 import { groupBySubgroup } from "@/lib/tasks/grouping";
 import { formatDay } from "@/lib/tasks/date-edit";
+import { searchTasks } from "@/lib/tasks/search";
 
 const shortDate = (day: string) =>
   new Date(day + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -72,6 +75,8 @@ export default function TasksPage() {
   const [filter, setFilter] = useState<FilterKey>("this_week");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [addPrefill, setAddPrefill] = useState("");
+  const [query, setQuery] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   // Appliance group awaiting confirm because it contains a safety task
@@ -432,6 +437,16 @@ export default function TasksPage() {
 
   completedTasks.sort(byDate);
 
+  // Search looks across every task, whatever filter is selected.
+  const searching = query.trim().length > 0;
+  const searchResults = searching
+    ? searchTasks(tasks, query, (t) =>
+        `${getCategoryLabel(t.category)} ${t.subgroup ? SUBGROUP_LABELS[t.subgroup] ?? "" : ""}`
+      )
+    : [];
+  const resultsInPlan = searchResults.filter((t) => !t.dismissedAt);
+  const resultsRemoved = searchResults.filter((t) => t.dismissedAt);
+
   // Auto-expand urgent categories on mount
   useEffect(() => {
     if (activeTasks.length === 0) return;
@@ -501,6 +516,27 @@ export default function TasksPage() {
           <ChevronRight className="w-4 h-4 text-[var(--color-neutral-300)] shrink-0" />
         </button>
       </div>
+    );
+  }
+
+  // A task that's been taken off the plan: tap to put it back.
+  function renderDismissedRow(task: Task) {
+    return (
+<button
+                  key={task.id}
+                  onClick={() => restoreTask(task.id)}
+                  disabled={actionLoading === task.id}
+                  className={`w-full bg-white rounded-2xl border border-[var(--color-neutral-200)] p-3.5 flex items-center gap-3 text-left hover:bg-[var(--color-neutral-50)] transition-all ${
+                    actionLoading === task.id ? "opacity-30 scale-95" : ""
+                  }`}
+                >
+                  <div className="w-1 h-8 rounded-full shrink-0 bg-[var(--color-neutral-200)]" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-[var(--color-neutral-900)] truncate">{task.name}</p>
+                    <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">{getCategoryLabel(task.category)}</p>
+                  </div>
+                  <span className="text-xs font-medium text-[var(--color-primary-700)] shrink-0">Restore</span>
+                </button>
     );
   }
 
@@ -720,6 +756,76 @@ export default function TasksPage() {
         </button>
       </div>
 
+      {/* Search */}
+      <div className="relative mb-4">
+        <Search
+          aria-hidden="true"
+          className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-neutral-500)]"
+        />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setQuery("");
+          }}
+          placeholder="Search tasks"
+          aria-label="Search tasks"
+          className="w-full rounded-xl border border-[var(--color-neutral-200)] bg-white py-2.5 pl-10 pr-10 text-sm text-[var(--color-neutral-900)] placeholder:text-[var(--color-neutral-500)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-search-cancel-button]:hidden"
+        />
+        {searching && (
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            aria-label="Clear search"
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-[var(--color-neutral-500)] hover:text-[var(--color-neutral-900)]"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+      {searching ? (
+        <div aria-live="polite">
+          {resultsInPlan.length > 0 && (
+            <section className="mb-5">
+              <p className="mb-2.5 text-xs text-[var(--color-neutral-500)]">
+                {searchResults.length} {searchResults.length === 1 ? "task" : "tasks"}
+              </p>
+              <div className="flex flex-col gap-2">
+                {resultsInPlan.map((task) =>
+                  renderTaskRow(task, task.isActive ? getStatusGroup(task, today) : "completed")
+                )}
+              </div>
+            </section>
+          )}
+          {resultsRemoved.length > 0 && (
+            <section className="mb-5">
+              <h2 className="text-xs font-bold uppercase tracking-widest mb-2.5 text-[var(--color-neutral-500)]">
+                Not in your plan
+              </h2>
+              <div className="flex flex-col gap-2">
+                {resultsRemoved.map((task) => renderDismissedRow(task))}
+              </div>
+            </section>
+          )}
+          {searchResults.length === 0 && (
+            <EmptyState
+              icon={<Search className="h-8 w-8" />}
+              title={`No tasks match “${query.trim()}”`}
+              description="You can add it as your own task."
+              action={{
+                label: "Add it as a task",
+                onClick: () => {
+                  setAddPrefill(query.trim());
+                  setAddOpen(true);
+                },
+              }}
+            />
+          )}
+        </div>
+      ) : (
+      <>
       {/* Filter pills */}
       <div className="mb-6 -mx-4 px-4 overflow-x-auto">
         <div className="flex gap-2 pb-1">
@@ -774,23 +880,7 @@ export default function TasksPage() {
             </h2>
             <p className="text-xs text-muted-foreground mb-3">Tasks you marked as not relevant. Tap to restore.</p>
             <div className="flex flex-col gap-2">
-              {dismissedTasks.map((task) => (
-                <button
-                  key={task.id}
-                  onClick={() => restoreTask(task.id)}
-                  disabled={actionLoading === task.id}
-                  className={`w-full bg-white rounded-2xl border border-[var(--color-neutral-200)] p-3.5 flex items-center gap-3 text-left hover:bg-[var(--color-neutral-50)] transition-all ${
-                    actionLoading === task.id ? "opacity-30 scale-95" : ""
-                  }`}
-                >
-                  <div className="w-1 h-8 rounded-full shrink-0 bg-[var(--color-neutral-200)]" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-[var(--color-neutral-900)] truncate">{task.name}</p>
-                    <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">{getCategoryLabel(task.category)}</p>
-                  </div>
-                  <span className="text-xs font-medium text-[var(--color-primary-700)] shrink-0">Restore</span>
-                </button>
-              ))}
+              {dismissedTasks.map((task) => renderDismissedRow(task))}
             </div>
           </section>
         )}
@@ -800,6 +890,8 @@ export default function TasksPage() {
         {filter === "completed" && completedTasks.length === 0 && <EmptyState icon={<Check className="h-8 w-8" />} title="No completed tasks" description="You haven't completed any tasks yet." />}
         {filter === "dismissed" && dismissedTasks.length === 0 && <EmptyState icon={<Check className="h-8 w-8" />} title="No dismissed tasks" description="You haven't dismissed any tasks." />}
       </div>
+      </>
+      )}
 
       {/* Task Detail Dialog */}
       <TaskDetailDialog
@@ -819,8 +911,13 @@ export default function TasksPage() {
 
       {/* Add Task Dialog */}
       <AddTaskDialog
+        key={addOpen ? `open-${addPrefill}` : "closed"}
+        initialName={addPrefill}
         open={addOpen}
-        onClose={() => setAddOpen(false)}
+        onClose={() => {
+          setAddOpen(false);
+          setAddPrefill("");
+        }}
         onTaskAdded={fetchTasks}
       />
     </div>

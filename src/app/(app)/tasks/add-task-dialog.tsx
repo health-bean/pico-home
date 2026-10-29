@@ -15,12 +15,14 @@ interface AddTaskDialogProps {
   open: boolean;
   onClose: () => void;
   onTaskAdded: () => void;
+  /** Pre-fills the name (e.g. from a search with no results). */
+  initialName?: string;
 }
 
-export function AddTaskDialog({ open, onClose, onTaskAdded }: AddTaskDialogProps) {
+export function AddTaskDialog({ open, onClose, onTaskAdded, initialName = "" }: AddTaskDialogProps) {
   const { toast } = useToast();
 
-  const [newName, setNewName] = useState("");
+  const [newName, setNewName] = useState(initialName);
   const [newCategory, setNewCategory] = useState("heating_cooling");
   const [newPriority, setNewPriority] = useState("prevent_damage");
   const [newFreqValue, setNewFreqValue] = useState<number>(1);
