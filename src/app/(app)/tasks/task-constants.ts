@@ -173,8 +173,8 @@ export const SUBGROUP_LABELS: Record<string, string> = {
 export const FLAT_CATEGORIES = new Set<string>();
 
 export const priorityLabels: Record<string, string> = {
-  safety: "Critical",
-  prevent_damage: "Preventive",
+  safety: "Safety",
+  prevent_damage: "Prevention",
   efficiency: "Efficiency",
   cosmetic: "Cosmetic",
 };

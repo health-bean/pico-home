@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useState, useEffect, useSyncExternalStore } from "react";
+import { usePathname } from "next/navigation";
+import { Bell } from "lucide-react";
 import { BottomNav } from "./bottom-nav";
 import { ToastProvider, Button } from "@/components/ui";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
@@ -67,8 +69,28 @@ function HomeSwitcher() {
   );
 }
 
+/**
+ * Shown only on the dashboard, and only when push reminders are on in
+ * Settings but this device hasn't been allowed to show them yet — so it
+ * never contradicts Settings or follows you onto every page.
+ */
 function NotificationBanner() {
+  const pathname = usePathname();
   const { supported, permission, subscribe } = usePushNotifications();
+  const [pushOn, setPushOn] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/settings")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((p) => {
+        if (!cancelled) setPushOn(p ? p.pushEnabled !== false : false);
+      })
+      .catch(() => !cancelled && setPushOn(false));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const isDismissedFromStorage = useSyncExternalStore(
     (cb) => { window.addEventListener("storage", cb); return () => window.removeEventListener("storage", cb); },
     () => localStorage.getItem("pico-notif-dismissed") === "true",
@@ -77,7 +99,14 @@ function NotificationBanner() {
   const [dismissed, setDismissed] = useState(false);
   const effectiveDismissed = dismissed || isDismissedFromStorage;
 
-  if (!supported || permission === "granted" || permission === "denied" || effectiveDismissed) {
+  if (
+    pathname !== "/dashboard" ||
+    !pushOn ||
+    !supported ||
+    permission === "granted" ||
+    permission === "denied" ||
+    effectiveDismissed
+  ) {
     return null;
   }
 
@@ -89,15 +118,15 @@ function NotificationBanner() {
   return (
     <div className="mx-auto max-w-lg px-4 pt-4">
       <div className="flex items-center gap-3 rounded-xl border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] p-3">
-        <span className="text-xl">🔔</span>
+        <Bell aria-hidden="true" className="h-5 w-5 shrink-0 text-[var(--color-primary-700)]" />
         <div className="flex-1">
-          <p className="text-sm font-medium text-foreground">Enable reminders?</p>
+          <p className="text-sm font-medium text-foreground">Reminders are on, but not on this device</p>
           <p className="text-xs text-muted-foreground">
-            Get notified when maintenance tasks are due.
+            Allow notifications here to get them when tasks are due.
           </p>
         </div>
         <Button size="sm" onClick={subscribe}>
-          Enable
+          Turn on
         </Button>
         <button
           onClick={handleDismiss}

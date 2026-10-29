@@ -14,7 +14,6 @@ import {
 import {
   type Task,
   getCategoryLabel,
-  categoryBadgeVariant,
   priorityLabels,
   formatFrequency,
 } from "./task-constants";
@@ -197,12 +196,6 @@ export function TaskDetailDialog({
 
               <div className="flex flex-wrap gap-2">
                 <Badge
-                  variant={categoryBadgeVariant[task.category] || "default"}
-                  size="md"
-                >
-                  {getCategoryLabel(task.category)}
-                </Badge>
-                <Badge
                   variant={
                     task.priority === "safety"
                       ? "danger"
@@ -214,7 +207,7 @@ export function TaskDetailDialog({
                   }
                   size="md"
                 >
-                  {priorityLabels[task.priority] || task.priority} Priority
+                  {priorityLabels[task.priority] || task.priority}
                 </Badge>
               </div>
 

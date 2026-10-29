@@ -44,7 +44,7 @@ export function dashboardUrgency(
   }
   if (diff === 0) return { level: "today", label: "Today" };
   if (diff === 1) return { level: "upcoming", label: "Tomorrow" };
-  return { level: "upcoming", label: "Soon" };
+  return { level: "upcoming", label: "Due soon" };
 }
 
 /**

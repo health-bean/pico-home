@@ -165,11 +165,11 @@ function ScorePlaceholder() {
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-lg font-extrabold text-stone-400">...</span>
+            <span className="text-lg font-extrabold text-[var(--color-neutral-400)]">...</span>
           </div>
         </div>
         <div className="flex flex-1 flex-col gap-1">
-          <p className="text-[15px] font-bold text-stone-900">Your score is building...</p>
+          <p className="text-[15px] font-bold text-[var(--color-neutral-900)]">Your score is building...</p>
           <p className="text-xs text-[var(--color-neutral-500)] leading-relaxed">
             As tasks come due and you complete them, your maintenance score will appear here.
           </p>
@@ -316,7 +316,7 @@ export default function DashboardPage() {
         <p className="text-sm font-medium text-[var(--color-neutral-500)]">
           {greeting}
         </p>
-        <h1 className="text-2xl font-extrabold tracking-tight text-stone-900">
+        <h1 className="text-2xl font-extrabold tracking-tight text-[var(--color-neutral-900)]">
           {data.home.name}
         </h1>
       </div>
@@ -343,8 +343,8 @@ export default function DashboardPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <h3 className="text-[15px] font-bold text-stone-900 mb-2">Welcome to Pico Home!</h3>
-          <p className="text-xs text-stone-600 leading-relaxed mb-3">
+          <h3 className="text-[15px] font-bold text-[var(--color-neutral-900)] mb-2">Welcome to Pico Home!</h3>
+          <p className="text-xs text-[var(--color-neutral-600)] leading-relaxed mb-3">
             {data.memberRole === "member" ? (
               <>You&apos;ve been added to <strong>{data.home.name}</strong>. Anything on this list is shared — check something off and everyone sees it.</>
             ) : (
@@ -352,22 +352,22 @@ export default function DashboardPage() {
             )}
           </p>
           {data.memberRole !== "member" && (
-          <ul className="space-y-1.5 text-xs text-stone-600">
+          <ul className="space-y-1.5 text-xs text-[var(--color-neutral-600)]">
             <li className="flex items-center gap-2">
               <span className="text-[var(--color-primary-700)] font-bold">1.</span>
-              <Link href="/tasks" className="underline underline-offset-2 hover:text-stone-900">
+              <Link href="/tasks" className="underline underline-offset-2 hover:text-[var(--color-neutral-900)]">
                 Mark tasks you&apos;ve already done with the date you last did them
               </Link>
             </li>
             <li className="flex items-center gap-2">
               <span className="text-[var(--color-primary-700)] font-bold">2.</span>
-              <Link href="/home-profile" className="underline underline-offset-2 hover:text-stone-900">
+              <Link href="/home-profile" className="underline underline-offset-2 hover:text-[var(--color-neutral-900)]">
                 Add any systems or appliances we missed from your home profile
               </Link>
             </li>
             <li className="flex items-center gap-2">
               <span className="text-[var(--color-primary-700)] font-bold">3.</span>
-              <Link href="/settings" className="underline underline-offset-2 hover:text-stone-900">
+              <Link href="/settings" className="underline underline-offset-2 hover:text-[var(--color-neutral-900)]">
                 Set up notifications so you never miss a task
               </Link>
             </li>
@@ -431,7 +431,7 @@ export default function DashboardPage() {
                 </svg>
                 {/* Center text overlay */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-3xl font-extrabold text-stone-900">
+                  <span className="text-3xl font-extrabold text-[var(--color-neutral-900)]">
                     {score.overall}
                   </span>
                   <span className="text-xs font-semibold text-[var(--color-neutral-500)]">
@@ -442,7 +442,7 @@ export default function DashboardPage() {
 
               {/* Category breakdown */}
               <div className="flex flex-1 flex-col gap-1">
-                <p className="text-[15px] font-bold text-stone-900 mb-2">
+                <p className="text-[15px] font-bold text-[var(--color-neutral-900)] mb-2">
                   {isDebut
                     ? "Every home starts somewhere — start with your starter tasks."
                     : score.overall < 60 && data.focus[0]
@@ -468,7 +468,7 @@ export default function DashboardPage() {
       {/* ---- Needs Attention ---- */}
       {needsAttention.length > 0 && (
         <section>
-          <h2 className="mb-3 text-[15px] font-bold text-stone-900">
+          <h2 className="mb-3 text-[15px] font-bold text-[var(--color-neutral-900)]">
             Needs Attention
           </h2>
           <div className="space-y-3">
@@ -522,7 +522,7 @@ export default function DashboardPage() {
                     className="flex flex-1 min-w-0 items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-stone-900 truncate">
+                      <p className="text-sm font-semibold text-[var(--color-neutral-900)] truncate">
                         {task.name}
                       </p>
                       <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">
@@ -553,14 +553,14 @@ export default function DashboardPage() {
       {/* Empty state when nothing needs attention */}
       {needsAttention.length === 0 && (
         <div className="rounded-2xl border border-[var(--color-neutral-200)] bg-white p-8 text-center">
-          <CheckCircle2 className="mx-auto h-8 w-8 text-green-500 mb-2" />
-          <p className="text-sm font-semibold text-stone-900">
+          <CheckCircle2 className="mx-auto h-8 w-8 text-[var(--color-success-600)] mb-2" />
+          <p className="text-sm font-semibold text-[var(--color-neutral-900)]">
             {score ? "All caught up!" : "You're all set for now"}
           </p>
           <p className="text-xs text-[var(--color-neutral-500)] mt-1">
             {score
               ? "No tasks need your attention right now."
-              : "We'll let you know when your first tasks are due."}
+              : "Your first tasks will show up here as they come due."}
           </p>
         </div>
       )}
@@ -570,7 +570,7 @@ export default function DashboardPage() {
         <span className="text-[11px] font-semibold uppercase text-[var(--color-neutral-500)]">
           Done this month
         </span>
-        <span className="text-2xl font-extrabold text-stone-900">{completedCount}</span>
+        <span className="text-2xl font-extrabold text-[var(--color-neutral-900)]">{completedCount}</span>
       </div>
 
       {/* ---- View All Tasks Link ---- */}

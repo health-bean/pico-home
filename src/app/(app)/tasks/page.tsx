@@ -595,7 +595,7 @@ export default function TasksPage() {
           className="w-full flex items-center gap-2.5 px-1 py-2"
         >
           <IconComponent className="w-4 h-4 text-[var(--color-neutral-500)] shrink-0" />
-          <span className="text-[13px] font-bold text-stone-900 flex-1 text-left">{label}</span>
+          <span className="text-[13px] font-bold text-[var(--color-neutral-900)] flex-1 text-left">{label}</span>
           {overdueInCat > 0 && (
             <span className="inline-flex items-center justify-center rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-[var(--color-danger-700)]">
               {overdueInCat} overdue
@@ -629,7 +629,7 @@ export default function TasksPage() {
                 return (
                   <div key={sg} className="flex flex-col gap-2">
                     <div className="flex items-center gap-2 px-1 pt-2">
-                      <span className="text-[12px] font-bold text-stone-700">{sgLabel}</span>
+                      <span className="text-[12px] font-bold text-[var(--color-neutral-700)]">{sgLabel}</span>
                       {sgOverdue > 0 && (
                         <span className="inline-flex items-center justify-center rounded-full bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-danger-700)]">
                           {sgOverdue} overdue
@@ -902,8 +902,8 @@ export default function TasksPage() {
       ) : (
       <>
       {/* Filter pills */}
-      <div className="mb-6 -mx-4 px-4 overflow-x-auto">
-        <div className="flex gap-2 pb-1">
+      <div className="mb-6">
+        <div className="flex flex-wrap gap-2">
           {filterOptions.map((opt) => {
             const isActive = filter === opt.key;
             const count = counts[opt.key];

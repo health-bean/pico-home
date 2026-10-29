@@ -168,7 +168,7 @@ export const MAJOR_SYSTEMS: HomeItemGroup[] = [
     label: "Cooling",
     items: [
       { key: "central-ac", label: "Central AC (cooling only)", icon: "\u2744\uFE0F", type: "appliance", mappedAppliance: "ac_unit" as ApplianceCategory },
-      { key: "heat-pump-cooling", label: "Heat Pump", icon: "\u{1F504}", type: "appliance", mappedAppliance: "heat_pump" as ApplianceCategory },
+      { key: "heat-pump-cooling", label: "Heat Pump (heating and cooling)", icon: "\u{1F504}", type: "appliance", mappedAppliance: "heat_pump" as ApplianceCategory },
       { key: "evap-cooler", label: "Swamp Cooler (cooling only, dry climates)", icon: "\u{1F4A8}", type: "appliance", mappedAppliance: "evap_cooler" as ApplianceCategory },
       { key: "mini-split", label: "Mini-Split (heating and cooling)", icon: "\u{1F32C}\uFE0F", type: "appliance", mappedAppliance: "mini_split" as ApplianceCategory },
     ],

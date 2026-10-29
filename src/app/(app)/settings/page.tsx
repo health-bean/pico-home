@@ -68,8 +68,8 @@ function Toggle({
       onClick={() => onChange(!checked)}
       className={`w-11 h-[26px] rounded-full relative cursor-pointer transition-colors ${
         checked
-          ? "bg-[var(--color-primary-500)]"
-          : "bg-[var(--color-neutral-200)]"
+          ? "bg-[var(--color-primary-700)]"
+          : "bg-[var(--color-neutral-300)]"
       } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
     >
       <span

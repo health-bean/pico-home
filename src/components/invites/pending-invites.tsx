@@ -75,7 +75,7 @@ export function PendingInvites({
           key={invite.id}
           className="rounded-2xl border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] p-5"
         >
-          <p className="text-[15px] font-bold text-stone-900">
+          <p className="text-[15px] font-bold text-[var(--color-neutral-900)]">
             {invite.inviterName || "Someone"} invited you to join {invite.homeName}
           </p>
           <p className="mt-1 text-xs text-[var(--color-neutral-600)] leading-relaxed">

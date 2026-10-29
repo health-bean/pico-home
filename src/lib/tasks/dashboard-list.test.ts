@@ -17,9 +17,9 @@ describe("dashboardUrgency", () => {
     expect(dashboardUrgency(t("x", "2026-10-12"), TODAY).label).toBe("Today");
   });
 
-  it("labels the rest of the week as Soon", () => {
+  it("labels the rest of the week as Due soon (matches the Tasks filter)", () => {
     const u = dashboardUrgency(t("x", "2026-10-18"), TODAY);
-    expect(u.label).toBe("Soon");
+    expect(u.label).toBe("Due soon");
     expect(u.level).toBe("upcoming");
   });
 

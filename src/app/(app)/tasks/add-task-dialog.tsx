@@ -94,8 +94,8 @@ export function AddTaskDialog({ open, onClose, onTaskAdded, initialName = "" }: 
           value={newPriority}
           onChange={(e) => setNewPriority(e.target.value)}
           options={[
-            { value: "safety", label: "Critical" },
-            { value: "prevent_damage", label: "Preventive" },
+            { value: "safety", label: "Safety" },
+            { value: "prevent_damage", label: "Prevention" },
             { value: "efficiency", label: "Efficiency" },
             { value: "cosmetic", label: "Cosmetic" },
           ]}

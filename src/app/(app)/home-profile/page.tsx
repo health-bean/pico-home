@@ -12,6 +12,15 @@ import {
 } from "@/components/ui";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HouseholdNeedsSection } from "./household-needs";
+import { MAJOR_SYSTEMS } from "@/app/onboarding/shared";
+
+// Stored subtypes are codes ("asphalt-shingle"); show the words people picked.
+const SUBTYPE_LABELS: Record<string, string> = Object.fromEntries(
+  MAJOR_SYSTEMS.flatMap((g) => g.items.flatMap((i) => i.subtypes ?? [])).map((o) => [o.value, o.label])
+);
+const subtypeLabel = (code: string) =>
+  SUBTYPE_LABELS[code] ??
+  code.replace(/[-_]+/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 import { MAX_DOCUMENT_BYTES, MAX_DOCUMENT_LABEL } from "@/lib/documents/limits";
 import {
   FileText,
@@ -145,12 +154,12 @@ const applianceGroupOf = (category: string | null) =>
   APPLIANCE_OPTIONS.find((o) => o.value === category)?.group ?? "Outdoor & Other";
 
 
-const AVATAR_GRADIENTS = [
-  "from-amber-400 to-orange-500",
-  "from-purple-400 to-violet-500",
-  "from-emerald-400 to-teal-500",
-  "from-blue-400 to-indigo-500",
-  "from-rose-400 to-pink-500",
+// Member avatars rotate through token colours dark enough for white initials.
+const AVATAR_COLORS = [
+  "bg-[var(--color-primary-700)]",
+  "bg-[var(--color-success-700)]",
+  "bg-[var(--color-info-700)]",
+  "bg-[var(--color-neutral-700)]",
 ];
 
 const DOC_TYPE_VALUES = [
@@ -347,13 +356,13 @@ function MembersSection() {
           const isLast = idx === allEntries.length - 1;
           if (entry.kind === "member") {
             const m = entry.m;
-            const gradientIdx = entry.i % AVATAR_GRADIENTS.length;
+            const colorIdx = entry.i % AVATAR_COLORS.length;
             return (
               <div
                 key={m.id}
                 className={`flex items-center gap-3 px-4 py-3 ${isLast ? "" : "border-b border-[var(--color-neutral-100)]"}`}
               >
-                <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${AVATAR_GRADIENTS[gradientIdx]} flex items-center justify-center flex-shrink-0`}>
+                <div className={`w-9 h-9 rounded-full ${AVATAR_COLORS[colorIdx]} flex items-center justify-center flex-shrink-0`}>
                   <span className="text-white font-bold text-sm">{getInitial(m.name, m.email)}</span>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -916,8 +925,19 @@ export default function HomeProfilePage() {
                 <div key={s.id} className={`flex items-center gap-2 bg-white border border-[var(--color-neutral-200)] rounded-xl px-3.5 py-2.5 ${isDeleting ? "opacity-30" : ""}`}>
                   <span className="text-[16px]">{info.emoji}</span>
                   <div>
-                    <span className="text-[13px] font-semibold">{info.label}</span>
-                    {s.subtype && s.subtype !== "standard" && <span className="text-[11px] text-[var(--color-neutral-500)] ml-1.5">{s.subtype}</span>}
+                    {(() => {
+                      const sub = s.subtype && s.subtype !== "standard" ? subtypeLabel(s.subtype) : null;
+                      // "Sewer / Septic" + "Septic" → just "Septic"
+                      if (sub && info.label.toLowerCase().includes(sub.toLowerCase())) {
+                        return <span className="text-[13px] font-semibold">{sub}</span>;
+                      }
+                      return (
+                        <>
+                          <span className="text-[13px] font-semibold">{info.label}</span>
+                          {sub && <span className="text-[12px] text-[var(--color-neutral-500)] ml-1.5">{sub}</span>}
+                        </>
+                      );
+                    })()}
                   </div>
                   <button
                     onClick={() => handleDeleteSystem(s.id)}
@@ -1012,9 +1032,11 @@ export default function HomeProfilePage() {
                     >
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold truncate">{a.name}</p>
-                        <p className="text-xs text-[var(--color-neutral-500)]">
-                          {[a.brand, a.model].filter(Boolean).join(" ") || "No details"}
-                        </p>
+                        {(a.brand || a.model) && (
+                          <p className="text-xs text-[var(--color-neutral-500)]">
+                            {[a.brand, a.model].filter(Boolean).join(" ")}
+                          </p>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         {a.warrantyExpiry && (
