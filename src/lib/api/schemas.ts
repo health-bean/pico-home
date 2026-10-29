@@ -75,6 +75,18 @@ export const updateTaskSchema = z.object({
   frequencyValue: z.number().int().min(1).max(365).optional(),
   frequencyUnit: z.enum(frequencyUnitValues).optional(),
   notes: z.string().max(2000).optional().nullable(),
+  nextDueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD").optional(),
+  lastCompletedDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD")
+    .optional()
+    .nullable(),
+  /** Client's local today, so "last done can't be in the future" uses their day. */
+  today: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+});
+
+export const revertLastSchema = z.object({
+  today: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 
 export const inviteSchema = z.object({

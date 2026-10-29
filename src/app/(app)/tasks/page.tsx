@@ -39,6 +39,7 @@ import {
 import { TaskDetailDialog } from "./task-detail-dialog";
 import { AddTaskDialog } from "./add-task-dialog";
 import { groupBySubgroup } from "@/lib/tasks/grouping";
+import { formatDay } from "@/lib/tasks/date-edit";
 
 // ---------------------------------------------------------------------------
 // Category icons (kept here because they reference React/Lucide components)
@@ -197,9 +198,61 @@ export default function TasksPage() {
     [fetchTasks, toast, undoTask]
   );
 
+  // Hand-edit Next Due / Last Completed. Returns whether it saved so the
+  // dialog can stay open on failure.
+  const saveDates = useCallback(
+    async (
+      id: string,
+      dates: { nextDueDate?: string; lastCompletedDate?: string | null },
+      successMessage = "Dates updated"
+    ): Promise<boolean> => {
+      try {
+        const res = await fetch(`/api/tasks/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...dates, today: formatDay(new Date()) }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || "Couldn't update the dates");
+        }
+        await fetchTasks();
+        toast(successMessage, "success");
+        return true;
+      } catch (e) {
+        toast(e instanceof Error ? e.message : "Couldn't update the dates", "error");
+        return false;
+      }
+    },
+    [fetchTasks, toast]
+  );
+
+  // Lasting undo for the most recent Complete/Skip (the toast Undo expires).
+  const revertLast = useCallback(
+    async (id: string) => {
+      setActionLoading(id);
+      try {
+        const res = await fetch(`/api/tasks/${id}/revert-last`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ today: formatDay(new Date()) }),
+        });
+        if (!res.ok) throw new Error("Failed to undo");
+        await fetchTasks();
+        toast("Undone", "info");
+      } catch {
+        toast("Couldn't undo — you can still change the dates by hand", "error");
+      } finally {
+        setActionLoading(null);
+      }
+    },
+    [fetchTasks, toast]
+  );
+
   const snoozeTask = useCallback(
     async (id: string) => {
       setActionLoading(id);
+      const previousDue = tasks.find((t) => t.id === id)?.nextDueDate;
       try {
         const res = await fetch(`/api/tasks/${id}/snooze`, {
           method: "POST",
@@ -208,14 +261,25 @@ export default function TasksPage() {
         });
         if (!res.ok) throw new Error("Failed to snooze task");
         await fetchTasks();
-        toast("Task snoozed for 7 days", "info");
+        toast(
+          "Task snoozed for 7 days",
+          "info",
+          previousDue
+            ? {
+                label: "Undo",
+                onClick: () => {
+                  saveDates(id, { nextDueDate: previousDue }, "Snooze undone");
+                },
+              }
+            : undefined
+        );
       } catch {
         toast("Failed to snooze task", "error");
       } finally {
         setActionLoading(null);
       }
     },
-    [fetchTasks, toast]
+    [fetchTasks, toast, tasks, saveDates]
   );
 
   // Undo for a dismiss: put the tasks back untouched (dismiss never moved
@@ -717,6 +781,8 @@ export default function TasksPage() {
         onComplete={completeTask}
         onSkip={skipTask}
         onSnooze={snoozeTask}
+        onSaveDates={saveDates}
+        onRevertLast={revertLast}
         onDismiss={(id) => dismissTasks([id], "Removed from your plan")}
         actionLoading={actionLoading}
       />

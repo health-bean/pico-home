@@ -15,6 +15,8 @@ export interface Task {
   nextDueDate: string; // "YYYY-MM-DD"
   lastCompletedDate: string | null;
   lastCompletedBy?: string | null;
+  /** Most recent Complete/Skip — revertable from the task dialog. */
+  lastAction?: { type: "completed" | "skipped"; date: string; by: string | null } | null;
   isActive: boolean;
   isCustom: boolean;
   notificationDaysBefore: number;

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getUserHome } from "@/lib/auth/get-user-home";
 import { db } from "@/lib/db";
 import { taskCompletions, taskInstances, users } from "@/lib/db/schema";
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import { apiHandler, parseBody } from "@/lib/api/handler";
 import { parsePagination } from "@/lib/api/pagination";
 import { createTaskSchema } from "@/lib/api/schemas";
@@ -33,28 +33,51 @@ export const GET = apiHandler(async ({ user, request }) => {
     .from(taskInstances)
     .where(eq(taskInstances.homeId, home.id));
 
-  // Attribution: most recent real (non-skipped) completer per task
-  const completerRows = await db
+  // Attribution (most recent real completer) and the last recorded action
+  // (Complete or Skip), which the task dialog can revert at any time.
+  const completionRows = await db
     .select({
       taskInstanceId: taskCompletions.taskInstanceId,
       name: users.name,
       completedAt: taskCompletions.completedAt,
+      createdAt: taskCompletions.createdAt,
+      skipped: taskCompletions.skipped,
     })
     .from(taskCompletions)
-    .innerJoin(users, eq(taskCompletions.completedBy, users.id))
+    .leftJoin(users, eq(taskCompletions.completedBy, users.id))
     .innerJoin(taskInstances, eq(taskCompletions.taskInstanceId, taskInstances.id))
-    .where(and(eq(taskInstances.homeId, home.id), eq(taskCompletions.skipped, false)))
-    .orderBy(desc(taskCompletions.completedAt));
-  const lastCompletedByTask = new Map<string, string | null>();
-  for (const row of completerRows) {
-    if (!lastCompletedByTask.has(row.taskInstanceId)) {
-      lastCompletedByTask.set(row.taskInstanceId, row.name);
+    .where(eq(taskInstances.homeId, home.id));
+
+  const lastCompletedByTask = new Map<string, { name: string | null; at: Date }>();
+  const lastActionByTask = new Map<
+    string,
+    { type: "completed" | "skipped"; date: string; by: string | null; createdAt: Date }
+  >();
+  for (const row of completionRows) {
+    if (!row.skipped) {
+      const prev = lastCompletedByTask.get(row.taskInstanceId);
+      if (!prev || row.completedAt > prev.at) {
+        lastCompletedByTask.set(row.taskInstanceId, { name: row.name, at: row.completedAt });
+      }
+    }
+    const prevAction = lastActionByTask.get(row.taskInstanceId);
+    if (!prevAction || row.createdAt > prevAction.createdAt) {
+      lastActionByTask.set(row.taskInstanceId, {
+        type: row.skipped ? "skipped" : "completed",
+        date: row.completedAt.toISOString().slice(0, 10),
+        by: row.name,
+        createdAt: row.createdAt,
+      });
     }
   }
-  const tasksWithAttribution = tasks.map((t) => ({
-    ...t,
-    lastCompletedBy: lastCompletedByTask.get(t.id) ?? null,
-  }));
+  const tasksWithAttribution = tasks.map((t) => {
+    const action = lastActionByTask.get(t.id);
+    return {
+      ...t,
+      lastCompletedBy: lastCompletedByTask.get(t.id)?.name ?? null,
+      lastAction: action ? { type: action.type, date: action.date, by: action.by } : null,
+    };
+  });
 
   return NextResponse.json({ tasks: tasksWithAttribution, homeId: home.id, total: count, limit, offset });
 });
