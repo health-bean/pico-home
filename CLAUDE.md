@@ -20,6 +20,9 @@ Sentry project).
 - **DB access is API-only**: the browser never reads tables (PostgREST grants
   revoked in 0009). New tables: enable RLS, add no policies, never re-grant
   `anon`/`authenticated`.
+  The `ensure_rls` event trigger (0020) turns RLS on automatically for any
+  new `public` table, hand-made backups included; `npm run db:check-rls`
+  verifies (also runs after `db:push`).
 - **Every route** goes through `apiHandler` (auth, CSRF, rate limit) and
   verifies home membership via `getUserHome`/`authorizeTaskAccess` for any
   client-supplied id.
