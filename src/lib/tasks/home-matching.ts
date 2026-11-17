@@ -10,6 +10,17 @@ const FLAG_KEYS: HealthFlagKey[] = [
   "moldSensitive",
 ];
 
+/** The home's household needs as HealthFlags (all false when unset). */
+export async function loadHealthFlags(homeId: string): Promise<HealthFlags> {
+  const [row] = await db
+    .select()
+    .from(householdHealthFlags)
+    .where(eq(householdHealthFlags.homeId, homeId));
+  const flags: HealthFlags = {};
+  for (const key of FLAG_KEYS) flags[key] = row?.[key] ?? false;
+  return flags;
+}
+
 /** Everything getApplicableTemplates needs about an existing home, loaded from
  *  the DB — for routes that add tasks after onboarding. */
 export async function loadHomeForMatching(home: {

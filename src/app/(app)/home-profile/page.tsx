@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   Button,
   Badge,
@@ -186,13 +187,13 @@ function formatFileSize(bytes: number | null): string {
 function docIcon(type: string | null) {
   switch (type) {
     case "insurance":
-      return { Icon: ShieldCheck, bg: "bg-red-50", color: "text-red-500" };
+      return { Icon: ShieldCheck, bg: "bg-danger-50", color: "text-danger-700" };
     case "warranty":
-      return { Icon: FileText, bg: "bg-green-50", color: "text-green-500" };
+      return { Icon: FileText, bg: "bg-success-50", color: "text-success-700" };
     case "manual":
       return { Icon: BookOpen, bg: "bg-blue-50", color: "text-blue-500" };
     case "receipt":
-      return { Icon: Receipt, bg: "bg-amber-50", color: "text-amber-500" };
+      return { Icon: Receipt, bg: "bg-primary-50", color: "text-primary-700" };
     default:
       return { Icon: FileText, bg: "bg-neutral-100", color: "text-neutral-500" };
   }
@@ -230,6 +231,9 @@ function MembersSection() {
   const [inviteSuccess, setInviteSuccess] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isOwner, setIsOwner] = useState(false);
+  // Shown inline with a retry (like Household needs) rather than a toast:
+  // an empty list after a failed load read as "nobody shares this home".
+  const [membersError, setMembersError] = useState(false);
 
   const fetchMembers = useCallback(async () => {
     try {
@@ -240,10 +244,11 @@ function MembersSection() {
       setInvites(data.invites || []);
       setCurrentUserId(data.currentUserId ?? null);
       setIsOwner(Boolean(data.isOwner));
+      setMembersError(false);
     } catch {
-      toast("Couldn't load your household members — refresh to try again", "error");
+      setMembersError(true);
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     fetchMembers();
@@ -319,7 +324,9 @@ function MembersSection() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error);
       try { localStorage.removeItem("pico-active-home"); } catch { /* storage unavailable */ }
-      window.location.href = "/dashboard";
+      // Full reload on purpose: the active home changed, so drop all client state.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- hard reload intended
+      window.location.assign("/dashboard");
     } catch (err) {
       toast(err instanceof Error && err.message ? err.message : "Couldn't leave the home — try again", "error");
       setLeaving(false);
@@ -347,7 +354,18 @@ function MembersSection() {
       </div>
 
       <div className="bg-white rounded-2xl border border-[var(--color-neutral-200)] overflow-hidden">
-        {allEntries.length === 0 && (
+        {membersError ? (
+          <div className="flex items-center justify-between gap-3 px-4 py-3.5">
+            <p className="text-sm text-[var(--color-neutral-600)]">Couldn&rsquo;t load members.</p>
+            <button
+              type="button"
+              onClick={fetchMembers}
+              className="text-[13px] font-semibold text-[var(--color-primary-700)]"
+            >
+              Try again
+            </button>
+          </div>
+        ) : allEntries.length === 0 && (
           <p className="text-sm text-[var(--color-neutral-500)] text-center py-6">
             Invite family members to share this home&apos;s maintenance plan.
           </p>
@@ -446,6 +464,7 @@ function removedMessage(what: string, tasksRemoved: number): string {
 }
 
 export default function HomeProfilePage() {
+  const router = useRouter();
   const { toast } = useToast();
   const { confirm, confirmDialog } = useConfirm();
   // A failed load must not look like "no home yet" — that sends people to
@@ -472,6 +491,19 @@ export default function HomeProfilePage() {
   const [addApplianceOpen, setAddApplianceOpen] = useState(false);
   const [newApplianceName, setNewApplianceName] = useState("");
   const [newApplianceCategory, setNewApplianceCategory] = useState("");
+
+  // ?add=<type> (from Tasks/search) opens Add Appliance with the type picked.
+  useEffect(() => {
+    const type = new URLSearchParams(window.location.search).get("add");
+    if (!type) return;
+    const option = APPLIANCE_OPTIONS.find((o) => o.value === type);
+    if (option) {
+      setNewApplianceCategory(option.value);
+      setNewApplianceName(option.label);
+      setAddApplianceOpen(true);
+    }
+    router.replace("/home-profile", { scroll: false });
+  }, [router]);
   const [addingAppliance, setAddingAppliance] = useState(false);
   const [deletingApplianceId, setDeletingApplianceId] = useState<string | null>(null);
 
@@ -781,8 +813,8 @@ export default function HomeProfilePage() {
       <div className="mx-auto max-w-lg px-4 py-8">
         <EmptyState
           title="No home set up"
-          description="Complete onboarding to see your home profile."
-          action={{ label: "Get Started", onClick: () => { window.location.href = "/onboarding"; } }}
+          description="Finish setting up your home to see it here."
+          action={{ label: "Get Started", onClick: () => router.push("/onboarding") }}
         />
       </div>
     );
@@ -862,7 +894,7 @@ export default function HomeProfilePage() {
               </h1>
               <button
                 onClick={() => setEditingHome(true)}
-                className="text-[12px] font-semibold text-[var(--color-primary-800)] opacity-70 hover:opacity-100 transition-opacity ml-2 mt-1 shrink-0"
+                className="relative ml-2 mt-1 shrink-0 rounded text-[13px] font-semibold text-[var(--color-primary-800)] hover:underline before:absolute before:-inset-3 before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Edit
               </button>
@@ -1149,7 +1181,7 @@ export default function HomeProfilePage() {
                   <div className="flex items-center gap-2 shrink-0">
                     {c.rating && (
                       <span className="flex items-center gap-0.5 text-xs font-bold text-[var(--color-primary-700)]">
-                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                        <Star className="w-3 h-3 fill-primary-400 text-primary-400" />
                         {c.rating}
                       </span>
                     )}

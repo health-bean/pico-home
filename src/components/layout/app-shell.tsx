@@ -6,6 +6,8 @@ import { Bell } from "lucide-react";
 import { BottomNav } from "./bottom-nav";
 import { ToastProvider, Button } from "@/components/ui";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
+import { useDeviceInstall } from "@/hooks/use-device-install";
+import Link from "next/link";
 import { ActiveHomeCtx, useActiveHomeProvider } from "@/hooks/use-active-home";
 
 function HomeSwitcher() {
@@ -77,6 +79,7 @@ function HomeSwitcher() {
 function NotificationBanner() {
   const pathname = usePathname();
   const { supported, permission, subscribe } = usePushNotifications();
+  const { needsHomeScreen } = useDeviceInstall();
   const [pushOn, setPushOn] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -102,7 +105,7 @@ function NotificationBanner() {
   if (
     pathname !== "/dashboard" ||
     !pushOn ||
-    !supported ||
+    (!supported && !needsHomeScreen) ||
     permission === "granted" ||
     permission === "denied" ||
     effectiveDismissed
@@ -122,12 +125,23 @@ function NotificationBanner() {
         <div className="flex-1">
           <p className="text-sm font-medium text-foreground">Reminders are on, but not on this device</p>
           <p className="text-xs text-muted-foreground">
-            Allow notifications here to get them when tasks are due.
+            {needsHomeScreen
+              ? "On iPhone, add Pico Home to your Home Screen first."
+              : "Allow notifications here to get them when tasks are due."}
           </p>
         </div>
-        <Button size="sm" onClick={subscribe}>
-          Turn on
-        </Button>
+        {needsHomeScreen ? (
+          <Link
+            href="/settings"
+            className="shrink-0 text-sm font-semibold text-[var(--color-primary-700)] hover:underline"
+          >
+            How
+          </Link>
+        ) : (
+          <Button size="sm" onClick={subscribe}>
+            Turn on
+          </Button>
+        )}
         <button
           onClick={handleDismiss}
           className="p-1 text-muted-foreground hover:text-foreground"

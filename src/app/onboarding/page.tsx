@@ -310,7 +310,9 @@ export default function OnboardingPage() {
                       localStorage.setItem("pico-active-home", homeId);
                       localStorage.removeItem(DRAFT_KEY);
                     } catch { /* storage unavailable */ }
-                    window.location.href = "/dashboard";
+                    // Full reload on purpose: switching into the newly joined home.
+                    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- hard reload intended
+                    window.location.assign("/dashboard");
                   }}
                 />
               </ToastProvider>

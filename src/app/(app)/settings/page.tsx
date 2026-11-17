@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { PushDeviceStatus } from "./push-device-status";
 import Link from "next/link";
 import { signOut } from "@/lib/auth/actions";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -211,7 +212,9 @@ export default function SettingsPage() {
       } catch {
         // storage/auth cleanup is best-effort
       }
-      window.location.href = "/";
+      // Full reload on purpose: signed out, so drop all client state.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- hard reload intended
+      window.location.assign("/");
     } catch {
       setDeleting(false);
       setConfirmingDelete(false);
@@ -274,6 +277,7 @@ export default function SettingsPage() {
             />
           }
         />
+        {(prefs?.pushEnabled ?? true) && <PushDeviceStatus />}
         <Row
           label="Weekly digest email"
           toggle={

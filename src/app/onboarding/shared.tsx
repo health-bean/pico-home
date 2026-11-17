@@ -1000,7 +1000,7 @@ export function StepComplete({
           ))}
         </div>
         <p className="mt-5 text-xs text-[var(--color-primary-800)]">
-          You can add appliances, systems, and documents from your home profile anytime.
+          You can add appliances, systems, and documents on the Property page anytime.
         </p>
         <button
           type="button"

@@ -1,3 +1,4 @@
+import { spanInWords } from "@/lib/tasks/relative-days";
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -15,6 +16,11 @@ export interface Task {
   nextDueDate: string; // "YYYY-MM-DD"
   lastCompletedDate: string | null;
   lastCompletedBy?: string | null;
+  /** Pico's recommended schedule for this home, and the household need behind it. */
+  cadence?: {
+    suggested: { frequencyValue: number; frequencyUnit: string };
+    reason: string | null;
+  } | null;
   /** Most recent Complete/Skip — revertable from the task dialog. */
   lastAction?: { type: "completed" | "skipped"; date: string; by: string | null } | null;
   isActive: boolean;
@@ -59,14 +65,14 @@ export function relativeDueLabel(
   const diff = daysBetween(dateStr, today);
   if (diff < -1) {
     return {
-      text: `${Math.abs(diff)} days overdue`,
-      color: "text-red-600",
+      text: `${spanInWords(diff)} overdue`,
+      color: "text-[var(--color-danger-700)]",
     };
   }
   if (diff === -1) {
     return {
       text: "1 day overdue",
-      color: "text-red-600",
+      color: "text-[var(--color-danger-700)]",
     };
   }
   if (diff === 0) {
@@ -81,15 +87,8 @@ export function relativeDueLabel(
       color: "text-[var(--color-primary-700)]",
     };
   }
-  if (diff <= 14) {
-    const weeks = Math.round(diff / 7);
-    return {
-      text: `Due in ${weeks} week${weeks > 1 ? "s" : ""}`,
-      color: "text-[var(--color-neutral-500)]",
-    };
-  }
   return {
-    text: `Due in ${diff} days`,
+    text: `Due in ${spanInWords(diff)}`,
     color: "text-[var(--color-neutral-500)]",
   };
 }

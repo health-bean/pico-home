@@ -40,6 +40,8 @@ interface TaskDetailDialogProps {
     dates: { nextDueDate?: string; lastCompletedDate?: string | null }
   ) => Promise<boolean>;
   onRevertLast: (id: string) => Promise<void>;
+  /** Refetch after a change made inside the dialog. */
+  onChanged: () => Promise<void>;
   onDismiss: (id: string) => Promise<void>;
   actionLoading?: string | null;
 }
@@ -52,6 +54,7 @@ export function TaskDetailDialog({
   onSnooze,
   onSaveDates,
   onRevertLast,
+  onChanged,
   onDismiss,
 }: TaskDetailDialogProps) {
   const { toast } = useToast();
@@ -106,6 +109,30 @@ export function TaskDetailDialog({
       setEditSaving(false);
     }
   }, [task, editName, editFreqValue, editFreqUnit, editNotes, onClose, toast]);
+
+  // Switch to the schedule Pico recommends for this home's needs.
+  const [applyingSuggested, setApplyingSuggested] = useState(false);
+  const applySuggested = useCallback(async () => {
+    if (!task?.cadence) return;
+    setApplyingSuggested(true);
+    try {
+      const res = await fetch(`/api/tasks/${task.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(task.cadence.suggested),
+      });
+      if (!res.ok) throw new Error();
+      await onChanged();
+      toast(
+        `Now ${formatFrequency(task.cadence.suggested.frequencyValue, task.cadence.suggested.frequencyUnit).toLowerCase()}`,
+        "success"
+      );
+    } catch {
+      toast("Couldn\u2019t change how often it repeats \u2014 try again", "error");
+    } finally {
+      setApplyingSuggested(false);
+    }
+  }, [task, onChanged, toast]);
 
   const handleClose = useCallback(() => {
     setEditing(false);
@@ -218,6 +245,30 @@ export function TaskDetailDialog({
                   <p className="text-sm font-medium text-foreground">
                     {formatFrequency(task.frequencyValue, task.frequencyUnit)}
                   </p>
+                  {task.cadence?.reason && (
+                    <p className="mt-0.5 text-xs text-[var(--color-neutral-600)]">{task.cadence.reason}</p>
+                  )}
+                  {task.isActive &&
+                    task.cadence &&
+                    (task.cadence.suggested.frequencyValue !== task.frequencyValue ||
+                      task.cadence.suggested.frequencyUnit !== task.frequencyUnit) && (
+                      <p className="mt-0.5 text-xs text-[var(--color-neutral-600)]">
+                        Pico suggests{" "}
+                        {formatFrequency(
+                          task.cadence.suggested.frequencyValue,
+                          task.cadence.suggested.frequencyUnit
+                        ).toLowerCase()}
+                        {" \u00b7 "}
+                        <button
+                          type="button"
+                          onClick={applySuggested}
+                          disabled={applyingSuggested}
+                          className="font-semibold text-[var(--color-primary-700)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded disabled:opacity-50"
+                        >
+                          Use it
+                        </button>
+                      </p>
+                    )}
                 </div>
                 <InlineDateField
                   label="Next Due"
@@ -340,7 +391,8 @@ export function TaskDetailDialog({
                     </span>
                   </button>
                   {doneEarlier ? (
-                    <div>
+                    // Sits above Complete, so you pick the day and then tap it.
+                    <div className="order-first">
                       <label htmlFor="backdate-date" className="text-xs text-muted-foreground">
                         When did you do it?
                       </label>
@@ -353,7 +405,7 @@ export function TaskDetailDialog({
                         className={dateInputClass}
                       />
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Then tap Complete. The next due date counts from this day.
+                        Then tap Complete below. The next due date counts from this day.
                       </p>
                     </div>
                   ) : (
@@ -571,7 +623,7 @@ function InlineDateField({
           className="-mx-1 block h-5 w-[calc(100%+0.5rem)] rounded border-0 bg-white px-1 text-sm font-medium text-foreground outline-none ring-2 ring-ring"
         />
         <p id={hintId} className="mt-1.5 text-xs text-muted-foreground">
-          {hint ? `${hint} ` : ""}Picking a date saves it; Esc cancels.
+          {hint ? `${hint} ` : ""}Picking a date saves it.
         </p>
         </>
       ) : editable ? (
@@ -584,7 +636,7 @@ function InlineDateField({
             setEditing(true);
           }}
           aria-label={`${label}: ${display || "not set"}. Edit`}
-          className="group -mx-1 flex items-center gap-1.5 rounded px-1 text-left text-sm font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="group relative -mx-1 flex items-center gap-1.5 rounded px-1 text-left text-sm font-medium text-foreground before:absolute before:-inset-y-3 before:inset-x-0 before:content-[''] hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <span>
             {display}

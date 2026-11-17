@@ -201,6 +201,13 @@ export function frequencyToDays(value: number, unit: string): number {
  * NOT the actual condition or safety of the home. This distinction
  * matters for liability. Never present these as safety assessments.
  */
+/**
+ * While any safety task is a day or more late the overall score stays below
+ * this, so the dashboard can't say "Looking good" over an overdue smoke-alarm
+ * test (critique 2026-11-16). Category scores are left as computed.
+ */
+export const SAFETY_OVERDUE_CAP = 69;
+
 export function calculateHomeHealthScore(
   tasks: {
     nextDueDate: Date;
@@ -270,7 +277,12 @@ export function calculateHomeHealthScore(
     weightedSum += scoreTask(task) * weight;
   }
 
-  const overall = totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 100;
+  let overall = totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 100;
+
+  const safetyOverdue = activeTasks.some(
+    (t) => t.priority === "safety" && now.getTime() - new Date(t.nextDueDate).getTime() >= 24 * 60 * 60 * 1000
+  );
+  if (safetyOverdue) overall = Math.min(overall, SAFETY_OVERDUE_CAP);
 
   return { overall, criticalTasks, preventiveCare, homeEfficiency };
 }

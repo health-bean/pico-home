@@ -4,6 +4,7 @@ import {
   getApplicableTemplates,
   getSeasonalTasks,
   calculateHomeHealthScore,
+  SAFETY_OVERDUE_CAP,
   adjustFrequencyForHealth,
   shouldIncludeHealthTemplate,
   snoozeBaseDate,
@@ -351,5 +352,35 @@ describe("shouldIncludeHealthTemplate", () => {
 
   it("returns true when any required flag matches", () => {
     expect(shouldIncludeHealthTemplate(["hasAllergies", "hasPets"], { hasPets: true })).toBe(true);
+  });
+});
+
+// Critique 2026-11-16: 95 "Looking good" with the smoke-detector test 11 days
+// late. Any overdue safety task caps the overall score.
+describe("calculateHomeHealthScore — overdue safety caps the score", () => {
+  const day = 24 * 60 * 60 * 1000;
+  const task = (priority: string, dueInDays: number, freq = 12) => ({
+    nextDueDate: new Date(Date.now() + dueInDays * day),
+    priority,
+    lastCompletedDate: null,
+    isActive: true,
+    frequencyValue: freq,
+    frequencyUnit: "months",
+  });
+  const fine = Array.from({ length: 60 }, () => task("prevent_damage", 30));
+
+  it("caps overall at SAFETY_OVERDUE_CAP while a safety task is a day or more late", () => {
+    const r = calculateHomeHealthScore([...fine, task("safety", -11, 1)]);
+    expect(r.overall).toBeLessThanOrEqual(SAFETY_OVERDUE_CAP);
+  });
+
+  it("doesn't cap for overdue non-safety tasks", () => {
+    const r = calculateHomeHealthScore([...fine, task("efficiency", -11, 1)]);
+    expect(r.overall).toBeGreaterThan(SAFETY_OVERDUE_CAP);
+  });
+
+  it("doesn't cap a safety task due later today or in the future", () => {
+    const r = calculateHomeHealthScore([...fine, task("safety", 3)]);
+    expect(r.overall).toBe(100);
   });
 });

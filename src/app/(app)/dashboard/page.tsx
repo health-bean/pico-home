@@ -9,10 +9,11 @@ import { useToast } from "@/components/ui";
 import { CheckCircle2 } from "lucide-react";
 import { PendingInvites } from "@/components/invites/pending-invites";
 import { formatFrequency } from "../tasks/task-constants";
+import { URGENCY_STYLES, urgencyTone } from "../tasks/urgency-styles";
+import { spanInWords } from "@/lib/tasks/relative-days";
 import {
   dashboardUrgency,
   selectDashboardTasks,
-  type UrgencyLevel,
 } from "@/lib/tasks/dashboard-list";
 
 // ---------------------------------------------------------------------------
@@ -45,6 +46,8 @@ interface DashboardData {
   completionsAllTime: number;
   memberRole: string;
   focus: { id: string; name: string; nextDueDate: string; priority: string }[];
+  /** Most-late overdue safety task — the headline names it. */
+  safetyBlocker?: { id: string; name: string; daysLate: number; others: number } | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -66,31 +69,6 @@ function scoreColorClass(score: number): string {
 
 // Strip/badge styles per urgency level. Overdue colour scales with lateness
 // relative to the task's cycle, not just "past the date".
-const URGENCY_STYLES: Record<
-  UrgencyLevel,
-  { strip: string; badge: string; checkbox: string }
-> = {
-  late: {
-    strip: "bg-[var(--color-danger-500)]",
-    badge: "bg-[var(--color-danger-50)] text-[var(--color-danger-700)]",
-    checkbox: "border-[var(--color-danger-500)] hover:bg-[var(--color-danger-50)]",
-  },
-  slipping: {
-    strip: "bg-[var(--color-warning-500)]",
-    badge: "bg-[var(--color-warning-50)] text-[var(--color-warning-700)]",
-    checkbox: "border-[var(--color-warning-500)] hover:bg-[var(--color-warning-50)]",
-  },
-  today: {
-    strip: "bg-amber-400",
-    badge: "bg-amber-50 text-[var(--color-primary-700)]",
-    checkbox: "border-amber-400 hover:border-amber-500 hover:bg-amber-50",
-  },
-  upcoming: {
-    strip: "bg-neutral-300",
-    badge: "bg-neutral-100 text-neutral-600",
-    checkbox: "border-neutral-300 hover:border-amber-400 hover:bg-amber-50/50",
-  },
-};
 
 function localToday(): string {
   const now = new Date();
@@ -106,17 +84,22 @@ function relativeDueDate(dateStr: string): string {
   const diffMs = due.getTime() - today.getTime();
   const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffDays < 0)
-    return `${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? "" : "s"} overdue`;
+  if (diffDays < 0) return `${spanInWords(diffDays)} overdue`;
   if (diffDays === 0) return "Due today";
   if (diffDays === 1) return "Due tomorrow";
-  return `Due in ${diffDays} days`;
+  return `Due in ${spanInWords(diffDays)}`;
 }
 
 function scoreMessage(score: number): string {
-  if (score > 80) return "Looking good! \ud83c\udf89";
-  if (score >= 60) return "Room to improve \ud83d\udcaa";
-  return "Needs attention \u26a0\ufe0f";
+  if (score > 80) return "Looking good";
+  if (score >= 60) return "Room to improve";
+  return "Needs attention";
+}
+
+function blockerMessage(b: { name: string; daysLate: number; others: number }): string {
+  const late = `${b.daysLate} day${b.daysLate === 1 ? "" : "s"} late`;
+  const more = b.others > 0 ? ` (+${b.others} more safety task${b.others === 1 ? "" : "s"})` : "";
+  return `${b.name} is ${late}${more}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -196,7 +179,7 @@ export default function DashboardPage() {
 
   const fetchDashboard = useCallback(async () => {
     try {
-      const res = await fetch("/api/dashboard");
+      const res = await fetch(`/api/dashboard?today=${localToday()}`);
       if (!res.ok) throw new Error("Failed to load dashboard");
       const json = await res.json();
       setData(json);
@@ -333,7 +316,7 @@ export default function DashboardPage() {
 
       {/* ---- Welcome Nudge Card ---- */}
       {showWelcome && isDebut && (
-        <div className="rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-5 relative">
+        <div className="rounded-2xl border border-primary-200 bg-primary-50 p-5 relative">
           <button
             onClick={dismissWelcome}
             className="absolute top-3 right-3 text-[var(--color-primary-700)] hover:text-[var(--color-primary-900)]"
@@ -362,7 +345,7 @@ export default function DashboardPage() {
             <li className="flex items-center gap-2">
               <span className="text-[var(--color-primary-700)] font-bold">2.</span>
               <Link href="/home-profile" className="underline underline-offset-2 hover:text-[var(--color-neutral-900)]">
-                Add any systems or appliances we missed from your home profile
+                Add any systems or appliances we missed on the Property page
               </Link>
             </li>
             <li className="flex items-center gap-2">
@@ -404,8 +387,8 @@ export default function DashboardPage() {
                 >
                   <defs>
                     <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#f59e0b" />
-                      <stop offset="100%" stopColor="#16a34a" />
+                      <stop offset="0%" stopColor="var(--color-primary-500)" />
+                      <stop offset="100%" stopColor="var(--color-success-600)" />
                     </linearGradient>
                   </defs>
                   <circle
@@ -442,13 +425,22 @@ export default function DashboardPage() {
 
               {/* Category breakdown */}
               <div className="flex flex-1 flex-col gap-1">
-                <p className="text-[15px] font-bold text-[var(--color-neutral-900)] mb-2">
-                  {isDebut
-                    ? "Every home starts somewhere — start with your starter tasks."
-                    : score.overall < 60 && data.focus[0]
-                      ? `Needs attention — start with: ${data.focus[0].name}`
-                      : scoreMessage(score.overall)}
-                </p>
+                {!isDebut && data.safetyBlocker ? (
+                  <Link
+                    href={`/tasks?task=${data.safetyBlocker.id}`}
+                    className="mb-2 block text-[15px] font-bold text-[var(--color-danger-700)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                  >
+                    {blockerMessage(data.safetyBlocker)}
+                  </Link>
+                ) : (
+                  <p className="text-[15px] font-bold text-[var(--color-neutral-900)] mb-2">
+                    {isDebut
+                      ? "Every home starts somewhere — start with your starter tasks."
+                      : score.overall < 60 && data.focus[0]
+                        ? `Needs attention — start with: ${data.focus[0].name}`
+                        : scoreMessage(score.overall)}
+                  </p>
+                )}
                 {categories.map((cat) => (
                   <div key={cat.label} className="flex items-center justify-between">
                     <span className="text-xs text-neutral-500">{cat.label}</span>
@@ -475,7 +467,9 @@ export default function DashboardPage() {
             {shown.map((task) => {
               const isCompleting = completingIds.has(task.id);
               const urgency = dashboardUrgency(task, today);
-              const styles = URGENCY_STYLES[urgency.level];
+              const styles = URGENCY_STYLES[
+                urgencyTone(urgency.level, Math.round((Date.parse(task.nextDueDate) - Date.parse(today)) / 86_400_000))
+              ];
               const dueMeta = relativeDueDate(task.nextDueDate);
 
               return (

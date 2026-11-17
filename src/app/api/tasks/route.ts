@@ -6,6 +6,9 @@ import { asc, eq, sql } from "drizzle-orm";
 import { apiHandler, parseBody } from "@/lib/api/handler";
 import { parsePagination } from "@/lib/api/pagination";
 import { createTaskSchema } from "@/lib/api/schemas";
+import { TASK_TEMPLATES } from "@/lib/tasks/templates";
+import { cadenceInfo } from "@/lib/tasks/cadence";
+import { loadHealthFlags } from "@/lib/tasks/home-matching";
 
 export const GET = apiHandler(async ({ user, request }) => {
   const { searchParams } = new URL(request.url);
@@ -70,12 +73,19 @@ export const GET = apiHandler(async ({ user, request }) => {
       });
     }
   }
+  // Why each task repeats as it does: the schedule Pico recommends for this
+  // home's needs (instances snapshot their template, matched by name).
+  const flags = await loadHealthFlags(home.id);
+  const templateByName = new Map(TASK_TEMPLATES.map((tpl) => [tpl.name, tpl]));
+
   const tasksWithAttribution = tasks.map((t) => {
     const action = lastActionByTask.get(t.id);
+    const tpl = t.isCustom ? undefined : templateByName.get(t.name);
     return {
       ...t,
       lastCompletedBy: lastCompletedByTask.get(t.id)?.name ?? null,
       lastAction: action ? { type: action.type, date: action.date, by: action.by } : null,
+      cadence: tpl ? cadenceInfo(tpl, flags) : null,
     };
   });
 

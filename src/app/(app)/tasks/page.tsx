@@ -42,11 +42,13 @@ import { TaskDetailDialog } from "./task-detail-dialog";
 import { AddTaskDialog } from "./add-task-dialog";
 import { groupBySubgroup } from "@/lib/tasks/grouping";
 import { formatDay } from "@/lib/tasks/date-edit";
+import { dashboardUrgency } from "@/lib/tasks/dashboard-list";
+import { URGENCY_STYLES, urgencyTone } from "./urgency-styles";
 import { searchTasks, closeMatches } from "@/lib/tasks/search";
 
 const APPLIANCE_HINTS = [
-  { pattern: /dehumidif/i, subgroup: "dehumidifier", label: "Portable Dehumidifier" },
-  { pattern: /purifier/i, subgroup: "air_purifier", label: "Portable Air Purifier" },
+  { pattern: /dehumidif/i, subgroup: "dehumidifier", label: "Portable Dehumidifier", type: "dehumidifier" },
+  { pattern: /purifier/i, subgroup: "air_purifier", label: "Portable Air Purifier", type: "air_purifier" },
 ];
 
 const shortDate = (day: string) =>
@@ -425,6 +427,8 @@ export default function TasksPage() {
     const bHasOverdue = tasksByCategory[b].some((t) => daysBetween(t.nextDueDate, today) < 0);
     if (aHasOverdue && !bHasOverdue) return -1;
     if (!aHasOverdue && bHasOverdue) return 1;
+    // Safety leads among categories with overdue tasks, as on the dashboard.
+    if (aHasOverdue && bHasOverdue && (a === "safety") !== (b === "safety")) return a === "safety" ? -1 : 1;
     return getCategoryLabel(a).localeCompare(getCategoryLabel(b));
   });
 
@@ -490,12 +494,16 @@ export default function TasksPage() {
   function renderTaskRow(task: Task, group: StatusGroup | "completed", showCategory = true) {
     const due = relativeDueLabel(task.nextDueDate, today);
     const priLabel = priorityLabels[task.priority] || task.priority;
+    // Same lateness colours as the dashboard (late vs slipping, today, soon).
     const stripColor =
-      group === "overdue"
-        ? "bg-[var(--color-danger-500)]"
-        : group === "due_soon"
-          ? "bg-[var(--color-primary-500)]"
-          : "bg-[var(--color-neutral-200)]";
+      group === "completed"
+        ? "bg-[var(--color-neutral-200)]"
+        : URGENCY_STYLES[
+            urgencyTone(
+              dashboardUrgency(task, formatDay(today)).level,
+              daysBetween(task.nextDueDate, today)
+            )
+          ].strip;
     const isActioning = actionLoading === task.id;
 
     return (
@@ -515,7 +523,7 @@ export default function TasksPage() {
           }}
           disabled={isActioning || !task.isActive}
           aria-label={`Mark "${task.name}" complete`}
-          className="p-2 -m-2 shrink-0 disabled:opacity-50"
+          className="p-[11px] -m-[11px] shrink-0 disabled:opacity-50"
         >
           <span className="w-[22px] h-[22px] rounded-full border-2 border-[var(--color-neutral-300)] flex items-center justify-center hover:border-neutral-400 transition-colors">
             {!task.isActive && <Check className="w-3 h-3 text-neutral-500" />}
@@ -597,12 +605,12 @@ export default function TasksPage() {
           <IconComponent className="w-4 h-4 text-[var(--color-neutral-500)] shrink-0" />
           <span className="text-[13px] font-bold text-[var(--color-neutral-900)] flex-1 text-left">{label}</span>
           {overdueInCat > 0 && (
-            <span className="inline-flex items-center justify-center rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-[var(--color-danger-700)]">
+            <span className="inline-flex items-center justify-center rounded-full bg-[var(--color-danger-50)] px-2 py-0.5 text-[11px] font-bold text-[var(--color-danger-700)]">
               {overdueInCat} overdue
             </span>
           )}
           {overdueInCat === 0 && dueSoonInCat > 0 && (
-            <span className="inline-flex items-center justify-center rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-[var(--color-primary-700)]">
+            <span className="inline-flex items-center justify-center rounded-full bg-[var(--color-primary-50)] px-2 py-0.5 text-[11px] font-bold text-[var(--color-primary-700)]">
               {dueSoonInCat} due soon
             </span>
           )}
@@ -623,7 +631,8 @@ export default function TasksPage() {
                   setConfirmingGroup(null);
                   dismissTasks(
                     sgTasks.map((t) => t.id),
-                    `Removed ${sgTasks.length === 1 ? "the" : `all ${sgTasks.length}`} ${sgLabel} task${sgTasks.length === 1 ? "" : "s"}`
+                    // Say what didn't change: the appliance itself stays on Property.
+                    `Removed ${sgTasks.length === 1 ? "the" : `all ${sgTasks.length}`} ${sgLabel} task${sgTasks.length === 1 ? "" : "s"} — to remove the ${sgLabel.toLowerCase()} itself, use Property`
                   );
                 };
                 return (
@@ -631,7 +640,7 @@ export default function TasksPage() {
                     <div className="flex items-center gap-2 px-1 pt-2">
                       <span className="text-[12px] font-bold text-[var(--color-neutral-700)]">{sgLabel}</span>
                       {sgOverdue > 0 && (
-                        <span className="inline-flex items-center justify-center rounded-full bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-danger-700)]">
+                        <span className="inline-flex items-center justify-center rounded-full bg-[var(--color-danger-50)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--color-danger-700)]">
                           {sgOverdue} overdue
                         </span>
                       )}
@@ -675,7 +684,11 @@ export default function TasksPage() {
                 Have a portable {missingUnits.join(" or ")}?{" "}
                 <button
                   type="button"
-                  onClick={() => router.push("/home-profile")}
+                  onClick={() =>
+                    router.push(
+                      `/home-profile?add=${APPLIANCE_HINTS.find((h) => !tasks.some((t) => t.subgroup === h.subgroup))?.type ?? ""}`
+                    )
+                  }
                   className="font-semibold text-[var(--color-primary-700)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                 >
                   Add it on Property
@@ -748,7 +761,7 @@ export default function TasksPage() {
           <button
             onClick={() => setAddOpen(true)}
             aria-label="Add a task"
-            className="h-9 w-9 flex items-center justify-center bg-[var(--color-neutral-900)] rounded-xl transition-colors"
+            className="h-11 w-11 flex items-center justify-center bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-800)] rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             <Plus className="w-[18px] h-[18px] text-white" />
           </button>
@@ -787,7 +800,7 @@ export default function TasksPage() {
         <button
           onClick={() => setAddOpen(true)}
           aria-label="Add a task"
-          className="h-9 w-9 flex items-center justify-center bg-[var(--color-neutral-900)] rounded-xl transition-colors"
+          className="h-11 w-11 flex items-center justify-center bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-800)] rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           <Plus className="w-[18px] h-[18px] text-white" />
         </button>
@@ -827,15 +840,15 @@ export default function TasksPage() {
           {applianceHint && (
             <div className="mb-4 rounded-2xl border border-[var(--color-neutral-200)] bg-white p-3.5">
               <p className="text-sm text-[var(--color-neutral-900)]">
-                Filter reminders for a {applianceHint.label.toLowerCase()} show up once you add one to your home.
+                Upkeep tasks for a {applianceHint.label.toLowerCase()} show up once you add one to your home.
               </p>
-              <button
-                type="button"
-                onClick={() => router.push("/home-profile")}
-                className="mt-1.5 text-sm font-semibold text-primary-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+              <Button
+                size="sm"
+                className="mt-2.5"
+                onClick={() => router.push(`/home-profile?add=${applianceHint.type}`)}
               >
-                Add it on Property &rarr;
-              </button>
+                Add a {applianceHint.label.toLowerCase()}
+              </Button>
             </div>
           )}
           {resultsInPlan.length > 0 && (
@@ -872,19 +885,21 @@ export default function TasksPage() {
                     : renderTaskRow(task, task.isActive ? getStatusGroup(task, today) : "completed")
                 )}
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setAddPrefill(query.trim());
-                  setAddOpen(true);
-                }}
-                className="mt-3 text-sm font-semibold text-primary-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-              >
-                None of these? Add &ldquo;{query.trim()}&rdquo; as a task
-              </button>
+              {!applianceHint && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAddPrefill(query.trim());
+                    setAddOpen(true);
+                  }}
+                  className="mt-3 text-sm font-semibold text-primary-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                >
+                  None of these? Add &ldquo;{query.trim()}&rdquo; as a task
+                </button>
+              )}
             </section>
           )}
-          {searchResults.length === 0 && nearResults.length === 0 && (
+          {searchResults.length === 0 && nearResults.length === 0 && !applianceHint && (
             <EmptyState
               icon={<Search className="h-8 w-8" />}
               title={`No tasks match “${query.trim()}”`}
@@ -911,7 +926,7 @@ export default function TasksPage() {
               <button
                 key={opt.key}
                 onClick={() => setFilter(opt.key)}
-                className={`shrink-0 rounded-full px-3.5 py-1.5 text-[13px] transition-colors ${
+                className={`relative shrink-0 rounded-full px-3.5 py-1.5 text-[13px] transition-colors before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-[''] ${
                   isActive
                     ? "bg-[var(--color-neutral-900)] text-white font-semibold"
                     : "bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)] font-medium"
@@ -940,7 +955,7 @@ export default function TasksPage() {
         {filter !== "completed" && filter !== "dismissed" && sortedCategories.map((cat) => renderCategorySection(cat, tasksByCategory[cat]))}
         {filter === "completed" && completedTasks.length > 0 && (
           <section className="mb-5">
-            <h2 className="text-xs font-bold uppercase tracking-widest mb-2.5 text-green-600">
+            <h2 className="text-xs font-bold uppercase tracking-widest mb-2.5 text-[var(--color-success-700)]">
               Completed <span className="ml-1.5 text-[11px] font-normal opacity-60">({completedTasks.length})</span>
             </h2>
             <div className="flex flex-col gap-2">
@@ -962,7 +977,7 @@ export default function TasksPage() {
         {filter === "this_week" && overdueCount + dueSoonCount === 0 && <EmptyState icon={<Check className="h-8 w-8" />} title="Nothing this week" description="Nothing is due in the next 7 days." action={{ label: "See all tasks", onClick: () => setFilter("all") }} />}
         {filter === "overdue" && overdueCount === 0 && <EmptyState icon={<Check className="h-8 w-8" />} title="No overdue tasks" description="You're all caught up!" />}
         {filter === "due_soon" && dueSoonCount === 0 && <EmptyState icon={<Check className="h-8 w-8" />} title="Nothing due soon" description="No tasks due in the next 7 days." />}
-        {filter === "completed" && completedTasks.length === 0 && <EmptyState icon={<Check className="h-8 w-8" />} title="No completed tasks" description="You haven't completed any tasks yet." />}
+        {filter === "completed" && completedTasks.length === 0 && <EmptyState icon={<Check className="h-8 w-8" />} title="Nothing finished for good yet" description="Recurring tasks go back into your plan when you complete them. Only one-time tasks end up here." />}
         {filter === "dismissed" && dismissedTasks.length === 0 && <EmptyState icon={<Check className="h-8 w-8" />} title="No dismissed tasks" description="You haven't dismissed any tasks." />}
       </div>
       </>
@@ -980,6 +995,7 @@ export default function TasksPage() {
         onSnooze={snoozeTask}
         onSaveDates={saveDates}
         onRevertLast={revertLast}
+        onChanged={fetchTasks}
         onDismiss={(id) => dismissTasks([id], "Removed from your plan")}
         actionLoading={actionLoading}
       />
