@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Check, SkipForward, Clock, CircleSlash, RotateCcw, Pencil } from "lucide-react";
+import { Check, Clock, CircleSlash, RotateCcw, Pencil, ChevronDown } from "lucide-react";
 import {
   Button,
   Badge,
@@ -74,6 +74,9 @@ export function TaskDetailDialog({
   // Lasting undo of the last Complete/Skip asks once before it acts
   const [confirmingRevert, setConfirmingRevert] = useState(false);
 
+  // "Not now" reveals Snooze / Skip in place
+  const [notNowOpen, setNotNowOpen] = useState(false);
+
   // Safety-task dismissal requires an explicit confirm
   const [confirmingDismiss, setConfirmingDismiss] = useState(false);
 
@@ -83,6 +86,7 @@ export function TaskDetailDialog({
     setDoneEarlier(false);
     setConfirmingDismiss(false);
     setConfirmingRevert(false);
+    setNotNowOpen(false);
   }, [task?.id]);
 
   const saveTaskEdit = useCallback(async () => {
@@ -417,38 +421,58 @@ export function TaskDetailDialog({
                       Did it on another day?
                     </button>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onSkip(task.id);
-                      onClose();
-                    }}
-                    className="w-full flex items-center gap-3 rounded-xl border border-border bg-white px-4 py-3 text-left text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <SkipForward className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <span className="flex-1 min-w-0">
-                      <span className="block text-sm font-semibold">Skip</span>
-                      <span className="block text-xs text-muted-foreground">
-                        Not this time — moves to the next cycle, no credit
+                  {/* Skip and Snooze live behind one "Not now" so Complete
+                      stands alone; the choice opens in place. */}
+                  <div className="rounded-xl border border-border bg-white">
+                    <button
+                      type="button"
+                      aria-expanded={notNowOpen}
+                      onClick={() => setNotNowOpen((v) => !v)}
+                      className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-sm font-semibold">Not now</span>
+                        <span className="block text-xs text-muted-foreground">
+                          Remind me later, or skip this round
+                        </span>
                       </span>
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onSnooze(task.id);
-                      onClose();
-                    }}
-                    className="w-full flex items-center gap-3 rounded-xl border border-border bg-white px-4 py-3 text-left text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <span className="flex-1 min-w-0">
-                      <span className="block text-sm font-semibold">Snooze</span>
-                      <span className="block text-xs text-muted-foreground">
-                        Remind me again in 7 days
-                      </span>
-                    </span>
-                  </button>
+                      <ChevronDown
+                        aria-hidden="true"
+                        className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${notNowOpen ? "rotate-180" : ""}`}
+                      />
+                    </button>
+                    {notNowOpen && (
+                      <div className="flex flex-col border-t border-border">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onSnooze(task.id);
+                            onClose();
+                          }}
+                          className="flex min-h-11 items-center gap-3 px-4 py-2.5 pl-11 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <span className="flex-1 min-w-0">
+                            <span className="block text-sm font-semibold text-foreground">Remind me in a week</span>
+                            <span className="block text-xs text-muted-foreground">Due again 7 days from now</span>
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onSkip(task.id);
+                            onClose();
+                          }}
+                          className="flex min-h-11 items-center gap-3 rounded-b-xl border-t border-border px-4 py-2.5 pl-11 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <span className="flex-1 min-w-0">
+                            <span className="block text-sm font-semibold text-foreground">Skip this round</span>
+                            <span className="block text-xs text-muted-foreground">Moves to the next cycle, no credit</span>
+                          </span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 

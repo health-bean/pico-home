@@ -194,3 +194,9 @@ describe("round 2: no prices, one washer task", () => {
     expect(w).toMatch(/mold/i);
   });
 });
+
+describe("priority realism (2026-11-16)", () => {
+  it("hot tub water testing is routine upkeep (Prevention), not a Safety task that headlines the dashboard", () => {
+    expect(byId("hottub-test-chemicals").priority).toBe("prevent_damage");
+  });
+});

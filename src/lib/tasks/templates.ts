@@ -2530,7 +2530,7 @@ const outdoorsTemplates: TaskTemplate[] = [
     description: "Test pH, alkalinity, and sanitizer levels. Adjust chemicals to maintain safe soaking conditions.",
     category: "outdoors_stuff",
     subgroup: "pool_hot_tub",
-    priority: "safety",
+    priority: "prevent_damage",
     frequencyValue: 1,
     frequencyUnit: "weeks",
     estimatedMinutes: 10,

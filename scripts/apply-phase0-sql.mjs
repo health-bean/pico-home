@@ -30,6 +30,7 @@ const files = [
   "drizzle/0018_tester_feedback_round2.sql",
   "drizzle/0019_drains_under_air_quality.sql",
   "drizzle/0020_rls_guard.sql",
+  "drizzle/0021_hottub_chemistry_prevention.sql",
 ];
 
 for (const file of files) {
